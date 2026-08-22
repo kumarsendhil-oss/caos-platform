@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  backend:
+    name: Backend (ruff + pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      # CG1 — zero warnings before merge
+      - name: Lint (ruff)
+        run: ruff check . --no-fix
+
+      # CG10 — pytest, >=85% coverage, all external services mocked
+      - name: Test (pytest)
+        run: pytest tests/ --cov=app --cov-report=term-missing --cov-fail-under=85
+
+  frontend:
+    name: Frontend (typecheck + build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: services/web/package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Typecheck
+        run: npx tsc -b
+
+      - name: Build
+        run: npx vite build
+
+  # Integration tests (Tally API Explorer, Zoho Books sandbox, WhiteBooks
+  # sandbox) run on merge to main only, per Testing Strategy §2 — not
+  # wired into this workflow yet, since none of those sandbox credentials
+  # exist as repo secrets until the corresponding Dev Readiness Checklist
+  # items (ENV-05, ENV-06, ENV-07) are complete.

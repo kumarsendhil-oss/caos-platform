@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "python \"$env:CLAUDE_PROJECT_DIR/.claude/hooks/post_edit_python.py\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "powershell",
+            "command": "python \"$env:CLAUDE_PROJECT_DIR/.claude/hooks/guard_dangerous_bash.py\""
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,122 @@
+%% CAOS — Practice Automation Platform
+%% ER Diagram 1 of 2 — Core Platform
+%% Covers: Identity & Access (ID), Task Engine (TE), Books Connector (BC — Tally + Zoho adapters, per ADR 0011),
+%%         Email Intake (EI), Document Intake (DI), Bookkeeping/Voucher Entry (BK)
+%% v0.2 — 2026-08-22: TALLY_COMPANY generalized to BOOKS_CONNECTION per ADR 0011
+%%        (multi-backend bookkeeping connector — Tally + Zoho Books adapters)
+
+erDiagram
+    CLIENT ||--o{ TASK : "raises tasks for"
+    CLIENT ||--o{ DOCUMENT : "submits"
+    CLIENT ||--|| BOOKS_CONNECTION : "has one active"
+    CLIENT ||--o{ VENDOR_MAPPING : "has learned"
+    CLIENT ||--o{ EMAIL_SENDER_MAP : "has learned"
+
+    USER ||--o{ TASK : "is assigned"
+    USER ||--o{ AUDIT_EVENT : "performs"
+
+    DOCUMENT ||--|| EXTRACTED_DATA : "produces (1:1)"
+    EXTRACTED_DATA ||--o{ VOUCHER : "generates (1:many)"
+    BOOKS_CONNECTION ||--o{ VOUCHER : "receives posted"
+
+    CLIENT {
+        uuid id PK
+        string legal_name
+        string entity_type
+        string primary_contact
+        string billing_cycle "monthly | quarterly"
+        string status "active | inactive"
+    }
+
+    USER {
+        uuid id PK
+        string name
+        string email
+        string role "proprietor | senior | junior"
+        string status "active | inactive"
+    }
+
+    TASK {
+        uuid id PK
+        string task_type
+        uuid client_id FK
+        uuid assignee_id FK
+        string linked_record_type "polymorphic — see note"
+        string linked_record_id "polymorphic — see note"
+        datetime due_at
+        string status "open | in_progress | completed | escalated"
+        string outcome "approved | rejected | edited"
+        string created_by_agent
+    }
+
+    DOCUMENT {
+        uuid id PK
+        uuid client_id FK
+        string source "email | dropbox"
+        string dropbox_path
+        string doc_type "invoice | bank_statement | gstr_filing | form_26as | other"
+        datetime received_at
+    }
+
+    EXTRACTED_DATA {
+        uuid id PK
+        uuid document_id FK
+        string vendor_name
+        string gstin
+        decimal amount
+        date invoice_date
+        string hsn_code
+        float confidence
+    }
+
+    BOOKS_CONNECTION {
+        uuid id PK
+        uuid client_id FK
+        string books_system "tally | zoho_books — per ADR 0011"
+        string tally_company_name "set when books_system = tally"
+        string tally_connection_path "primary_live | secondary_backup"
+        string zoho_organization_id "set when books_system = zoho_books"
+        string zoho_oauth_status "connected | token_expired | revoked"
+        datetime last_sync_at
+        string sync_health "healthy | stale | error"
+    }
+
+    VOUCHER {
+        uuid id PK
+        uuid extracted_data_id FK
+        uuid books_connection_id FK "was tally_company_id — renamed per ADR 0011"
+        string posting_system "tally_voucher | zoho_bill | zoho_journal"
+        string voucher_type
+        decimal amount
+        decimal cgst
+        decimal sgst
+        decimal igst
+        float confidence
+        string status "staged | approved | rejected | posted"
+        string vendor_gstin "used for CG7 dup-check"
+        string invoice_number "used for CG7 dup-check"
+    }
+
+    VENDOR_MAPPING {
+        uuid id PK
+        uuid client_id FK
+        string vendor_name_raw
+        string tally_ledger_name
+        float match_confidence
+    }
+
+    EMAIL_SENDER_MAP {
+        uuid id PK
+        uuid client_id FK
+        string sender_domain
+        string sender_address
+    }
+
+    AUDIT_EVENT {
+        uuid id PK
+        uuid actor_id FK
+        string event_type "invoice_approved | task_reassigned | override | client_edited | pricing_changed"
+        string subject_id
+        datetime occurred_at
+        string practice_id "supports ADR 0010 base-product model"
+    }

@@ -1,0 +1,144 @@
+%% CAOS — Practice Automation Platform
+%% ER Diagram 2 of 2 — Compliance & Billing
+%% Covers: Reconciliation (RC), Validation/Compliance (VC), TDS/TCS (TDS),
+%%         Bank Reconciliation (BR), Working Paper (WP), Notice/Scrutiny (NT, future),
+%%         Client Communication (CC), Client Profiling & Billing (CB)
+%% CLIENT is the shared anchor entity — fully defined in audit-platform-ER-core.mermaid
+%% Reconstructed v0.1 — 2026-08-22
+
+erDiagram
+    CLIENT ||--o{ RECONCILIATION : "has, per period"
+    CLIENT ||--o{ VALIDATION_CHECK : "has, per period"
+    CLIENT ||--o{ TDS_RECORD : "has, per quarter"
+    CLIENT ||--o{ BANK_ACCOUNT : "has"
+    CLIENT ||--o{ WORKING_PAPER : "has, per engagement"
+    CLIENT ||--o{ NOTICE : "has (future scope)"
+    CLIENT ||--o{ COMMUNICATION : "has logged"
+    CLIENT ||--o{ SERVICE_OVERRIDE : "has"
+    CLIENT ||--o{ INVOICE : "is billed via"
+    CLIENT ||--|| GSP_CREDENTIAL : "authorizes, per GSTIN"
+
+    BANK_ACCOUNT ||--o{ BANK_TXN : "contains"
+    SERVICE_CATALOG ||--o{ SERVICE_OVERRIDE : "overridden by"
+    INVOICE ||--o{ BILLABLE_EVENT : "line-itemizes"
+
+    RECONCILIATION {
+        uuid id PK
+        uuid client_id FK
+        string period
+        int matched_count
+        int mismatched_count
+        decimal itc_claim_total
+        datetime run_at
+    }
+
+    VALIDATION_CHECK {
+        uuid id PK
+        uuid client_id FK
+        string period
+        string check_type "gstr1_vs_3b | hsn | tax_rate | tds_vs_26as"
+        string result "clear | discrepancy"
+        string line_item_ref
+        decimal variance_amount
+    }
+
+    TDS_RECORD {
+        uuid id PK
+        uuid client_id FK
+        string quarter
+        decimal amount_deducted
+        decimal amount_deposited
+        date due_date
+        string status "matched | short_deduction | late_deposit | mismatch"
+    }
+
+    BANK_ACCOUNT {
+        uuid id PK
+        uuid client_id FK
+        string bank_name
+        string account_ref
+    }
+
+    BANK_TXN {
+        uuid id PK
+        uuid bank_account_id FK
+        date txn_date
+        decimal amount
+        string reference
+        string status "matched | unmatched"
+    }
+
+    WORKING_PAPER {
+        uuid id PK
+        uuid client_id FK
+        string engagement_scope
+        string status "draft | finalized"
+        text judgment_notes
+        string dropbox_path "set on finalize"
+    }
+
+    NOTICE {
+        uuid id PK
+        uuid client_id FK
+        string notice_type "GST | IT"
+        date date_received
+        date response_deadline
+        string status "logged | drafted | filed"
+    }
+
+    COMMUNICATION {
+        uuid id PK
+        uuid client_id FK
+        string trigger_type "deadline | pending_doc | query"
+        string channel
+        string status "auto_sent | pending_approval | sent"
+        text body
+        datetime sent_at
+    }
+
+    SERVICE_CATALOG {
+        uuid id PK
+        string category "GST | Income Tax | Accounting | Statutory Audit | Entity Setup | ROC | Corporate Finance | Non-Resident Services"
+        string service_name
+        decimal standard_price
+        string active
+    }
+
+    SERVICE_OVERRIDE {
+        uuid id PK
+        uuid client_id FK
+        uuid catalog_item_id FK
+        decimal override_price
+        string reason
+        uuid approved_by FK
+    }
+
+    INVOICE {
+        uuid id PK
+        uuid client_id FK
+        string billing_period
+        decimal total_amount
+        string status "draft | approved | sent | paid"
+        string gstin
+        string hsn_sac_code
+        decimal cgst
+        decimal sgst
+        decimal igst
+    }
+
+    BILLABLE_EVENT {
+        uuid id PK
+        uuid invoice_id FK
+        uuid task_id FK "nullable — traces CB-04 billing-trigger mapping"
+        string description
+        decimal amount
+    }
+
+    GSP_CREDENTIAL {
+        uuid id PK
+        uuid client_id FK
+        string gstin
+        string gsp_provider "e.g. WhiteBooks"
+        string consent_status "active | expired | pending_otp"
+        date consent_expiry
+    }
