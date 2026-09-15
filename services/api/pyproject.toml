@@ -2,7 +2,7 @@
 name = "caos-api"
 version = "0.1.0"
 description = "CAOS Practice Automation Platform — backend API"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.14"
 dependencies = [
     "fastapi==0.115.0",
     "uvicorn[standard]==0.30.6",
