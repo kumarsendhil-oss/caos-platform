@@ -31,6 +31,13 @@ class Task(Base):
     client_id: Mapped[str | None] = mapped_column(ForeignKey("clients.id"), nullable=True)
     assignee_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
 
+    # TE-02 routing target. A RoutingRule names a *role*, not a person, and
+    # nothing in the PRD or ADR 0005 specifies how to pick one user among
+    # several holding that role — so routing sets the role here and leaves
+    # assignee_id open for a human to claim or for TE-03 reassignment.
+    # Escalation (TE-04) overwrites this with the next role up the ladder.
+    assigned_role: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
+
     linked_record_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     linked_record_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
 
