@@ -16,6 +16,7 @@ class Client(Base):
 
     id: Mapped[str] = uuid_pk()
     legal_name: Mapped[str] = mapped_column(String(255))
+    # e.g. "individual", "partnership", "company", "llp" — validated at intake, not DB-enforced.
     entity_type: Mapped[str] = mapped_column(String(50))
     gstin: Mapped[str | None] = mapped_column(String(15), nullable=True)
     primary_contact: Mapped[str | None] = mapped_column(String(255), nullable=True)
