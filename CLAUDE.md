@@ -131,6 +131,7 @@ npx tsc -b; npx vite build
 
 1. Add the model in `app/models/`, import it in `app/models/__init__.py`.
 2. Trace it back to an ER diagram entity in `docs/audit-platform-ER-*.mermaid` — if it's genuinely new, note that explicitly, don't assume.
+   - **Exception to "diagram and model match exactly": `created_at` is deliberately omitted from the diagrams.** `CLIENT`, `USER`, `TASK` and `ROUTING_RULE` all carry it in the model and none show it in either diagram. That's an established convention, not drift — so don't "fix" it by adding `created_at` to the one entity you're touching, which would make the diagrams inconsistent. Leave it off.
 3. Run `alembic revision --autogenerate -m "..."` and **read the generated migration** before running `alembic upgrade head` — autogenerate gets foreign keys and index names right more often than it gets column types and defaults right.
 4. Add a roundtrip test in `tests/test_models.py`.
 
