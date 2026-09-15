@@ -14,7 +14,7 @@ from app.errors import ApiError
 from app.models.task import Task
 from app.models.user import User
 from app.routers.deps import get_current_user
-from app.task_engine import TaskEngine
+from app.task_engine import InvalidOutcomeError, TaskEngine, TaskNotFoundError
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -83,8 +83,29 @@ async def complete_task(
     session: AsyncSession = Depends(get_session),
     _user: User = Depends(get_current_user),
 ) -> Task:
-    """TE-06 — completing a task requires a recorded outcome."""
+    """
+    TE-06 — completing a task requires a recorded outcome.
+
+    The Task Engine raises domain errors, not HTTP ones — agents call it
+    too, per CG8 — so translating them into responses is this layer's job.
+    Note the not-found case returns exactly what GET /tasks/{id} returns
+    for the same condition; the two used to disagree.
+    """
     engine = TaskEngine(session)
-    task = await engine.complete(task_id, body.outcome)
+    try:
+        task = await engine.complete(task_id, body.outcome)
+    except InvalidOutcomeError as exc:
+        raise ApiError(
+            "invalid_outcome",
+            f"Outcome must be one of: {', '.join(exc.allowed)}.",
+            status_code=422,
+            detail=f"Received {exc.outcome!r}.",
+        ) from exc
+    except TaskNotFoundError as exc:
+        raise ApiError(
+            "task_not_found",
+            "Task does not exist or you don't have access.",
+            status_code=404,
+        ) from exc
     await session.commit()
     return task
