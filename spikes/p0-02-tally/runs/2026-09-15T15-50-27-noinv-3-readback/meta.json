@@ -1,0 +1,11 @@
+{
+  "name": "noinv-3-readback",
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "sent_at_utc": "2026-09-15T15:50:27.889175+00:00",
+  "script": "no_inventory_test.py",
+  "request_bytes": 676,
+  "status": 200,
+  "response_bytes": 25544,
+  "elapsed_ms": 31
+}

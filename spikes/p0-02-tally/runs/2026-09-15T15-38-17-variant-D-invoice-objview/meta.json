@@ -1,0 +1,11 @@
+{
+  "name": "variant-D-invoice-objview",
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "sent_at_utc": "2026-09-15T15:38:17.792983+00:00",
+  "script": "voucher_variants.py",
+  "request_bytes": 1708,
+  "status": 200,
+  "response_bytes": 269,
+  "elapsed_ms": 47
+}
