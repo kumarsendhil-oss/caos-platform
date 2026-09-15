@@ -4,12 +4,6 @@ Task Engine endpoints — GET /tasks, GET /tasks/{id}, POST /tasks/{id}/complete
 Traces to TE-06 (completing a task requires a recorded outcome) and TE-07
 (personal My Tasks view), and to Security Standard §2 for the
 authentication checks.
-
-NOT covered here, deliberately: completing a task with an INVALID outcome,
-and completing a task that does not exist. Both currently return HTTP 500
-rather than a 4xx, because TaskEngine.complete raises ValueError and
-nothing converts it to an ApiError. Writing a test that asserts 500 would
-lock in the bug, so those cases are reported instead — see the PR.
 """
 
 from __future__ import annotations
@@ -234,6 +228,63 @@ async def test_complete_task_requires_an_outcome_field(
     response = await client.post(f"{TASKS}/{task.id}/complete", json={}, headers=auth)
 
     assert response.status_code == 422
+
+
+@pytest.mark.parametrize("outcome", ["marked_done", "", "APPROVED", "done", "approved "])
+async def test_complete_task_rejects_an_invalid_outcome(
+    client: AsyncClient, session: AsyncSession, auth: dict[str, str], outcome: str
+) -> None:
+    """
+    TE-06 / ADR 0005 — an outcome outside the permitted set is refused, and
+    refused as a client error. This previously returned 500, because the
+    engine raised ValueError and nothing translated it.
+
+    Note "APPROVED" and "approved " are included on purpose: near-misses
+    must be rejected rather than silently coerced, or the recorded outcome
+    stops meaning one of exactly three things.
+    """
+    task = await TaskEngine(session).create_task(task_type="needs_review")
+
+    response = await client.post(
+        f"{TASKS}/{task.id}/complete", json={"outcome": outcome}, headers=auth
+    )
+
+    assert response.status_code == 422
+    assert response.json()["error_code"] == "invalid_outcome"
+
+    # And the task must be untouched — a rejected completion is not a partial one.
+    stored = await session.get(Task, task.id)
+    assert stored is not None
+    assert stored.status == "open"
+    assert stored.outcome is None
+
+
+async def test_complete_task_404s_for_a_task_that_does_not_exist(
+    client: AsyncClient, auth: dict[str, str]
+) -> None:
+    """
+    Previously 500. Must match GET /tasks/{id} exactly — the same condition
+    on the same resource should not produce two different answers.
+    """
+    response = await client.post(
+        f"{TASKS}/no-such-task-id/complete", json={"outcome": "approved"}, headers=auth
+    )
+
+    assert response.status_code == 404
+    assert response.json()["error_code"] == "task_not_found"
+
+
+async def test_complete_and_get_agree_on_a_missing_task(
+    client: AsyncClient, auth: dict[str, str]
+) -> None:
+    """The bug was that these two disagreed. Assert they no longer can."""
+    getter = await client.get(f"{TASKS}/ghost", headers=auth)
+    completer = await client.post(
+        f"{TASKS}/ghost/complete", json={"outcome": "approved"}, headers=auth
+    )
+
+    assert getter.status_code == completer.status_code == 404
+    assert getter.json() == completer.json()
 
 
 # --- Security Standard §2 — every endpoint rejects anonymous callers -----

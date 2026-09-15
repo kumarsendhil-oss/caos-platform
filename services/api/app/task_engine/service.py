@@ -16,7 +16,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.routing_rule import RoutingRule
-from app.models.task import Task
+from app.models.task import OUTCOMES, Task
+from app.task_engine.errors import InvalidOutcomeError, TaskNotFoundError
 
 # TE-04 escalation ladder. A RoutingRule carries one role (the routine
 # owner), so the escalation target is derived by moving one step up rather
@@ -99,8 +100,8 @@ class TaskEngine:
 
     async def complete(self, task_id: str, outcome: str) -> Task:
         """TE-06 — completing a task requires a recorded outcome, not just 'marked done'."""
-        if outcome not in ("approved", "rejected", "edited"):
-            raise ValueError(f"Invalid outcome: {outcome!r}")
+        if outcome not in OUTCOMES:
+            raise InvalidOutcomeError(outcome, OUTCOMES)
         task = await self._get(task_id)
         task.status = "completed"
         task.outcome = outcome
@@ -152,5 +153,5 @@ class TaskEngine:
     async def _get(self, task_id: str) -> Task:
         task = await self.session.get(Task, task_id)
         if task is None:
-            raise ValueError(f"Task {task_id} not found")
+            raise TaskNotFoundError(task_id)
         return task
