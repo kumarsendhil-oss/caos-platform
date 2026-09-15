@@ -11,6 +11,7 @@ from app.models.books_connection import BooksConnection
 from app.models.client import Client
 from app.models.document import Document, ExtractedData
 from app.models.email_sender_map import EmailSenderMap
+from app.models.routing_rule import RoutingRule
 from app.models.task import Task
 from app.models.user import User
 from app.models.vendor_mapping import VendorMapping
@@ -23,6 +24,7 @@ __all__ = [
     "Document",
     "ExtractedData",
     "EmailSenderMap",
+    "RoutingRule",
     "Task",
     "User",
     "VendorMapping",

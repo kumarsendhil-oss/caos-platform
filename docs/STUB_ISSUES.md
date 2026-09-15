@@ -33,7 +33,12 @@ only if `gh` is unavailable or unauthenticated at the time.
 | PENDING:004 | `app/books_connector/zoho_adapter.py` — `extract_purchase_register`, `extract_sales_register`, `extract_bank_book` | Implement Zoho Books register extraction via REST API v3 (ZB-02) | `P0-06` (Zoho sandbox spike), `ENV-07` (Zoho developer account + sandbox org) | Filed — #4 |
 | PENDING:005 | `app/books_connector/zoho_adapter.py` — `post_entry` | Implement Zoho Bill/Journal Entry posting (ZB-03) | `P0-06`, `ENV-07` | Filed — #5 |
 | PENDING:006 | `app/books_connector/zoho_adapter.py` — `connection_health` | Implement Zoho OAuth refresh-token validation for connection health (ZB-05) | `P0-06` | Filed — #6 |
-| PENDING:007 | `app/task_engine/service.py` — `escalate_overdue` | Route escalation to a specific role/person via TE-02's routing rule table, instead of only flipping task status | TE-02's routing rule table isn't built yet (Sprint 1-2 deliverable, per Sprint Plan) | Filed — #7 |
+
+## Resolved
+
+| ID | Location | Title | Issue | Outcome |
+|---|---|---|---|---|
+| PENDING:007 | `app/task_engine/service.py` — `escalate_overdue` | Route escalation to a specific role/person via TE-02's routing rule table, instead of only flipping task status | #7 | Resolved — TE-02 routing rules implemented; `RoutingRule` model, migration, and `GET`/`PUT /admin/routing-rules` landed. Escalation now targets the role above the routine owner. |
 
 ## Suggested issue bodies (for when these get filed for real)
 
@@ -56,7 +61,7 @@ only if `gh` is unavailable or unauthenticated at the time.
 > Real health check replacing the current `"unknown"` stub return value.
 > Surfaces on the Admin — Connections screen (TC-05 / ZB-05).
 
-**PENDING:007 — TE-02 routing**
+**PENDING:007 — TE-02 routing** *(resolved — kept for the record)*
 > `escalate_overdue()` currently just sets `status="escalated"` without
 > picking a specific assignee. Needs the routing rule table (task_type →
 > default role/person) from TE-02, plus the `PUT /admin/routing-rules/{task_type}`

@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.errors import ApiError, api_error_handler
-from app.routers import auth, health, tasks
+from app.routers import admin, auth, health, tasks
 
 app = FastAPI(
     title="CAOS API",
@@ -32,3 +32,4 @@ app.add_exception_handler(ApiError, api_error_handler)
 app.include_router(health.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(tasks.router, prefix="/api/v1")
+app.include_router(admin.router, prefix="/api/v1")
