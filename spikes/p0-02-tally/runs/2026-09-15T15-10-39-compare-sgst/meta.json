@@ -1,0 +1,11 @@
+{
+  "name": "compare-sgst",
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "sent_at_utc": "2026-09-15T15:10:39.306926+00:00",
+  "script": "compare_ledgers.py",
+  "request_bytes": 723,
+  "status": 200,
+  "response_bytes": 16805,
+  "elapsed_ms": 0
+}

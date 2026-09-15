@@ -1,0 +1,11 @@
+{
+  "name": "compare-cgst",
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "sent_at_utc": "2026-09-15T15:10:39.255636+00:00",
+  "script": "compare_ledgers.py",
+  "request_bytes": 723,
+  "status": 200,
+  "response_bytes": 16783,
+  "elapsed_ms": 31
+}

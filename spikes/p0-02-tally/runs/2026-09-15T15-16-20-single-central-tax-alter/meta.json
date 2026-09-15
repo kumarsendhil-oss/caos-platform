@@ -1,0 +1,11 @@
+{
+  "name": "single-central-tax-alter",
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "sent_at_utc": "2026-09-15T15:16:20.867742+00:00",
+  "script": "-c",
+  "request_bytes": 642,
+  "status": 200,
+  "response_bytes": 269,
+  "elapsed_ms": 110
+}
