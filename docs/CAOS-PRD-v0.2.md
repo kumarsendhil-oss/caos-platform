@@ -7,6 +7,7 @@
 |---|---|---|
 | v0.1 | 2026-08-16 | Initial draft: 13 modules, requirements, user stories, KPIs. Open questions resolved iteratively: Tally access method, Winman/GSP integration approach, Dropbox API constraints, DPDP/data-residency architecture principle, billing module added. Still open: GSP vendor pricing confirmation, DPDP specifics. Not yet at v1.0 — pending ADRs. |
 | v0.2 | 2026-08-22 | Discovery found ~20-40% of clients maintain books in Zoho Books rather than Tally, requiring full read/write parity (not a reduced experience). §5.3 retitled and restructured from "Tally Connector" to "Books Connector," covering both a Tally adapter and a new Zoho adapter, per ADR 0011. CB-01 gains a `books_system` field. §2's data-sources row and §8's open questions updated accordingly. |
+| v0.2.1 | 2026-09-15 | BK-04 reworded per **ADR 0011 Amendment 1**. The P0-06 Zoho spike found that Tally and Zoho model GST incompatibly — Tally takes explicit CGST/SGST/IGST ledger lines, Zoho takes a per-line tax reference and computes the split itself — so `DraftEntry` now carries tax determinants (taxable amount, tax rate, place of supply, supplier state) and each adapter derives its own backend's representation. BK-04 previously assigned the split to the Bookkeeping Agent, which is no longer where it happens. This also widens BK-01's extraction scope: place of supply and supplier state are two new fields to read off the invoice, and absent or unreadable values route through the Task Engine like any other low-confidence extraction rather than being guessed. |
 
 ## 1. Executive Summary
 
@@ -159,7 +160,7 @@ Flagged directly by the customer as the area with the most automation need — t
 - BK-01 Extract line items from intake documents: vendor, date, amount, GST, HSN
 - BK-02 Fuzzy-match vendor/customer name to an existing ledger (Tally or Zoho Books, per the client's configured `books_system`)
 - BK-03 No match found → create a task for new-ledger creation rather than auto-creating
-- BK-04 Generate a draft entry with correct CGST/SGST/IGST split — a Tally voucher or a Zoho Bill/Journal Entry depending on the client's backend
+- BK-04 Generate a draft entry carrying the tax *determinants* — taxable amount, tax rate, place of supply, and supplier state — rather than a computed tax split. The Books Connector adapter derives its own backend's representation from these: a Tally voucher with its CGST/SGST/IGST ledger split, or a Zoho Bill/Journal Entry with a tax-rate reference, depending on the client's backend. Per ADR 0011 Amendment 1
 - BK-05 Confidence scoring: high-confidence entries auto-stage, low-confidence ones are flagged for review
 - BK-06 Staff review/approval screen for staged entries before posting
 - BK-07 Approved entries post via the Books Connector — to Tally or Zoho Books, whichever the client uses
