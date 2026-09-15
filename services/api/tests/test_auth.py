@@ -19,25 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.models.user import User
-from app.routers.auth import pwd_context
-
-# The login tests below cannot run in this environment: passlib 1.7.4 cannot
-# drive bcrypt 5.0.0, so pwd_context.hash() AND .verify() both raise
-# ValueError, which means POST /auth/login always 500s. pyproject pins
-# passlib but not bcrypt, so a fresh `pip install -e ".[dev]"` reproduces it —
-# including in CI. They are written and skip-marked rather than deleted so
-# they run the moment the dependency is fixed. See the PR for detail.
-_BCRYPT_BROKEN = True
-try:
-    pwd_context.hash("probe")
-    _BCRYPT_BROKEN = False
-except Exception:  # noqa: BLE001 — any failure here means hashing is unusable
-    pass
-
-requires_working_bcrypt = pytest.mark.skipif(
-    _BCRYPT_BROKEN,
-    reason="passlib 1.7.4 is incompatible with bcrypt 5.0.0 — login cannot run",
-)
+from app.security import hash_password
 
 LOGIN = "/api/v1/auth/login"
 # Any authenticated endpoint works for exercising deps.py's rejection paths.
@@ -53,7 +35,7 @@ async def user(session: AsyncSession) -> User:
         name="Senior Staff",
         email="senior@example.com",
         role="senior",
-        hashed_password=pwd_context.hash(PASSWORD),
+        hashed_password=hash_password(PASSWORD),
     )
     session.add(u)
     await session.flush()
@@ -72,7 +54,6 @@ def _token(sub: str, *, expires_in_hours: float = 8) -> str:
 # --- login ---------------------------------------------------------------
 
 
-@requires_working_bcrypt
 async def test_login_returns_token_expiry_and_user(
     client: AsyncClient, user: User
 ) -> None:
@@ -105,7 +86,6 @@ async def test_login_returns_token_expiry_and_user(
     assert "hashed_password" not in body["user"]
 
 
-@requires_working_bcrypt
 async def test_login_issues_a_token_that_actually_works(
     client: AsyncClient, user: User
 ) -> None:
@@ -117,13 +97,11 @@ async def test_login_issues_a_token_that_actually_works(
     assert response.status_code == 200
 
 
-@requires_working_bcrypt
 async def test_wrong_password_is_rejected(client: AsyncClient, user: User) -> None:
     response = await client.post(LOGIN, json={"email": user.email, "password": "wrong"})
     assert response.status_code == 401
 
 
-@requires_working_bcrypt
 async def test_unknown_email_is_rejected(client: AsyncClient, user: User) -> None:
     response = await client.post(
         LOGIN, json={"email": "nobody@example.com", "password": PASSWORD}
@@ -131,7 +109,6 @@ async def test_unknown_email_is_rejected(client: AsyncClient, user: User) -> Non
     assert response.status_code == 401
 
 
-@requires_working_bcrypt
 async def test_failed_login_does_not_reveal_whether_the_account_exists(
     client: AsyncClient, user: User
 ) -> None:
