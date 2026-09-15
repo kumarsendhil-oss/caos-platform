@@ -29,15 +29,32 @@ class LedgerLine:
 
 @dataclass(frozen=True)
 class DraftEntry:
-    """A staged, approved entry ready to post — a Tally voucher or a Zoho Bill/Journal Entry."""
+    """
+    A staged, approved entry ready to post — a Tally voucher or a Zoho Bill/Journal Entry.
+
+    Per ADR 0011 Amendment 1, this carries tax *determinants* rather than
+    computed tax amounts. Each adapter derives what its own backend needs:
+    TallyAdapter computes the CGST/SGST/IGST split from tax_rate plus the
+    two state codes and selects the tax ledger names; ZohoAdapter resolves
+    tax_rate to a per-organization tax_id. Deriving at the edge keeps the
+    shared shape backend-neutral and avoids the lossy amounts-to-rate
+    round-trip (two rate configurations can yield the same rupee amount).
+
+    LIMITATION — mixed-rate invoices. A single tax_rate assumes exactly one
+    rate per entry. Real invoices can carry several rates across line items,
+    and this shape does not represent that. It is explicitly deferred per
+    the amendment's Open section, to be reconsidered when line-item-level
+    extraction is built. Do not work around it by averaging rates or by
+    silently splitting one invoice into multiple entries.
+    """
 
     vendor_gstin: str | None
     invoice_number: str
-    invoice_date: str
-    amount: Decimal
-    cgst: Decimal
-    sgst: Decimal
-    igst: Decimal
+    invoice_date: str  # ISO 8601 date
+    taxable_amount: Decimal  # pre-tax line total
+    tax_rate: Decimal  # percent, e.g. Decimal("18") for 18%
+    place_of_supply: str  # state code, e.g. "TN"
+    supplier_state: str  # state code, for intra- vs inter-state determination
     ledger_name: str
 
 
@@ -75,6 +92,11 @@ class BooksConnector(ABC):
         CG7's duplicate-prevention check runs BEFORE this is called, in
         the Bookkeeping Agent service layer — this method assumes the
         caller has already verified no matching entry exists.
+
+        Per ADR 0011 Amendment 1, DraftEntry carries tax determinants, not
+        computed amounts: deriving the backend's tax representation from
+        tax_rate, place_of_supply and supplier_state is this method's
+        responsibility, not the caller's.
         """
 
     @abstractmethod

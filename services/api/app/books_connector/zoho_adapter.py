@@ -57,7 +57,13 @@ class ZohoAdapter(BooksConnector):
         self._require_configured()
         # STUB(#5): POST a Bill or Journal Entry via Zoho's API.
         # CG7's duplicate-check has already run by the time this is
-        # called. See docs/STUB_ISSUES.md.
+        # called. Per ADR 0011 Amendment 1, resolve entry.tax_rate to this
+        # organization's tax_id by direct rate match (cached per org), and
+        # send entry.supplier_state / entry.place_of_supply as source and
+        # destination of supply — Zoho computes the split server-side.
+        # When the org has no tax rate matching entry.tax_rate, raise a
+        # Task Engine exception rather than guessing, per BK-03's
+        # missing-ledger pattern. See docs/STUB_ISSUES.md.
         raise NotImplementedError("STUB(#5) — ZohoAdapter.post_entry")
 
     async def connection_health(self, client_id: str) -> str:
