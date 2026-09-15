@@ -27,3 +27,6 @@ dist/
 # OS
 .DS_Store
 *.tsbuildinfo
+
+# Claude Code hook debug logging (troubleshooting, not for commit)
+.claude/hooks/debug_log.txt

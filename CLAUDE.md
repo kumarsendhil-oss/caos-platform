@@ -67,6 +67,10 @@ with no `STUB(...)` marker on the same line. This is a mechanical
 same-line check, not a guarantee the marker is *meaningful* — still write
 a real description, not just `STUB(PENDING:1): x`.
 
+**The hook only guards `.py` files.** An untracked stub in a `.yml`,
+`.toml`, `.md`, or any other non-Python file under `services/api` passes
+silently — the convention still applies there, but nothing enforces it.
+
 See `docs/STUB_ISSUES.md` for the current list — as of this writing, all
 of the `BooksConnector` adapters' unimplemented methods and the Task
 Engine's not-yet-role-aware escalation.

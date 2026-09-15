@@ -1,4 +1,14 @@
 {
+  "permissions": {
+    "deny": [
+      "Bash(*git*push*--force*)",
+      "Bash(*git*push*-f)",
+      "Bash(*git*push*-f *)",
+      "PowerShell(git push*--force*)",
+      "PowerShell(git push*-f)",
+      "PowerShell(git push*-f *)"
+    ]
+  },
   "hooks": {
     "PostToolUse": [
       {
@@ -6,8 +16,8 @@
         "hooks": [
           {
             "type": "command",
-            "shell": "powershell",
-            "command": "python \"$env:CLAUDE_PROJECT_DIR/.claude/hooks/post_edit_python.py\""
+            "shell": "bash",
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/post_edit_python.py\""
           }
         ]
       }
@@ -18,8 +28,8 @@
         "hooks": [
           {
             "type": "command",
-            "shell": "powershell",
-            "command": "python \"$env:CLAUDE_PROJECT_DIR/.claude/hooks/guard_dangerous_bash.py\""
+            "shell": "bash",
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard_dangerous_bash.py\""
           }
         ]
       }
