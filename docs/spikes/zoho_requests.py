@@ -255,9 +255,13 @@ def create_bill(
     Note the structural difference from Tally: Zoho does NOT want explicit
     CGST/SGST/IGST ledger lines. You attach a tax_id per line item and
     Zoho computes the split itself, deriving intra- vs inter-state from
-    source_of_supply vs destination_of_supply. This is why
-    BooksConnector.DraftEntry's cgst/sgst/igst fields can't map 1:1 here
-    and the adapter has to translate rather than pass through.
+    source_of_supply vs destination_of_supply.
+
+    This finding is what raised ADR 0011 Amendment 1: DraftEntry used to
+    carry cgst/sgst/igst amounts, which could not map 1:1 onto this
+    request. It now carries tax determinants instead (tax_rate,
+    place_of_supply, supplier_state), so the adapter resolves tax_rate to
+    a tax_id by direct match rather than inferring a rate from amounts.
     """
     return Request(
         name="Create bill (post purchase entry)",

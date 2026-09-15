@@ -52,6 +52,12 @@ class TallyAdapter(BooksConnector):
         self._require_configured()
         # STUB(#2): XML voucher import. CG7's duplicate-check has
         # already run by the time this is called — do not re-check here.
+        # Per ADR 0011 Amendment 1 this method owns the tax derivation:
+        # compute the CGST/SGST/IGST split from entry.tax_rate against
+        # entry.taxable_amount, decide intra- vs inter-state by comparing
+        # entry.place_of_supply to entry.supplier_state, and select the
+        # matching tax ledger names. Decimal throughout (CG5) — rounding
+        # on odd rates is the likely bug site, so unit-test it directly.
         # See docs/STUB_ISSUES.md.
         raise NotImplementedError("STUB(#2) — TallyAdapter.post_entry")
 
