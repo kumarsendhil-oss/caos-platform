@@ -75,7 +75,7 @@ class TaskEngine:
 
         Intended to run on a schedule (Celery beat, per ADR 0007).
 
-        STUB(PENDING:007): routing to a specific senior/proprietor by
+        STUB(#7): routing to a specific senior/proprietor by
         task_type is TE-02's routing rule table, not yet built (Sprint
         1-2 deliverable). This currently just flips status so the
         mechanism exists to build tests against. See docs/STUB_ISSUES.md.

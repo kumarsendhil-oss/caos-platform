@@ -40,29 +40,29 @@ class ZohoAdapter(BooksConnector):
 
     async def extract_purchase_register(self, client_id: str, period: str) -> list[LedgerLine]:
         self._require_configured()
-        # STUB(PENDING:004): GET against Zoho Books REST API v3, normalized
+        # STUB(#4): GET against Zoho Books REST API v3, normalized
         # to the same LedgerLine shape TallyAdapter produces (ZB-02). See
         # docs/STUB_ISSUES.md.
-        raise NotImplementedError("STUB(PENDING:004) — ZohoAdapter.extract_purchase_register")
+        raise NotImplementedError("STUB(#4) — ZohoAdapter.extract_purchase_register")
 
     async def extract_sales_register(self, client_id: str, period: str) -> list[LedgerLine]:
         self._require_configured()
-        raise NotImplementedError("STUB(PENDING:004) — ZohoAdapter.extract_sales_register")
+        raise NotImplementedError("STUB(#4) — ZohoAdapter.extract_sales_register")
 
     async def extract_bank_book(self, client_id: str, period: str) -> list[LedgerLine]:
         self._require_configured()
-        raise NotImplementedError("STUB(PENDING:004) — ZohoAdapter.extract_bank_book")
+        raise NotImplementedError("STUB(#4) — ZohoAdapter.extract_bank_book")
 
     async def post_entry(self, client_id: str, entry: DraftEntry) -> PostedEntry:
         self._require_configured()
-        # STUB(PENDING:005): POST a Bill or Journal Entry via Zoho's API.
+        # STUB(#5): POST a Bill or Journal Entry via Zoho's API.
         # CG7's duplicate-check has already run by the time this is
         # called. See docs/STUB_ISSUES.md.
-        raise NotImplementedError("STUB(PENDING:005) — ZohoAdapter.post_entry")
+        raise NotImplementedError("STUB(#5) — ZohoAdapter.post_entry")
 
     async def connection_health(self, client_id: str) -> str:
         if not self.client_id:
             return "error"
-        # STUB(PENDING:006): validate the stored refresh token is still
+        # STUB(#6): validate the stored refresh token is still
         # usable. See docs/STUB_ISSUES.md.
         return "unknown"

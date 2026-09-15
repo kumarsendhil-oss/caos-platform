@@ -35,28 +35,28 @@ class TallyAdapter(BooksConnector):
 
     async def extract_purchase_register(self, client_id: str, period: str) -> list[LedgerLine]:
         self._require_configured()
-        # STUB(PENDING:001): XML-over-HTTP request against TallyPrime API
+        # STUB(#1): XML-over-HTTP request against TallyPrime API
         # Explorer first (TC-01b), then the real Tally Cloud host. See
         # ADR 0001 and docs/STUB_ISSUES.md.
-        raise NotImplementedError("STUB(PENDING:001) — TallyAdapter.extract_purchase_register")
+        raise NotImplementedError("STUB(#1) — TallyAdapter.extract_purchase_register")
 
     async def extract_sales_register(self, client_id: str, period: str) -> list[LedgerLine]:
         self._require_configured()
-        raise NotImplementedError("STUB(PENDING:001) — TallyAdapter.extract_sales_register")
+        raise NotImplementedError("STUB(#1) — TallyAdapter.extract_sales_register")
 
     async def extract_bank_book(self, client_id: str, period: str) -> list[LedgerLine]:
         self._require_configured()
-        raise NotImplementedError("STUB(PENDING:001) — TallyAdapter.extract_bank_book")
+        raise NotImplementedError("STUB(#1) — TallyAdapter.extract_bank_book")
 
     async def post_entry(self, client_id: str, entry: DraftEntry) -> PostedEntry:
         self._require_configured()
-        # STUB(PENDING:002): XML voucher import. CG7's duplicate-check has
+        # STUB(#2): XML voucher import. CG7's duplicate-check has
         # already run by the time this is called — do not re-check here.
         # See docs/STUB_ISSUES.md.
-        raise NotImplementedError("STUB(PENDING:002) — TallyAdapter.post_entry")
+        raise NotImplementedError("STUB(#2) — TallyAdapter.post_entry")
 
     async def connection_health(self, client_id: str) -> str:
         if not self.host:
             return "error"
-        # STUB(PENDING:003): real ping against the Tally Cloud host. See docs/STUB_ISSUES.md.
+        # STUB(#3): real ping against the Tally Cloud host. See docs/STUB_ISSUES.md.
         return "unknown"
