@@ -47,6 +47,13 @@ asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 
 [tool.coverage.run]
+# SQLAlchemy's async layer runs sync DB work inside a greenlet
+# (greenlet_spawn). Without "greenlet" here, coverage stops tracing a
+# coroutine the moment it resumes after `await session.execute(...)`, so
+# every line after the first DB call in a route handler is reported as
+# uncovered even though it ran. "thread" is defensive: a sync `def`
+# endpoint runs in FastAPI's threadpool and would hit the same bug.
+concurrency = ["greenlet", "thread"]
 source = ["app"]
 omit = ["app/practices/*"]
 
