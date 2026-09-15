@@ -1,0 +1,29 @@
+<ENVELOPE>
+  <HEADER>
+    <TALLYREQUEST>Import Data</TALLYREQUEST>
+  </HEADER>
+  <BODY>
+    <IMPORTDATA>
+      <REQUESTDESC>
+        <REPORTNAME>All Masters</REPORTNAME>
+        <STATICVARIABLES>
+          <SVCURRENTCOMPANY>Coastal Test Traders</SVCURRENTCOMPANY>
+        </STATICVARIABLES>
+      </REQUESTDESC>
+      <REQUESTDATA>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="CGST" ACTION="Alter">
+            <NAME>CGST</NAME>
+            <TAXTYPE>GST</TAXTYPE>
+            <GSTDUTYHEAD>CGST</GSTDUTYHEAD>
+          </LEDGER>
+          <LEDGER NAME="SGST" ACTION="Alter">
+            <NAME>SGST</NAME>
+            <TAXTYPE>GST</TAXTYPE>
+            <GSTDUTYHEAD>State Tax</GSTDUTYHEAD>
+          </LEDGER>
+        </TALLYMESSAGE>
+      </REQUESTDATA>
+    </IMPORTDATA>
+  </BODY>
+</ENVELOPE>

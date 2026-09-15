@@ -1,0 +1,11 @@
+{
+  "name": "variants-readback",
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "sent_at_utc": "2026-09-15T15:38:18.076095+00:00",
+  "script": "voucher_variants.py",
+  "request_bytes": 682,
+  "status": 200,
+  "response_bytes": 121799,
+  "elapsed_ms": 31
+}

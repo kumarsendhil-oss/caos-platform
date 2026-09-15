@@ -1,0 +1,11 @@
+{
+  "name": "probe-cgst-read",
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "sent_at_utc": "2026-09-15T15:12:15.628842+00:00",
+  "script": "probe_dutyhead.py",
+  "request_bytes": 723,
+  "status": 200,
+  "response_bytes": 16800,
+  "elapsed_ms": 16
+}
