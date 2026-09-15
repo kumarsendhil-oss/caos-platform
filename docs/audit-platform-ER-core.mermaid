@@ -4,6 +4,9 @@
 %%         Email Intake (EI), Document Intake (DI), Bookkeeping/Voucher Entry (BK)
 %% v0.2 — 2026-08-22: TALLY_COMPANY generalized to BOOKS_CONNECTION per ADR 0011
 %%        (multi-backend bookkeeping connector — Tally + Zoho Books adapters)
+%% v0.2.1 — 2026-09-15: ROUTING_RULE added and TASK gains assigned_role,
+%%        per TE-02 / ADR 0005 (task routing rule table). ROUTING_RULE is a
+%%        genuinely new entity, not a rename of an existing one.
 
 erDiagram
     CLIENT ||--o{ TASK : "raises tasks for"
@@ -14,6 +17,8 @@ erDiagram
 
     USER ||--o{ TASK : "is assigned"
     USER ||--o{ AUDIT_EVENT : "performs"
+
+    ROUTING_RULE ||--o{ TASK : "routes by task_type"
 
     DOCUMENT ||--|| EXTRACTED_DATA : "produces (1:1)"
     EXTRACTED_DATA ||--o{ VOUCHER : "generates (1:many)"
@@ -40,13 +45,21 @@ erDiagram
         uuid id PK
         string task_type
         uuid client_id FK
-        uuid assignee_id FK
+        uuid assignee_id FK "the person, once claimed — TE-03"
+        string assigned_role "proprietor | senior | junior — TE-02 routing target"
         string linked_record_type "polymorphic — see note"
         string linked_record_id "polymorphic — see note"
         datetime due_at
         string status "open | in_progress | completed | escalated"
         string outcome "approved | rejected | edited"
         string created_by_agent
+    }
+
+    ROUTING_RULE {
+        uuid id PK
+        string task_type UK "unique — one rule per task type"
+        string default_role "proprietor | senior | junior"
+        int escalate_after_hours "also supplies a task's default due_at"
     }
 
     DOCUMENT {

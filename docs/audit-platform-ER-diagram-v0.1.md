@@ -10,6 +10,7 @@
 | v0.2 | 2026-08-22 | Per ADR 0011 (multi-backend bookkeeping connector): `TALLY_COMPANY` generalized to `BOOKS_CONNECTION` with a `books_system` field (`tally` \| `zoho_books`), and `VOUCHER` updated to reference it via `books_connection_id` with a `posting_system` field. Reflects ~20-40% of clients maintaining books in Zoho Books rather than Tally, with full read/write parity required. |
 
 **Sources:** `audit-platform-ER-core.mermaid`, `audit-platform-ER-compliance-billing.mermaid`
+| v0.2.1 | 2026-09-15 | `ROUTING_RULE` added to Diagram 1 and `TASK` gains `assigned_role`, per TE-02 / ADR 0005. Routing names a *role* rather than a person: a rule carries `default_role`, and nothing in the PRD or ADR 0005 specifies how to pick one user among several holding that role, so `assigned_role` records the routing target and `assignee_id` stays open until a person claims the task or TE-03 reassigns it. Brings the entity count to 24. |
 
 ## Why two diagrams, not one
 
@@ -27,6 +28,7 @@ This mirrors the PRD's own module grouping (§5) and keeps each diagram traceabl
 | CLIENT | Master client record — anchor entity for the whole system | ID, CB |
 | USER | Staff member (Proprietor / Senior / Junior) | ID-01 |
 | TASK | Every human-touch item any agent raises, per ADR 0005 | TE-01 to TE-09 |
+| ROUTING_RULE | The task-type → default-role assignment table the proprietor edits, per ADR 0005 — configuration, not hardcoded logic | TE-02, TE-04 |
 | DOCUMENT | A file received via email/Dropbox, before extraction | EI, DI-01 to DI-04 |
 | EXTRACTED_DATA | OCR/parsing output from a document (PaddleOCR per ADR 0008) | DI-02, DI-03 |
 | BOOKS_CONNECTION | A client's connection to their bookkeeping system — either a Tally company within the practice's Tally Cloud (or the secondary backup-import path), or an OAuth-connected Zoho Books organization, per ADR 0011 | TC-01 to TC-08, ADR 0011 |
@@ -39,6 +41,7 @@ This mirrors the PRD's own module grouping (§5) and keeps each diagram traceabl
 - `DOCUMENT → EXTRACTED_DATA` is 1:1 — each document produces one extraction result (which may be low-confidence and routed to a task).
 - `EXTRACTED_DATA → VOUCHER` is 1:many — a single document (e.g. a multi-line invoice) can generate multiple draft vouchers.
 - `TASK.assignee_id` references `USER`, but `TASK` itself is not tied to a single entity type — it links to whichever record raised it (document, voucher, reconciliation item, etc.) via a generic polymorphic reference, kept out of this diagram for clarity, since the whole point of the Task Engine (ADR 0005) is that any module can raise one.
+- `TASK.assigned_role` and `TASK.assignee_id` are deliberately separate. `ROUTING_RULE` names a role, so routing sets `assigned_role`; `assignee_id` is populated only once a specific person takes the task or is assigned it (TE-03). Escalation (TE-04) overwrites `assigned_role` with the next role up — junior → senior → proprietor — and leaves `assignee_id` intact, so the audit trail still shows who had been sitting on it.
 - `AUDIT_EVENT.actor_id` references `USER`; `AUDIT_EVENT.subject_id` is a polymorphic reference to whatever record was acted on, mirroring `TASK`'s pattern.
 
 ## Diagram 2 — Compliance & Billing

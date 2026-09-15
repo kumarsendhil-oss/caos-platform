@@ -39,6 +39,16 @@ class RoutingRule(Base):
     default_role: Mapped[str] = mapped_column(String(20))
 
     # Hours from creation before the task is considered overdue (TE-04).
+    #
+    # This works by supplying a task's DEFAULT due_at at creation time, so it
+    # has NO EFFECT on a task created with an explicit due_at — that caller's
+    # date wins and this value is never consulted for it. Escalation itself
+    # only ever compares against due_at.
+    #
+    # TE-04's "passes its due date/threshold" would equally support reading
+    # this as a grace period *after* an explicit due date; it isn't
+    # implemented that way. Changing to that reading means looking the rule up
+    # per task during escalation, not just at creation.
     escalate_after_hours: Mapped[int] = mapped_column(Integer, default=24)
 
     created_at: Mapped[datetime] = created_at_col()
