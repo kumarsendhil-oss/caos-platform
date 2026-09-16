@@ -8,6 +8,18 @@ Phase 0 Tally integration spike (`spikes/p0-02-tally/`), verifying the multi-bac
 
 ## Active work
 
+**Voucher lifecycle live — findings #26, #28; #16 overturned (2026-09-16)**
+- Three authorised mutations against `Coastal Services Ltd`, each with a documentation pre-flight, existence-check read, payload checkpoint and immediate read-back. Artifacts `runs/2026-09-16T09-55-00-*`, `10-05-00-*`, `10-15-00-*`.
+- **`ACTION="Cancel"` works** (#26). Voucher 4 cancelled: stays in the Day Book, `ISCANCELLED: Yes`, **all ledger entries stripped**. The right primitive for BK-07 corrections — it preserves the audit trail that delete destroys.
+- **`ACTION="Delete"` works too, overturning #16** (#28). Voucher 3 deleted, count 5 → 4, **no renumbering** — survivors kept their numbers and `REMOTEID`s. #16's observations stand; its capability claim was wrong. It had identified `TAGNAME`/`TAGVALUE` and declined to test it because `VOUCHERNUMBER` is unreliable as *durable identity* — a sound argument against building on it, wrongly treated as evidence the API rejects it.
+- **Working shape for both:** `TAGNAME="VoucherNumber"` + `TAGVALUE` + `DATE` as **attributes**, date in `dd-Mmm-yyyy` (not the `YYYYMMDD` used for child elements), and a **non-empty body**.
+- **#26's sharpest result: `CANCELLED: 0` accompanied a *successful* cancel**, while `DELETED: 1` was accurate an hour later. Rules 1–3 all describe responses hiding *failure*; this one hides *success*. **No individual counter can be trusted in isolation** — read-back only.
+- **`PENDING:009` REOPENED.** Previously closed as manual-only on the strength of #16. The capability is now proven; **the reset script does not exist** — that is the remaining work. Any such script needs an explicit keep-list: `Coastal Services Ltd` holds #15's evidence voucher.
+- **`PENDING:016` unaffected** — it concerns #22 and *masters*, and #22 itself established that masters and vouchers behave differently on delete.
+- **Flagged, explicitly NOT scheduled:** #22's master-delete crash used `NAME=` addressing rather than the now-proven `TAGNAME`/`TAGVALUE`. It is *possible* that crash was an addressing artifact. Today's results **do not** lower #22's risk, it is blocked on creating a stock item at all, and revisiting needs a fresh session with its own authorisation. Noted in `STUB_ISSUES` as a candidate, not promoted to a row.
+
+**Sandbox state — `Coastal Services Ltd` now holds 4 vouchers:** 1 (#15's edit evidence — do not touch), 2 (untouched plain duplicate, available as a target), 4 (cancelled, marked), 5 (GAP2 marker). `Coastal Test Traders` untouched by this session: 8 vouchers, 1 stock item.
+
 **Financial reports and voucher lifecycle — findings #23–#27 (2026-09-16, investigate session)**
 - Read-only, ~15 requests, no writes, no hangs. Artifacts `runs/2026-09-16T09-30-00-report-reads`.
 - **Four standard reports read cleanly** via `TYPE: DATA`, same envelope as Day Book: `Trial Balance`, `Balance Sheet`, `Profit and Loss` (spelled out — `Profit & Loss` does not exist), `Stock Summary`. They return `DSP*` **display** structures: group-level rollups only, no ledger drill-down, each report its own vocabulary, name/value pairs coupled by document order rather than nesting.

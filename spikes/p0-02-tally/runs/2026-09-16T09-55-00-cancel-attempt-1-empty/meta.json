@@ -1,0 +1,10 @@
+{
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "script": null,
+  "status": 200,
+  "name": "cancel-attempt-1-empty",
+  "sent_at_utc": "2026-09-16T09:55:00+00:00",
+  "elapsed_ms": 73,
+  "note": "First ACTION=Cancel attempt, Coastal Services Ltd voucher 4. Empty VOUCHER element; rejected with LINEERROR 'Cannot process empty object: VOUCHER!' and ERRORS 0 (Rule 2 again). Nothing changed -- see finding #26."
+}

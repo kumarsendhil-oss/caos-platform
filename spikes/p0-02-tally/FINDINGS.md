@@ -577,7 +577,39 @@ sandbox company). Two live `ACTION="Delete"` attempts against
 `Coastal Services Ltd`, read-only on code. Both failed; neither crashed
 anything. Artifacts: `runs/2026-09-16T08-21-*`, `08-22-*`, `08-27-*`.
 
-## 16. Vouchers cannot be deleted through the XML import API — two addressing schemes refused
+## 16. Voucher delete — two addressing schemes refused — CONCLUSION OVERTURNED 2026-09-16
+
+> ### ⚠️ Correction (2026-09-16) — the conclusion in this finding's title was wrong
+>
+> **The observation below stands:** the two addressing schemes tried
+> here (`REMOTEID`+`VCHKEY`, and `MASTERID` as a child element) were
+> both refused, exactly as recorded.
+>
+> **The conclusion drawn from it — that vouchers cannot be deleted
+> through the XML import API — is WRONG.** They can. A delete using
+> `TAGNAME="VoucherNumber"` with a `dd-Mmm-yyyy` attribute date and a
+> non-empty body succeeded cleanly on 2026-09-16: `DELETED: 1`, voucher
+> count 5 → 4, no renumbering, and the financial effect reconciled
+> exactly. See **#28**.
+>
+> **Why this finding got it wrong, stated plainly so it is not
+> repeated.** It *did* identify `TAGNAME`/`TAGVALUE` — see "A third
+> scheme was identified and deliberately not tested" below — and
+> declined to test it on the grounds that it addresses by
+> `VOUCHERNUMBER`, which #14 proved is Tally-assigned and not ours to
+> rely on.
+>
+> **That reasoning was sound about the wrong question.** It is a good
+> argument against *building a durable mechanism* on `VOUCHERNUMBER`.
+> It is not evidence about *whether the API accepts that addressing at
+> all* — and the finding treated the first as settling the second.
+>
+> **The distinction to keep:** "this identifier is unsuitable for our
+> architecture" and "this request shape is rejected by Tally" are
+> independent claims. Conflating them turned a design preference into a
+> false capability limit that stood in this file, in the schema
+> reference and in `PENDING:009` for a day.
+
 
 **Setup.** `Coastal Services Ltd` held 4 vouchers. Voucher 1 is the
 *edited* one from #15 (`ALTERID 5`, amounts `21714`) and was excluded as
@@ -1324,30 +1356,127 @@ silent zero. The caution #13 imposed on constructing requests
 dynamically **applies to `COLLECTION`/TDL, not to `TYPE: DATA` report
 names.** Exploring the rest of Tally's report surface is low-risk.
 
-## 26. `ACTION="Cancel"` is documented and distinct from Delete — a lead against #16
+## 26. `ACTION="Cancel"` works — and the `CANCELLED` counter does not track it
 
-**Documentation only. Not tested. Not attempted this session.**
+Originally written as a documentation-only lead. Tested live on
+2026-09-16 under explicit authorisation. Artifacts:
+`runs/2026-09-16T09-55-00-cancel-attempt-1-empty`,
+`runs/2026-09-16T10-05-00-cancel-attempt-2-success`.
+
+### Documentation, which was right
 
 Tally's help documentation states that deleting removes a voucher
 entirely with no trace, while **cancelling keeps it visible and marks it
-Cancelled**. XML import supports `ACTION="Cancel"`, and Tally's Marked
-Voucher Register includes altered, added and cancelled vouchers while
-excluding deleted ones.
+Cancelled**, and that the Marked Voucher Register includes cancelled but
+not deleted vouchers. Addressing for alter/cancel/delete is by
+`TAGNAME`/`TAGVALUE` **attributes** on `<VOUCHER>` with a mandatory date.
 
-**This explains the `CANCELLED` counter**, present in every import
-response since the first and never accounted for by any finding.
+### Attempt 1 — rejected for being empty
 
-**Why it matters against #16.** That finding concluded vouchers cannot
-be removed through the XML API, having tried two *delete* addressing
-schemes. Cancel was not tried. If it works it would be the first way to
-neutralise a posted voucher — and for a CA practice it is the *correct*
-operation anyway: cancellation preserves the audit trail, which
-deletion by design does not.
+```xml
+<VOUCHER DATE="20260801" TAGNAME="MASTER ID" TAGVALUE="4"
+         ACTION="Cancel" VCHTYPE="Purchase" />
+```
+```
+<LINEERROR>Cannot process 'empty' object: VOUCHER!</LINEERROR>
+<ERRORS>0</ERRORS> <CANCELLED>0</CANCELLED>
+```
 
-**Explicitly untested, and deliberately not attempted.** It is a
-mutation, neither sandbox has a scripted reset (`PENDING:009`), and #22
-established what an unlucky mutation costs. It needs its own
-authorisation and its own probe design — existence-check first, per #22.
+Nothing changed; the read-back was identical. Note `ERRORS: 0` on a
+total failure — **#17's pattern, fourth occurrence.**
+
+**Method note — the minimal-payload trap, second instance.** The element
+was deliberately empty so that nothing could partially land (Rule 1's
+concern). That instinct is correct about partial landing and wrong about
+*reaching the test*: a minimal payload has more ways to be rejected
+outright, and a rejection before the interesting code path teaches
+nothing about it. **#22's stock-item create failed the same way** — on
+`PARENT: Primary`, before `ACTION="Delete"` was ever exercised. Twice in
+one day a probe was defeated by payload shape rather than by the
+question it was asking. **Mirror a documented working example and change
+one variable, rather than stripping to a minimum.**
+
+### Attempt 2 — succeeded
+
+Mirroring Tally's own documented cancel example, changing only company,
+date, voucher number and type:
+
+```xml
+<VOUCHER DATE="01-Aug-2026" TAGNAME="VoucherNumber" TAGVALUE="4"
+         ACTION="Cancel" VCHTYPE="Purchase">
+  <NARRATION>GAP2-CANCEL-PROBE-DO-NOT-USE-AS-EVIDENCE</NARRATION>
+</VOUCHER>
+```
+
+Three things attempt 1 got wrong: the empty body, `TAGNAME="MASTER ID"`
+(unproven spelling), and a `YYYYMMDD` date where the **attribute**
+position takes `dd-Mmm-yyyy`. Every other date in this repo is
+`YYYYMMDD` as a *child element*, and that remains correct there.
+
+**Read-back — voucher 4 after cancel:**
+
+| Field | Before | After |
+|---|---|---|
+| `ISCANCELLED` | `No` | **`Yes`** |
+| `ALTERID` | 4 | **7** (company-wide, per #15) |
+| Ledger entries | 4 | **0** — all stripped |
+| Present in Day Book | yes | **yes** — still 5 vouchers |
+
+Exactly what the documentation described: visible, marked, valueless.
+
+### The `CANCELLED` counter read `0` on a successful cancel
+
+```
+<ALTERED>1</ALTERED>  <CANCELLED>0</CANCELLED>  <ERRORS>0</ERRORS>
+```
+
+**The counter named after the operation did not move. `ALTERED` did.**
+
+**This is a new failure direction and deserves its own weight.** Findings
+#2, #3 and #17 all describe responses that **hide failure** — a discard
+reported as success, an enum silently dropped, `ERRORS: 0` on a total
+failure. This one **hides success**. A caller checking `CANCELLED` — the
+obvious field — concludes the cancel failed, sees no error anywhere, and
+is wrong.
+
+Rule 1's read-back catches it. Nothing else does. And note `DELETED: 1`
+*was* accurate on the delete an hour later (#28) — same session, same
+envelope, one counter truthful and one not. **No rule can be extracted
+about which counters to trust; the answer is none of them, individually.**
+
+The `CANCELLED` counter now has no known trigger. This finding
+originally assumed it corresponded to this operation. It does not.
+
+### Reconciliation confirmed the financial effect
+
+Per #23's method, against `Coastal Services Ltd`'s Trial Balance:
+
+| Figure | After cancel | Expected |
+|---|---|---|
+| Purchase Accounts | `-73,600` | 4 × 18,400 ✅ |
+| Current Liabilities Cr | `86,850` | 21,714 + (3 × 21,712) ✅ |
+| Duties & Taxes Dr | `-13,250` | (4 × 3,312) + 2 ✅ |
+
+**The stray `+2` is a useful control.** It is voucher 1's `21,714` — the
+amount #15's edit test produced. Its presence confirms the reconciliation
+is measuring the right company *and* that #15's evidence voucher was
+undisturbed by this probe, which is the one voucher in that company that
+must not be touched.
+
+### For `TallyAdapter`
+
+Cancel is the right primitive for a void/correction path: it preserves
+the audit trail that deletion destroys, which is what a CA practice
+needs for BK-07 corrections.
+
+Two caveats before it is adapter-ready:
+
+- **Addressing used `TAGNAME="VoucherNumber"`**, which #14 rules out as
+  a durable identifier. It was safe here because the read was seconds
+  old and nothing wrote in between. **`TAGNAME="MASTER ID"` is what an
+  adapter should use, and it is untested** — attempt 1 used it but died
+  on the empty-body error before addressing was exercised.
+- **Success must be confirmed by read-back**, given the counter above.
 
 ## 27. Master type catalogue — 34 types, two documented
 
@@ -1398,3 +1527,123 @@ on observation, which is unusual for this file:
 
 Everything in #23–#25 and #27's catalogue was observed live; only #26 is
 documentation-only, and it says so.
+
+# Round 8 — Voucher lifecycle, live (2026-09-16)
+
+Three authorised mutations against `Coastal Services Ltd`, each with a
+documentation pre-flight, an existence-check read, a payload checkpoint
+and an immediate read-back. Two cancel attempts (#26) and one delete
+(#28). Nothing sent to `Coastal Test Traders`.
+
+## 28. Vouchers CAN be deleted — #16's conclusion overturned
+
+Artifact: `runs/2026-09-16T10-15-00-delete-attempt-success`.
+
+**The payload was #26's proven cancel shape with two changes** —
+`ACTION` `Cancel` → `Delete`, and a different target. One variable of
+interest, per #13's minimum-deviation discipline:
+
+```xml
+<VOUCHER DATE="01-Aug-2026" TAGNAME="VoucherNumber" TAGVALUE="3"
+         ACTION="Delete" VCHTYPE="Purchase">
+  <NARRATION>GAP2-DELETE-PROBE-DO-NOT-USE-AS-EVIDENCE</NARRATION>
+</VOUCHER>
+```
+
+**Response, 112ms, no `LINEERROR`:** `DELETED: 1`, every other counter
+`0`.
+
+### Read-back — voucher 3 is gone, and nothing else moved
+
+**Voucher count 5 → 4.**
+
+| Vch | `MASTERID` | `ALTERID` | `REMOTEID` | |
+|---|---|---|---|---|
+| 1 | 1 | 5 | `...00000001` | unchanged — #15's evidence |
+| 2 | 2 | 2 | `...00000002` | unchanged |
+| ~~3~~ | — | — | — | **deleted** |
+| 4 | 4 | 7 | `...00000004` | cancelled earlier (#26) |
+| 5 | 5 | 6 | `...00000005` | unchanged |
+
+**No renumbering.** Survivors kept their voucher numbers *and* their
+`REMOTEID`s — the sequence has a hole at 3 rather than closing up. This
+matters: a delete does not invalidate identifiers held for other
+vouchers, so a reset loop can delete by number without re-reading
+between iterations.
+
+### Reconciliation — exact
+
+| Trial Balance | After | Expected (vouchers 1, 2, 5 live) |
+|---|---|---|
+| Purchase Accounts | `-55,200` | 3 × 18,400 ✅ |
+| Current Liabilities Cr | `65,138` | 21,714 + 21,712 + 21,712 ✅ |
+| Duties & Taxes Dr | `-9,938` | (3 × 3,312) + 2 ✅ |
+
+Voucher 3 is fully and correctly out of the books.
+
+### `DELETED: 1` was accurate — which proves nothing general
+
+An hour earlier `CANCELLED: 0` accompanied a successful cancel (#26).
+Here `DELETED: 1` accompanied a successful delete. **Same session, same
+envelope, same response shape — one counter truthful, one not.** There
+is no rule here about which counters to trust. The rule remains Rule 1:
+read back.
+
+### Consequences
+
+**`PENDING:009` is no longer blocked on capability.** A scripted sandbox
+reset is now possible — enumerate the Day Book, delete each voucher by
+`TAGNAME="VoucherNumber"`. The capability is proven; **the script does
+not exist**, and that is the remaining work.
+
+**The "every test voucher is permanent, mark them all" discipline was
+stricter than necessary** — though it cost little and the markers remain
+useful. Probe vouchers can now be cleaned up.
+
+**Cancel and delete are different operations with different uses.**
+Delete removes; cancel neutralises while preserving an audit trail
+(#26). For `TallyAdapter`'s BK-07 correction path, **cancel is the
+appropriate primitive** — a CA practice should not be silently removing
+posted vouchers. Delete belongs to test-fixture management, not to
+production book-keeping.
+
+**CG7 is unaffected.** #9 showed Tally does not prevent duplicate
+posting; that is unchanged, and the platform-side duplicate check
+remains necessary.
+
+## Hypothesis, NOT tested — #22's crash may also be an addressing artifact
+
+**This is a hypothesis recorded for a future session. It was not tested
+today, was not authorised today, and is not scheduled.**
+
+#22 crashed TallyPrime with `c0000005` deleting a **stock item that did
+not exist**, addressed as `<STOCKITEM NAME="..." ACTION="Delete" />`.
+Today established that for **vouchers**, `NAME=`-style and child-element
+addressing are both refused while `TAGNAME`/`TAGVALUE` works. #16 and
+#22 therefore share a property: both used addressing now known to be
+wrong for vouchers.
+
+So it is *possible* that master deletion also wants `TAGNAME`/`TAGVALUE`
+against a verifiably-existing target, and that #22's crash was the
+combination of wrong addressing and an absent target rather than a
+fundamental limit.
+
+**Today's good results do not change #22's risk profile, and are not a
+reason to test this now.** Specifically:
+
+- #22's crash is **real and reproduced nothing** — it cost a full
+  application restart, not a clean error.
+- **Masters and vouchers demonstrably behave differently on delete.**
+  A nonexistent *voucher* delete returns `Voucher does not exist!` in
+  0.1s (#16); a nonexistent *master* delete crashes the process (#22).
+  Evidence from the voucher path does not transfer to the master path —
+  that non-transfer is exactly what #22 established.
+- The one condition #22's attempt could not satisfy — a target that
+  actually exists — still cannot be satisfied, because creating a stock
+  item is itself blocked on the stock-group question (#22).
+
+**If revisited, it needs a fresh session, its own authorisation, and its
+own pre-flight** — resolve the parent/stock-group problem, create a
+master, confirm it exists by read, and only then attempt a
+`TAGNAME`-addressed delete. Not formalised as a `STUB_ISSUES` row yet;
+noted there as a candidate.

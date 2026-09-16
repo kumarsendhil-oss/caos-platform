@@ -1,0 +1,10 @@
+{
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "script": null,
+  "status": 200,
+  "name": "cancel-attempt-2-success",
+  "sent_at_utc": "2026-09-16T10:05:00+00:00",
+  "elapsed_ms": 135,
+  "note": "Successful ACTION=Cancel on voucher 4 using TAGNAME=VoucherNumber, dd-Mmm-yyyy attribute date, non-empty body. Response read ALTERED 1 and CANCELLED 0 -- the counter named after the operation did not move. readback.xml is the Day Book proving ISCANCELLED Yes and all ledger entries stripped. See finding #26."
+}
