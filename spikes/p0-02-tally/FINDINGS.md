@@ -642,3 +642,165 @@ for parsing the response more carefully than its counters. Both are
 needed.
 
 Tracked for `TallyAdapter`'s response handling as `PENDING:014`.
+
+# Round 5 — Stock item masters and inventory scope (2026-09-16)
+
+Investigate session against issue #28's remaining half: the
+inventory-bearing voucher shape and BK-01's stock-item mapping gap.
+Starting point was voucher #6 in `Coastal Test Traders` — a stored,
+already-posted `Item Invoice` purchase voucher carrying an
+`ALLINVENTORYENTRIES.LIST`
+(`runs/2026-09-16T02-15-54-voucher-4-readback-after-duplicate`,
+lines 8752–10346). One live call, read-only: a `TYPE>StockItem`
+collection dump, artifact `runs/2026-09-16T08-45-10-stockitem-master-dump`.
+No writes.
+
+## 18. The stock item `Test` is a real master — and near-empty, which is why voucher #6 has no quantity
+
+**Observed.** `Coastal Test Traders` contains exactly **one** stock item:
+
+```xml
+<STOCKITEM NAME="Test" RESERVEDNAME="">
+  <GUID>e0b7ed19-50af-411d-8919-c29f16ad87ae-000000d2</GUID>
+  <PARENT>&#4; Primary</PARENT>
+  <ALTERID> 223</ALTERID>
+```
+
+So voucher #6's `STOCKITEMNAME: Test` resolves to a backing master.
+Tally did **not** create it implicitly on import — the master exists
+independently, with its own GUID under the company's GUID prefix. This
+closes the question left open in `docs/context.md`: the "implicitly
+created on import" possibility is ruled out. `ALTERID 223` against the
+voucher's `ALTERID 6` puts the item far later in the company's
+alteration sequence than the vouchers, consistent with the
+manual-UI-entry reading — but it still does not *prove* provenance, and
+nothing in the artifact records who created it.
+
+**The definition is almost entirely unset:**
+
+| Field | Value |
+|---|---|
+| `BASEUNITS` / `ADDITIONALUNITS` | `<EOT> Not Applicable` — **no unit of measure** |
+| `HSNCODE`, `HSN`, `HSNMASTERNAME`, `HSNCLASSIFICATIONNAME` | empty |
+| `OPENINGBALANCE`, `OPENINGRATE` | empty; `OPENINGVALUE` `0.00` |
+| `DESCRIPTION` | empty |
+| `GSTTYPEOFSUPPLY` | `Goods` |
+| `COSTINGMETHOD` / `VALUATIONMETHOD` | `Default` |
+| `ISBATCHWISEON`, `ISPERISHABLEON`, `IGNOREGODOWNS`, `ISCOSTCENTRESON` | all `No` |
+
+**This explains voucher #6's amount-only line.** That voucher's
+`ACTUALQTY`, `BILLEDQTY`, `RATE` and `GSTITEMUQCUOM` are all
+present-but-empty, with only `AMOUNT: -18400.00` and a
+`BATCHALLOCATIONS.LIST` naming `Main Location` / `Primary Batch`. An
+item with no `BASEUNITS` cannot carry a quantity, so Tally stored the
+line as a value with no quantity or rate.
+
+**Consequence — voucher #6 is the minimum case, not the representative
+one.** It is a valid worked example of the *structural* shape: the
+purchase ledger nested inside
+`ALLINVENTORYENTRIES.LIST/ACCOUNTINGALLOCATIONS.LIST`, the party ledger
+at voucher level in `LEDGERENTRIES.LIST` (not `ALLLEDGERENTRIES.LIST`),
+`VCHENTRYMODE: Item Invoice`, `ISINVOICE: Yes`. It is **not** evidence
+about quantity, rate or UoM handling, because this item cannot exercise
+any of it. A real client's stock item will have a unit, and the quantity
+and rate fields will be populated and are likely mandatory. Do not
+generalise from the empty fields here to "quantity is optional".
+
+### Stock-item master schema, for BK-01
+
+- **Identity:** the `NAME` attribute, plus `LANGUAGENAME.LIST` →
+  `NAME.LIST` → `NAME` (an alias list; here it just repeats `Test`, but
+  a real client's item can carry several). Invoice-line-text → item
+  matching should read the alias list, not only the `NAME` attribute —
+  this is BK-02's vendor-to-ledger matching problem again, against stock
+  items. `GUID` is the stable key; `ALTERID` is change-tracking — the
+  identity-vs-change-tracking distinction finding #15 already drew for
+  vouchers holds here too.
+- **Hierarchy:** `PARENT` (stock group), `CATEGORY`.
+- **Units:** `BASEUNITS`, `ADDITIONALUNITS`, `DENOMINATOR`,
+  `CONVERSION`, and `REPORTINGUOMDETAILS.LIST`.
+- **GST:** `GSTDETAILS.LIST` → `STATEWISEDETAILS.LIST` →
+  `RATEDETAILS.LIST`, keyed by `GSTRATEDUTYHEAD`, each generation dated
+  by `APPLICABLEFROM` (`20260401` here) and scoped by `STATENAME`
+  (`<EOT> Any` here). Rates are **state-wise and time-sliced** — a real
+  client can have per-state rows and several `APPLICABLEFROM`
+  generations. Any mapping that treats "the item's GST rate" as a single
+  scalar is wrong by construction.
+- **HSN:** `HSNDETAILS.LIST`, same `APPLICABLEFROM` + `SRCOF...` shape.
+- **Pricing / stock:** `PRICELEVELLIST.LIST`, `FULLPRICELIST.LIST`,
+  `BATCHALLOCATIONS.LIST`, `STANDARDCOSTLIST.LIST`,
+  `COMPONENTLIST.LIST` (BOM).
+
+## 19. `GSTRATEDUTYHEAD` spells a duty head differently from `GSTDUTYHEAD` — #3's pattern, now cross-master
+
+**Observed.** The stock item's `RATEDETAILS.LIST` entries enumerate:
+
+```
+CGST | SGST/UTGST | IGST | Cess | State Cess
+```
+
+Finding #3 established that a ledger master's `GSTDUTYHEAD` is validated
+against an unknown list, silently dropping unrecognised values — and
+that on ledgers the accepted spellings are `CGST` and `State Tax`, with
+`Central Tax` discarded. **The same duty head is `SGST/UTGST` on a stock
+item and `State Tax` on a ledger.**
+
+**What this changes about #3.** #3 read as a per-field quirk: one field
+with a vocabulary we had to discover by probing. It is now confirmed to
+be **per-master-type** — the vocabulary differs between master types for
+the same underlying concept. A single shared `DUTY_HEADS` constant in
+`TallyAdapter`, applied to both ledger and stock-item payloads, would be
+silently wrong on one of them, and per #3 and #2 the response would not
+say so. Each master type's vocabulary has to be established
+independently against a live instance before anything writes to it.
+
+Note that the `RATEDETAILS.LIST` inside voucher #6's inventory entry
+uses the stock-item spelling (`SGST/UTGST`), not the ledger one — so the
+split is by master type, not by read-vs-write path.
+
+**Also note** the `&#4;` (EOT) sentinels are pervasive in this master —
+`<EOT> Not Applicable`, `<EOT> Primary`, `<EOT> Any`,
+`<EOT> Applicable`. Same control character finding #1 made a parser
+blocker, here carrying *meaningful enum values* rather than incidental
+noise, so `sanitise()` must preserve them distinguishably rather than
+strip them.
+
+## 20. `SRCOFGSTDETAILS` / `SRCOFHSNDETAILS` — an item's own rate and HSN can be empty by inheritance
+
+**Observed.** Both nested blocks carry a source field, and both read the
+same way:
+
+```xml
+<GSTDETAILS.LIST>
+  <APPLICABLEFROM>20260401</APPLICABLEFROM>
+  <SRCOFGSTDETAILS>As per Company/Stock Group</SRCOFGSTDETAILS>
+  ... all five RATEDETAILS GSTRATE values are 0 ...
+
+<HSNDETAILS.LIST>
+  <APPLICABLEFROM>20260401</APPLICABLEFROM>
+  <SRCOFHSNDETAILS>As per Company/Stock Group</SRCOFHSNDETAILS>
+  ... no HSNCODE ...
+```
+
+The zeros and the absent HSN code are **not** the item's effective
+values. They are placeholders for values the item defers upward to its
+stock group or the company.
+
+**Consequence — BK-01 cannot resolve a stock item's effective GST rate
+or HSN code from the item master alone.** It must read
+`SRCOFGSTDETAILS` / `SRCOFHSNDETAILS` first and, when either says
+`As per Company/Stock Group`, walk the chain: item → `PARENT` stock
+group → company. Combined with #18's state-wise and `APPLICABLEFROM`
+dimensions, "the HSN code for this line" is the output of a resolution
+over (item, parent chain, state, date), not a field read.
+
+**This is new, previously-unaccounted-for scope.** Finding #7 flagged
+stock-item *mapping* as unscoped work comparable to BK-02's
+vendor-to-ledger matching. The inheritance chain sits on top of that:
+matching an invoice line to an item is one problem, resolving that
+item's effective tax attributes is a second, and neither is in BK-01
+today. Tracked as `PENDING:015`.
+
+**Not yet established:** what a stock group or company-level GST master
+looks like on the wire, or whether the chain can terminate anywhere
+other than those two levels. Only the item level has been read.
