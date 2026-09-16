@@ -1,0 +1,11 @@
+{
+  "name": "vchread-B-data-voucher-register",
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "sent_at_utc": "2026-09-16T02:03:48.563261+00:00",
+  "script": "probe_voucher_read.py",
+  "request_bytes": 454,
+  "status": 200,
+  "response_bytes": 128976,
+  "elapsed_ms": 46
+}

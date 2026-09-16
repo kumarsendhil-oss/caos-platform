@@ -1,0 +1,12 @@
+{
+  "name": "vchread-E-collection-nativemethod",
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "sent_at_utc": "2026-09-16T02:07:41.286690+00:00",
+  "script": "-c",
+  "request_bytes": 898,
+  "status": null,
+  "error": "URLError: <urlopen error [WinError 10061] No connection could be made because the target machine actively refused it>",
+  "hint": "Is TallyPrime running with a company loaded, and port 9000 open (Exchange > Data Synchronization)? Check http://localhost:9000 in a browser.",
+  "elapsed_ms": 4078
+}

@@ -1,0 +1,12 @@
+{
+  "name": "vchread-F-daybook-no-company",
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "sent_at_utc": "2026-09-16T02:05:38.230755+00:00",
+  "script": "-c",
+  "request_bytes": 380,
+  "status": null,
+  "error": "TimeoutError: timed out",
+  "hint": "Is TallyPrime running with a company loaded, and port 9000 open (Exchange > Data Synchronization)? Check http://localhost:9000 in a browser.",
+  "elapsed_ms": 8016
+}
