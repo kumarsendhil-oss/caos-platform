@@ -1,0 +1,11 @@
+{
+  "name": "pending009-readback-after",
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "sent_at_utc": "2026-09-16T08:22:09.241628+00:00",
+  "script": "remoteid_stability_probe.py",
+  "request_bytes": 446,
+  "status": 200,
+  "response_bytes": 258240,
+  "elapsed_ms": 72
+}
