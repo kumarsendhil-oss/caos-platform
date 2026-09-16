@@ -75,6 +75,13 @@ Phase 0 Tally integration spike (`spikes/p0-02-tally/`), verifying the multi-bac
 - Verified offline against committed artifacts; the FAILURE/NOTEWORTHY branches have no real artifacts and were exercised against synthetic mutations only.
 - `PENDING:013` marked **Resolved** in `docs/STUB_ISSUES.md`. Never promoted to a GitHub issue, so no closing keyword.
 
+**Investigate session — voucher deletion / sandbox reset (`PENDING:009`) — findings #16, #17**
+- Two live `ACTION="Delete"` attempts against `Coastal Services Ltd`, both refused, neither crashed anything (artifacts `runs/2026-09-16T08-21-*`, `08-22-*`, `08-27-*`). `REMOTEID`+`VCHKEY` → `Voucher does not exist!`; `MASTERID` → `Cannot delete unnamed object: VOUCHER!`.
+- **`REMOTEID` distinction worth carrying forward accurately, not flattening to "REMOTEID is stable, done":** it is confirmed stable and correct for **read-back correlation** (finding #15, which BK-07 actually needs — unchanged). It is **not confirmed addressable for writes** — delete, amend-by-id, or any import that identifies an existing voucher. Attempt 1 is direct evidence against the write case. `TallyAdapter` may need to supply `REMOTEID` itself at create time if it ever needs to amend or delete what it posted; untested either way.
+- `TAGNAME`/`TAGVALUE` addressing identified as the remaining plausible scheme and **deliberately not tested** — even working, it addresses by a Tally-auto-assigned voucher number that finding #14 proved unreliable.
+- `PENDING:009` **Resolved as a documented manual procedure**, not a script: delete/recreate the company in the Tally UI, then re-run `create_ledgers.py`. A reset script would have to key on a field that is either unverified or reassignable, in the company holding #15's evidence voucher.
+- New `PENDING:014` — finding #17: `ERRORS: 0` with a `LINEERROR` present and everything zero. `TallyAdapter` must treat `LINEERROR` as failure regardless of counters. Same underlying distrust as finding #2, different mechanism; both guards needed.
+
 
 ## Next action
 
@@ -91,7 +98,7 @@ Finding #7's conclusion (inventory handling is conditional on client config, not
 
 **Two separate things, related but distinct — don't conflate them.**
 
-**Coastal Services Ltd — benign accumulation (not an anomaly).** Now holds 4 identical `SVC-INV-0001` vouchers. `no_inventory_test.py --send` posts two per run (steps 2 and 4), and the company was not empty when the 2026-09-16 run started — two pre-existed, so two posts produced four. Provenance looks ordinary: all four are `OBJVIEW="Accounting Voucher View"` with sequential REMOTEIDs and voucher numbers 1–4, i.e. leftovers from previous runs of the same script, **not** manual entry. Tracked as `PENDING:009` (no reset mechanism). Expect two more per verification run until that exists.
+**Coastal Services Ltd — benign accumulation (not an anomaly).** Now holds 4 identical `SVC-INV-0001` vouchers. `no_inventory_test.py --send` posts two per run (steps 2 and 4), and the company was not empty when the 2026-09-16 run started — two pre-existed, so two posts produced four. Provenance looks ordinary: all four are `OBJVIEW="Accounting Voucher View"` with sequential REMOTEIDs and voucher numbers 1–4, i.e. leftovers from previous runs of the same script, **not** manual entry. Tracked as `PENDING:009`, **resolved 2026-09-16 as a manual procedure** (delete/recreate the company in the Tally UI, then re-run `create_ledgers.py`) — there is no scripted reset and findings #16/#17 explain why there should not be one. Expect two more per verification run unless the company is reset first. Note voucher 1 is no longer identical to the others: it carries the amount change from finding #15's edit test (`21714`, `ALTERID 5`), and is that finding's live evidence.
 
 **Coastal Test Traders — narrowed 2026-09-16 (investigate session, read-only).**
 
@@ -103,7 +110,7 @@ A Day Book read against `Coastal Test Traders` returned **6 vouchers**, not the 
 
 **The check this file previously called "the single check that would settle it" — comparing voucher #6's `VOUCHERNUMBER` against `post_voucher.py`'s `TEST-INV-0001` — is void and has been struck.** Tally auto-assigns voucher numbers (`NUMBERINGSTYLE: Auto Retain`), so **no** voucher in this sandbox can ever carry that value, whatever created it. Voucher #6's number is `6`; so is every other voucher's, sequentially. See FINDINGS.md #14.
 
-Resetting `Coastal Test Traders` to a clean state before further duplicate-prevention testing still stands (`PENDING:009`) — leftover vouchers make it hard to trust what a duplicate test measures against.
+Resetting `Coastal Test Traders` to a clean state before further duplicate-prevention testing still stands — leftover vouchers make it hard to trust what a duplicate test measures against. `PENDING:009` is now resolved, so the *procedure* exists (manual, see above); what remains is remembering to run it before a test whose result depends on a known starting state.
 
 ## Reference
 
@@ -112,4 +119,4 @@ Resetting `Coastal Test Traders` to a clean state before further duplicate-preve
 - Build/wrap-up workflow: `.claude/commands/build.md`, `.claude/commands/wrapup.md`, `docs/CAOS-prompt-conventions.md`
 
 ---
-*Last updated: 2026-09-16 by `/wrapup` (`PENDING:013` — identity vs change-tracking field categories in `remoteid_stability_probe.py`). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*
+*Last updated: 2026-09-16 by `/wrapup` (`PENDING:009` — sandbox reset resolved as a manual procedure; findings #16–#17). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*

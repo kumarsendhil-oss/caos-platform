@@ -518,3 +518,127 @@ when something looks off — in both cases here, nothing looked off.
 it for read-back verification, including for vouchers amended after
 posting — the ordinary BK-07 correction case, now tested rather than
 assumed. `PENDING:010` is resolved.
+
+
+# Round 4 — Voucher deletion and sandbox reset (2026-09-16)
+
+Investigate session against `PENDING:009` (no reset mechanism for either
+sandbox company). Two live `ACTION="Delete"` attempts against
+`Coastal Services Ltd`, read-only on code. Both failed; neither crashed
+anything. Artifacts: `runs/2026-09-16T08-21-*`, `08-22-*`, `08-27-*`.
+
+## 16. Vouchers cannot be deleted through the XML import API — two addressing schemes refused
+
+**Setup.** `Coastal Services Ltd` held 4 vouchers. Voucher 1 is the
+*edited* one from #15 (`ALTERID 5`, amounts `21714`) and was excluded as
+live evidence; vouchers 2–4 are the identical `21712` duplicates.
+Voucher 4 was targeted — a true duplicate, and the highest number, so
+any renumbering would disturb the others least.
+
+**Attempt 1 — addressed by `REMOTEID` + `VCHKEY`**
+(`runs/2026-09-16T08-21-43-pending009-delete-attempt/`):
+
+```xml
+<VOUCHER REMOTEID="5f8d5006-...-00000004"
+         VCHKEY="5f8d5006-...-0000b49a:00000020"
+         VCHTYPE="Purchase" ACTION="Delete">
+```
+```
+<LINEERROR>Voucher does not exist!</LINEERROR>
+<DELETED>0</DELETED> <ERRORS>1</ERRORS>
+```
+
+Tally could not resolve the target. This is consistent with `REMOTEID`
+being *Tally-generated* here: we have never supplied one at create time,
+so on import there is no external id to match against. The same
+`REMOTEID` reads back fine — see #15.
+
+**Attempt 2 — addressed by `MASTERID`**
+(`runs/2026-09-16T08-27-27-pending009-delete-masterid/`):
+
+```xml
+<VOUCHER VCHTYPE="Purchase" ACTION="Delete">
+  <MASTERID>4</MASTERID>
+  <DATE>20260801</DATE>
+  <VOUCHERTYPENAME>Purchase</VOUCHERTYPENAME>
+  <VOUCHERNUMBER>4</VOUCHERNUMBER>
+</VOUCHER>
+```
+```
+<LINEERROR>Cannot delete unnamed object: VOUCHER!</LINEERROR>
+<DELETED>0</DELETED> <ERRORS>0</ERRORS>
+```
+
+**The second error is the informative one.** It is not a failure to find
+the voucher — addressing resolved. Tally objected to the *kind of
+object*. The only voucher-delete syntax confirmed verbatim from
+documentation is for masters and deletes by name
+(`<LEDGER NAME="ICICI" ACTION="Delete">`); a voucher has no name, so
+"unnamed object" is a structural refusal, not a wrong-field error.
+
+**Neither attempt showed #13's crash pattern.** Both returned in 0.1s,
+well-formed, and readbacks afterward
+(`08-22-09-*`, `08-27-37-*`) confirm all 4 vouchers still present and
+unchanged. The difference from #13 is likely that these used the proven
+`Import Data` envelope rather than a malformed read query.
+
+**This nuances `PENDING:010`; it does not invalidate it.** Two distinct
+claims that must not be conflated:
+
+- **`REMOTEID` is stable and correct for read-back correlation.**
+  Confirmed across reads, a restart and an edit (#15). This is what
+  BK-07 actually needs, and it stands unchanged.
+- **`REMOTEID` is NOT confirmed addressable for writes** — delete,
+  amend-by-id, or any operation that identifies an existing voucher in
+  an import request. Attempt 1 is direct evidence against it.
+
+If `TallyAdapter` ever needs to delete or amend a voucher it posted, it
+cannot assume the identifier it reads back is the one it can write
+against. It may need to **supply `REMOTEID` itself at create time** —
+untested in either direction.
+
+**A third scheme was identified and deliberately not tested.**
+`TAGNAME`/`TAGVALUE` (e.g. `TAGNAME="Voucher Number" TAGVALUE="4"`)
+appeared in search results as a way to address an otherwise-unnamed
+object, which is exactly what attempt 2's error points at. It was not
+attempted, and the reason is not caution about the API: **even if it
+works, it addresses by a Tally-auto-assigned voucher number, which #14
+proved is assigned by Tally and not ours to rely on.** A reset keyed on
+that number is one renumbering away from deleting the wrong voucher — in
+the company that holds #15's evidence. Not worth building on whether or
+not it functions. Note also that the source asserting this syntax could
+not be confirmed verbatim when fetched.
+
+## 17. `ERRORS: 0` does not mean no error — check `LINEERROR` independently
+
+**Observed.** Attempt 2 above returned:
+
+```
+<LINEERROR>Cannot delete unnamed object: VOUCHER!</LINEERROR>
+<CREATED>0</CREATED> <ALTERED>0</ALTERED> <DELETED>0</DELETED>
+<ERRORS>0</ERRORS> <CANCELLED>0</CANCELLED> <EXCEPTIONS>0</EXCEPTIONS>
+```
+
+Every numeric counter is zero, including `ERRORS`. The operation
+completely failed, and the only evidence of that in the response is the
+`LINEERROR` element. Attempt 1, which also failed, reported
+`ERRORS: 1` — so the counter is not reliably set even between two
+failures of the same operation minutes apart.
+
+**Consequence.** A caller that checks `ERRORS` (or any counter) to
+decide success would read this response as a clean no-op success.
+`TallyAdapter` must treat **the presence of `LINEERROR` as failure
+regardless of what the counters say**, rather than checking counters
+first and `LINEERROR` only when a counter is non-zero.
+
+**This is #2's pattern via a second, independent mechanism.** #2 showed
+a *success* response (`CREATED: 4, ERRORS: 0`) where the data silently
+did not land, discovered by read-back. This shows a *failure* response
+wearing the same zeros. The shared rule is the one #2 already stated —
+the import response is not a trustworthy account of what happened — but
+the two are different failure modes and a guard against one does not
+catch the other. #2 argues for reading back after a write; #17 argues
+for parsing the response more carefully than its counters. Both are
+needed.
+
+Tracked for `TallyAdapter`'s response handling as `PENDING:014`.
