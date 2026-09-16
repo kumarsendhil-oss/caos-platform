@@ -1,0 +1,11 @@
+{
+  "name": "pending009-7-final-tb",
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "sent_at_utc": "2026-09-16T10:27:19.395945+00:00",
+  "script": "-",
+  "request_bytes": 451,
+  "status": 200,
+  "response_bytes": 520,
+  "elapsed_ms": 38
+}

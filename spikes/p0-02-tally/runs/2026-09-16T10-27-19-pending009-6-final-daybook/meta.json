@@ -1,0 +1,11 @@
+{
+  "name": "pending009-6-final-daybook",
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "sent_at_utc": "2026-09-16T10:27:19.318660+00:00",
+  "script": "-",
+  "request_bytes": 446,
+  "status": 200,
+  "response_bytes": 221503,
+  "elapsed_ms": 64
+}

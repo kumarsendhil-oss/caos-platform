@@ -149,6 +149,12 @@ Tax ledgers attach at **voucher level, as `LEDGERENTRIES.LIST` siblings of the p
 
 Stock-item deletability — the question that decides whether master work is iterative or one-shot — remains open and is now more expensive to ask.
 
+## Standing caution — `REMOTEID` and `VOUCHERNUMBER` are decoupled (finding #29)
+
+A voucher stored as **6** carried `REMOTEID`/`GUID` suffix `-00000007`, following the import response's `LASTVCHID` rather than its own voucher number. Every earlier voucher in that company had suffix == number (1→1, 2→2, 4→4, 5→5), so the two looked interchangeable; they diverged the moment #28's delete left a hole in the numbering.
+
+**`TallyAdapter` must never derive either identifier from the other, in either direction.** #15 established `REMOTEID` as the correlation field and #14 ruled out `VOUCHERNUMBER` as identity; #29 adds that they are independent values which merely coincided while the sandbox was gap-free. A correlation built on that coincidence would have worked in every test run to date and broken on the first client whose books contain a deleted voucher.
+
 ## Known blockers (tracked separately)
 
 - ~~`post_voucher.py` is hardcoded to `Coastal Test Traders` with no `--company` flag~~ — **resolved** by the `fix/post-voucher-company-flag` PR above (issue #28, first half). Previously the argument was silently unread, so a run *looks* like it succeeded against a company it never touched; PR #23 worked around it by verifying via `no_inventory_test.py` instead.
@@ -156,22 +162,30 @@ Stock-item deletability — the question that decides whether master work is ite
 
 ## Sandbox state (after the 2026-09-16 gap 2 probe)
 
-Three vouchers were added by finding #21's probe. All three are marked in **both** `NARRATION` and `REFERENCE` — verified to survive a post (finding #21a), unlike `VOUCHERNUMBER`, which finding #14 rules out as an identifier. None can be deleted (finding #16), so they are permanent until a company reset.
+Three vouchers were added by finding #21's probe. All three are marked in **both** `NARRATION` and `REFERENCE` — verified to survive a post (finding #21a), unlike `VOUCHERNUMBER`, which finding #14 rules out as an identifier. ~~None can be deleted (finding #16), so they are permanent until a company reset.~~ **Overturned 2026-09-16 (finding #28): vouchers can be deleted**, via `TAGNAME="VoucherNumber"` with a `dd-Mmm-yyyy` date and a non-empty body. Nothing here is permanent any more.
 
-| Company | Vouchers | Of which probe artifacts |
+| Company | Vouchers (2026-09-16, end of day) | Keep-list |
 |---|---|---|
-| `Coastal Test Traders` | 8 | #7 `GAP2-PROBE-CONTROL-DO-NOT-USE-AS-EVIDENCE`, #8 `GAP2-PROBE-TAX-DO-NOT-USE-AS-EVIDENCE` |
-| `Coastal Services Ltd` | 5 | one marked `GAP2-PROBE-DO-NOT-USE-AS-EVIDENCE` |
+| `Coastal Test Traders` | 8 — numbered 1–8 | `keep-coastal-test-traders.txt` — **all 8 protected** |
+| `Coastal Services Ltd` | 4 — numbered 1, 2, 4, 5 (hole at 3, deleted by #28) | `keep-coastal-services.txt` — **all 4 protected** |
+
+**Every voucher in both companies is cited by at least one finding.** That is the result of a voucher-by-voucher audit against `FINDINGS.md` on 2026-09-16, not an impression — each keep-list carries the citation per voucher. Consequences worth holding on to:
+
+- **`reset_sandbox.py` has no routine work to do.** Run against either company with its keep-file, it plans zero deletions. That is the correct result, not a misconfiguration.
+- **`Coastal Test Traders` is the more constrained company, not the safer one** — an earlier session's instinct had this backwards. Finding #23's reconciliation (the strongest verification method this spike has, stronger than Rule 1's read-back) is reproducible only while all eight vouchers are live, and voucher 6 cannot be recreated by any script: unrecorded provenance, and a bill allocation #21b's control could not reproduce.
+- **Rebuild a keep-list by re-running the audit, never from memory.** The first version of `keep-coastal-services.txt` listed voucher 1 only and under-protected the other three, because it was written from recall.
 
 `Coastal Test Traders` 1–5 are `voucher_variants.py`'s output (see below); #6 is the unattributed one. **Treat #7 and #8 as test fixtures, not evidence** — they were constructed to answer one structural question and their amounts were supplied rather than computed.
 
-Resetting either company is the manual `PENDING:009` procedure. Note a reset of `Coastal Test Traders` destroys voucher #6 *and* the `Test` stock item, and `create_ledgers.py` recreates neither — but both are now captured as committed artifacts (`runs/2026-09-16T02-15-54-voucher-4-readback-after-duplicate`, `runs/2026-09-16T08-45-10-stockitem-master-dump`), so a reset costs rebuild time, not evidence.
+**Resetting vouchers is now scripted: `spikes/p0-02-tally/reset_sandbox.py`** (`PENDING:009`, resolved 2026-09-16, validated live — finding #29). Dry run by default; `--company` required with no default; protection via `--keep` / `--keep-file` with nothing hardcoded; Day Book enumeration per #11; one delete at a time with a read-back after each; halts with no retry on `LINEERROR` (#17), target still present, collateral loss, a count off by anything but one, or no response. `reset_sandbox_offline_checks.py` exercises every guard without a live Tally.
+
+**Masters are still manual-only** — finding #22's `c0000005` crash means no scripted master delete, and the script touches vouchers only. A reset of `Coastal Test Traders` would still destroy voucher #6 *and* the `Test` stock item, which `create_ledgers.py` recreates neither of; both are captured as committed artifacts (`runs/2026-09-16T02-15-54-voucher-4-readback-after-duplicate`, `runs/2026-09-16T08-45-10-stockitem-master-dump`), so a reset costs rebuild time — but see the keep-list note above for why it would also cost #23's reconciliation.
 
 ## Open anomaly — script origin ruled out, creator unidentified
 
 **Two separate things, related but distinct — don't conflate them.**
 
-**Coastal Services Ltd — benign accumulation (not an anomaly).** Now holds 4 identical `SVC-INV-0001` vouchers. `no_inventory_test.py --send` posts two per run (steps 2 and 4), and the company was not empty when the 2026-09-16 run started — two pre-existed, so two posts produced four. Provenance looks ordinary: all four are `OBJVIEW="Accounting Voucher View"` with sequential REMOTEIDs and voucher numbers 1–4, i.e. leftovers from previous runs of the same script, **not** manual entry. Tracked as `PENDING:009`, **resolved 2026-09-16 as a manual procedure** (delete/recreate the company in the Tally UI, then re-run `create_ledgers.py`) — there is no scripted reset and findings #16/#17 explain why there should not be one. Expect two more per verification run unless the company is reset first. Note voucher 1 is no longer identical to the others: it carries the amount change from finding #15's edit test (`21714`, `ALTERID 5`), and is that finding's live evidence.
+**Coastal Services Ltd — benign accumulation (not an anomaly).** Now holds 4 identical `SVC-INV-0001` vouchers. `no_inventory_test.py --send` posts two per run (steps 2 and 4), and the company was not empty when the 2026-09-16 run started — two pre-existed, so two posts produced four. Provenance looks ordinary: all four are `OBJVIEW="Accounting Voucher View"` with sequential REMOTEIDs and voucher numbers 1–4, i.e. leftovers from previous runs of the same script, **not** manual entry. Tracked as `PENDING:009`, **resolved 2026-09-16 with a validated script** — `reset_sandbox.py`, see the sandbox-state section above. The earlier resolution of this row as "manual procedure only" rested on finding #16's conclusion that vouchers could not be deleted; #28 overturned that, and #29 validated the script end to end against a live delete. The manual UI procedure remains the fallback and the only option for masters. Expect two more per verification run unless the company is reset first. Note voucher 1 is no longer identical to the others: it carries the amount change from finding #15's edit test (`21714`, `ALTERID 5`), and is that finding's live evidence.
 
 **Coastal Test Traders — largely resolved 2026-09-16 (investigate sessions; read-only for the attribution work itself, though the same day's gap 2 probe added vouchers 7–8 under separate authorisation).**
 
@@ -189,9 +203,10 @@ Resetting `Coastal Test Traders` to a clean state before further duplicate-preve
 
 ## Reference
 
-- All 13 findings: `spikes/p0-02-tally/FINDINGS.md`
+- All 29 findings: `spikes/p0-02-tally/FINDINGS.md` (a count that goes stale silently — check the file, not this line)
+- Tally schema reference, organised by area: `docs/CAOS-tally-integration-schema-reference.md`
 - Coding/testing/security/logging/performance standards: `docs/`
 - Build/wrap-up workflow: `.claude/commands/build.md`, `.claude/commands/wrapup.md`, `docs/CAOS-prompt-conventions.md`
 
 ---
-*Last updated: 2026-09-16 by `/wrapup` (`PENDING:009` — sandbox reset resolved as a manual procedure; findings #16–#17). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*
+*Last updated: 2026-09-16 by `/wrapup` (`PENDING:009` — sandbox reset resolved as a **validated script**, `reset_sandbox.py`; findings #28–#29, plus the two-company keep-list audit). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*

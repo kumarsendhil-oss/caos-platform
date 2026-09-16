@@ -597,6 +597,15 @@ not be used as one. The stock item's `ALTERID 223` against a voucher's
 `ALTERID 6` reflects position in the company's alteration history, not
 223 edits to that item.
 
+**`REMOTEID`'s trailing counter is NOT the voucher number — #29.** A
+voucher stored as **6** carried `REMOTEID`/`GUID` suffix `-00000007`,
+matching the import response's `LASTVCHID: 7` rather than its own number.
+Every earlier voucher in that company had suffix == number (1→1, 2→2,
+4→4, 5→5), which made the two look interchangeable; they diverged once a
+delete (#28) advanced the internal creation counter past the numbering.
+**Never derive either identifier from the other, in either direction.**
+The coincidence held only while the sandbox was gap-free.
+
 **Two claims about `REMOTEID` that must not be conflated:** stable for
 *read-back correlation* (confirmed, and what BK-07 needs), versus
 addressable for *writes* (disconfirmed). If the adapter ever needs to
