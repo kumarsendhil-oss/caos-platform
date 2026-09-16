@@ -63,9 +63,10 @@ SGST_DUTY_HEAD = "State Tax"
 def company_from_argv(argv: list[str]) -> str:
     """--company VALUE, defaulting to COMPANY.
 
-    Validates the value, unlike no_inventory_test.py's copy of this
-    parsing (STUB_ISSUES PENDING:008), which raises IndexError when the
-    flag is last and silently accepts the next flag as a company name.
+    Validates the value: exits with a message rather than raising
+    IndexError when the flag is last, and rejects a following flag as a
+    company name (`--company --send` would otherwise target a company
+    named "--send" and still post live).
     """
     if "--company" not in argv:
         return COMPANY
