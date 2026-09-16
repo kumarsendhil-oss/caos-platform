@@ -1,0 +1,764 @@
+# CAOS — TallyPrime XML Integration Schema Reference
+
+**Status:** point-in-time, 2026-09-16. Compiled from Phase 0 spike P0-02.
+**Source of truth:** `spikes/p0-02-tally/FINDINGS.md` (findings #1–#22).
+**Evidence:** every claim traces to a run artifact under `spikes/p0-02-tally/runs/`.
+
+This document is a **navigable view over FINDINGS.md**, organised by area
+rather than by the order things were discovered. It does not replace it.
+Where the two disagree, FINDINGS.md wins — it carries the evidence and
+the reasoning; this carries the conclusions.
+
+Everything here was **observed against a live instance**, not taken from
+documentation. That distinction matters here more than usual: per **#4**
+the canonical TDL Reference
+Manual predates GST entirely and cannot answer a GST field question, and per
+**#12** Tally reports import failures with no diagnostic detail
+anywhere. Reading the wire is the only method available.
+
+## How to read this document
+
+Every claim carries a provenance tag. **This is not decoration** — the
+distinction between "Tally behaves this way" and "this company happens
+to be configured this way" is exactly the confusion that crashed the
+sandbox during finding #22.
+
+| Tag | Means |
+|---|---|
+| **[Tally]** | Believed universal to the TallyPrime XML API |
+| **[Edu]** | A TallyPrime **Educational Mode** constraint; may not apply to a licensed instance |
+| **[Sandbox]** | True of `Coastal Test Traders` / `Coastal Services Ltd` **as configured today** — a fixture fact, not an API property |
+
+A **[Sandbox]** tag is a warning: do not build against it, and do not
+infer an API rule from it.
+
+### Scope
+
+**In scope:** TallyPrime's XML-over-HTTP interface — the transport ADR
+0001 selected, and the Tally half of the `BooksConnector` interface
+(ADR 0011 addendum).
+
+**Out of scope:**
+- **GST return data.** That comes from a GSP, not from Tally — ADR 0002,
+  which contains no Tally content at all.
+- **Zoho Books.** The other `BooksConnector` backend, a different API
+  with different semantics. **Nothing in this document transfers to it.**
+  See §6.
+- **Tally's UI, TDL language, and data file formats**, except where a
+  failure mode forced us into them.
+
+### Environment these observations came from
+
+TallyPrime **Educational Mode**, local, port 9000. Two companies:
+
+| Company | `Maintain Inventory` | Role |
+|---|---|---|
+| `Coastal Test Traders` | **Yes** (+ `Integrate Accounts with Inventory`) | Inventory-enabled cases |
+| `Coastal Services Ltd` | **No** | Accounting-only cases; disposable |
+
+Both carry GSTIN `33AAAAA0000A1Z5` (Tamil Nadu). All test data is
+synthetic.
+
+---
+
+# 1. Environment and version specifics
+
+Facts that are properties of *this deployment*, not of the API. Check
+each against a licensed instance before relying on it.
+
+### 1.1 Educational Mode restricts posting dates **[Edu]**
+
+Vouchers can only be posted on the **1st, 2nd and 31st** of a month.
+Every spike payload uses `20260801` for this reason. A licensed instance
+has no such restriction, so **test dates in this repo are not
+representative** and any date-handling logic must not be validated
+against them.
+
+### 1.2 Transport: POST only, no GET **[Tally]** — #6
+
+Everything is `POST` to `http://localhost:9000/`, body `text/xml`.
+**There are no GET endpoints.** Reads and writes use the same verb and
+the same envelope; only `TALLYREQUEST` differs.
+
+### 1.3 Voucher numbering is Tally's, not ours **[Tally]** — #10, #14
+
+Stored vouchers carry `NUMBERINGSTYLE: Auto Retain`. Tally **discards
+the `VOUCHERNUMBER` we send** and assigns its own sequence. Confirmed on
+both companies:
+
+| Company | Sent | Stored |
+|---|---|---|
+| `Coastal Test Traders` | `TEST-INV-0001` | `1`–`6` |
+| `Coastal Services Ltd` | `SVC-INV-0001` | `1`–`4` |
+
+This is configured numbering behaviour for the voucher type — **not** a
+silent discard of an unrecognised value (§2.3's class). The distinction
+matters: it means the behaviour is predictable and probably
+configurable, rather than a validation mystery. See §4.5 for why it
+still breaks identity.
+
+### 1.4 GST/HSN details are time-sliced by `APPLICABLEFROM` **[Tally]** — #18
+
+Stock item GST and HSN blocks are dated generations, not single values:
+
+```xml
+<GSTDETAILS.LIST>
+  <APPLICABLEFROM>20260401</APPLICABLEFROM>
+```
+
+`20260401` is the current financial year's start **[Sandbox]**, but the
+*pattern* is general: a real client can carry several generations, and
+rates are additionally scoped by `STATENAME`. Any code treating "the
+item's GST rate" as a scalar is wrong by construction.
+
+### 1.5 Unverified environment questions
+
+- **UTF-16 encoding** is required for the ₹ symbol per Tally's own docs.
+  **Untested.** Relevant to any amount field carrying a currency symbol.
+- **Tally Cloud hosting.** All observations are against a local
+  instance. Behaviour of a hosted instance under §5's failure modes —
+  particularly who can dismiss a modal dialog or restart a crashed
+  process — is unknown and is an open question for the provider.
+
+---
+
+# 2. Envelope basics and the three trust rules
+
+## 2.1 Responses must be sanitised before parsing **[Tally]** — #1, BLOCKER
+
+Tally emits `&#4;` (EOT) in responses. XML 1.0 forbids character
+references to control characters, so **`ElementTree` fails outright**:
+
+```
+reference to invalid character number: line 80, column 27
+```
+
+Not defensive hardening — **without a sanitiser, no parse succeeds at
+all.** `spikes/tally_xml.py` implements one handling all four forms
+(decimal, zero-padded, hex, literal byte).
+
+**`&#4;` is a separator, not noise.** It prefixes enum sentinel values —
+`<EOT> Not Applicable`, `<EOT> Primary`, `<EOT> Any`, `<EOT> Applicable`.
+The sanitiser replaces it with a newline rather than deleting it, so the
+boundary survives; deletion would silently concatenate. Since these are
+*meaningful values* (§3.4), a sanitiser must keep them distinguishable.
+
+> **Untested:** whether the `\x04` prefix is required when *sending* these
+> values on import. Every spike payload has sent plain names only.
+
+## 2.2 Working request shapes **[Tally]** — #6, #11
+
+| Purpose | Shape | Status |
+|---|---|---|
+| Create/alter/delete masters | `Import Data` + `REPORTNAME: All Masters` | ✅ |
+| Post vouchers | `Import Data` + `REPORTNAME: Vouchers` | ✅ |
+| Full field dump of a master type | `EXPORT` / `TYPE: COLLECTION` + `FETCH *` | ✅ |
+| Named field export | `EXPORT` / `TYPE: COLLECTION` + `NATIVEMETHOD` list | ✅ |
+| **Read vouchers** | `EXPORT` / **`TYPE: DATA`** + **`ID: Day Book`** | ✅ |
+| Read vouchers via COLLECTION | `EXPORT` / `TYPE: COLLECTION` / `TYPE: Voucher` | ❌ **silent zero** |
+| Single object | `EXPORT` / `TYPE: OBJECT` | ❌ `Could not find (null):Ledger!` |
+| `TYPE: COLLECTION` + `ID: Day Book` | — | ☠️ **crashes Tally**, see §5.2 |
+
+**Masters and vouchers use different import reports and different read
+shapes.** Mixing them is the single most common error in this spike's
+history, and one mixture is actively dangerous.
+
+**The COLLECTION-on-vouchers failure is the nastiest of the safe ones:**
+it returns **zero results with no error**, indistinguishable from an
+empty period. It went unnoticed for an entire session (#11).
+
+## 2.3 The three trust rules
+
+Findings #2, #3 and #17 reached the same conclusion by three independent
+routes: **the import response is not a trustworthy account of what
+happened.** The rest of this document refers to these by number.
+
+### Rule 1 — Read back after every write **[Tally]** — #2
+
+`create_ledgers.py` returned `CREATED: 4, ERRORS: 0, EXCEPTIONS: 0`.
+A full-field read-back showed the `CGST` ledger's `GSTDUTYHEAD` **was
+never set**. Tally accepted the import, discarded a value it didn't
+recognise, and reported complete success.
+
+This is a **third state** beyond success and failure: *partially applied,
+reported as success.* BK-07 and CG7 both assume writes are binary.
+
+> Verification must locate the object before it can verify it — which is
+> why §4.5's identity problem is load-bearing, not academic.
+
+### Rule 2 — `LINEERROR` overrides every counter **[Tally]** — #17
+
+A failed delete returned:
+
+```xml
+<LINEERROR>Cannot delete unnamed object: VOUCHER!</LINEERROR>
+<CREATED>0</CREATED> <ALTERED>0</ALTERED> <DELETED>0</DELETED>
+<ERRORS>0</ERRORS> <CANCELLED>0</CANCELLED> <EXCEPTIONS>0</EXCEPTIONS>
+```
+
+**Every counter is zero, including `ERRORS`**, on a total failure. A
+different failure of the same operation minutes earlier reported
+`ERRORS: 1` — the counter is not reliably set even between two failures
+of the same call.
+
+`TallyAdapter` must treat **the presence of `LINEERROR` as failure
+regardless of the counters**, not check counters first.
+
+Observed three times: #17, #22 step 1, and the stock-group rejection.
+
+**Rules 1 and 2 are not redundant.** Rule 1 catches a *success* response
+where data didn't land; Rule 2 catches a *failure* response wearing
+success's clothes. A guard against one does not catch the other.
+
+### Rule 3 — Enum vocabularies are validated against undocumented lists **[Tally]** — #3, #19
+
+Probing `GSTDUTYHEAD` on a ledger by altering and reading back:
+
+| Sent | Read back |
+|---|---|
+| `State Tax` | `State Tax` ✅ |
+| `CGST` | `CGST` ✅ |
+| `Central Tax` | *(empty)* ❌ |
+| `CENTRAL TAX` | *(empty)* ❌ |
+| `Central` | *(empty)* ❌ |
+| `Integrated Tax` | *(empty)* ❌ |
+
+**Every one returned `ALTERED: 1, ERRORS: 0`.** The pattern is not
+understood — `State Tax` accepted but `Central Tax` not, with no obvious
+logic. **No theory here fits the evidence, so none is offered.**
+
+Any enum-valued field is suspect until probed. §3.4 shows the vocabulary
+also **differs between master types** for the same concept.
+
+## 2.4 Response counters
+
+`CREATED`, `ALTERED`, `DELETED`, `IGNORED`, `ERRORS`, `EXCEPTIONS`,
+`CANCELLED`, `COMBINED`, `LASTVCHID`, `LASTMID`.
+
+Useful for *what* happened when a call succeeds. **Not usable to decide
+whether it succeeded** — see Rules 1 and 2. `EXCEPTIONS: 1` with no
+detail is the standard structural-rejection signal, and per #12 the
+reason is available nowhere: not in `tally.imp`, not in `tally.ini`, not
+in the Calculator Pane.
+
+**Adapter consequences (§2)**
+- Sanitise before parsing, always (#1).
+- Check `LINEERROR` before counters, always (Rule 2).
+- Read back after writes that matter (Rule 1).
+- When a post fails, report *that* it failed — you will never know *why*
+  (#12).
+
+---
+
+# 3. Master data shapes
+
+## 3.1 Envelope **[Tally]** — #6
+
+```xml
+<ENVELOPE>
+  <HEADER><TALLYREQUEST>Import Data</TALLYREQUEST></HEADER>
+  <BODY><IMPORTDATA>
+    <REQUESTDESC>
+      <REPORTNAME>All Masters</REPORTNAME>
+      <STATICVARIABLES><SVCURRENTCOMPANY>...</SVCURRENTCOMPANY></STATICVARIABLES>
+    </REQUESTDESC>
+    <REQUESTDATA><TALLYMESSAGE xmlns:UDF="TallyUDF">
+      <!-- LEDGER / STOCKITEM / ... -->
+```
+
+## 3.2 Ledger create and alter **[Tally]** — verified
+
+```xml
+<LEDGER NAME="CGST" ACTION="Create">
+  <NAME>CGST</NAME>
+  <PARENT>Duties &amp; Taxes</PARENT>
+  <OPENINGBALANCE>0</OPENINGBALANCE>
+  <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+  <TAXTYPE>GST</TAXTYPE>
+  <GSTDUTYHEAD>CGST</GSTDUTYHEAD>
+  <RATEOFTAXCALCULATION>0</RATEOFTAXCALCULATION>
+</LEDGER>
+```
+
+`ACTION="Alter"` uses the identical body. Both verified working.
+
+> **`GSTDUTYHEAD` is Rule 3 territory.** The example above uses `CGST`,
+> which is confirmed both accepted *and* computationally correct — #8
+> verified the resulting intra-state split in the Tally UI, not merely
+> by read-back. `Central Tax` is silently discarded and leaves a ledger
+> that looks fine and won't participate in GST computation.
+
+## 3.3 Stock item masters **[Tally]** — #18
+
+Read via `TYPE: COLLECTION` / `TYPE: StockItem` / `FETCH *`. Fields that
+matter for BK-01's mapping:
+
+| Area | Fields |
+|---|---|
+| **Identity** | `NAME` attribute; `LANGUAGENAME.LIST` → `NAME.LIST` → `NAME` (**alias list**); `GUID` (stable key); `ALTERID` (change-tracking) |
+| **Hierarchy** | `PARENT` (stock group), `CATEGORY` |
+| **Units** | `BASEUNITS`, `ADDITIONALUNITS`, `DENOMINATOR`, `CONVERSION`, `REPORTINGUOMDETAILS.LIST` |
+| **GST** | `GSTDETAILS.LIST` → `STATEWISEDETAILS.LIST` → `RATEDETAILS.LIST`, keyed by `GSTRATEDUTYHEAD`, dated by `APPLICABLEFROM`, scoped by `STATENAME` |
+| **HSN** | `HSNDETAILS.LIST`, same dating + `SRCOF...` shape |
+| **Pricing/stock** | `PRICELEVELLIST.LIST`, `FULLPRICELIST.LIST`, `BATCHALLOCATIONS.LIST`, `STANDARDCOSTLIST.LIST`, `COMPONENTLIST.LIST` (BOM) |
+
+**Match on the alias list, not just `NAME`.** Invoice-line-text → item
+matching is BK-02's vendor-to-ledger problem again, against stock items.
+
+### The inheritance chain — #20
+
+```xml
+<SRCOFGSTDETAILS>As per Company/Stock Group</SRCOFGSTDETAILS>
+<SRCOFHSNDETAILS>As per Company/Stock Group</SRCOFHSNDETAILS>
+```
+
+When either field reads this, **the item's own rate and HSN fields are
+deferral placeholders, not effective values** — all five `GSTRATE` rows
+read `0` and `HSNCODE` is absent, and none of that is the truth about
+the item.
+
+**BK-01 cannot resolve a stock item's effective GST rate or HSN code
+from the item master alone.** It must read the `SRCOF...` fields first
+and walk item → `PARENT` stock group → company. Combined with the
+state-wise and `APPLICABLEFROM` dimensions, *"the HSN code for this
+line"* is a resolution over **(item, parent chain, state, date)**, not a
+field read.
+
+> **Untested:** the literal value that means "specify rates here" rather
+> than deferring. Every artifact in the repo contains exactly one value
+> for these fields — the deferring one. This is Rule 3 on a GST field,
+> so a wrong guess will be silently discarded. Tracked as `PENDING:015`.
+
+### Sandbox fixture state **[Sandbox]**
+
+`Coastal Test Traders` currently contains **one stock item, zero unit
+masters, zero stock groups**. Consequences, all fixture facts:
+
+- The `Test` item has `BASEUNITS: <EOT> Not Applicable` because **there
+  was never a unit to pick** — not because units are optional.
+- `PARENT: <EOT> Primary` is the built-in root sentinel; **there is no
+  stock group named `Primary`**, and sending that literal is rejected
+  (#22 step 1).
+- The `As per Company/Stock Group` deferral resolves straight to
+  **company** level. The chain here is two links, not three.
+
+## 3.4 Duty-head spelling differs by master type **[Tally]** — #19
+
+| Master type | Field | Spelling for the same duty head |
+|---|---|---|
+| Ledger | `GSTDUTYHEAD` | `State Tax` |
+| Stock item | `GSTRATEDUTYHEAD` | `SGST/UTGST` |
+
+Stock items enumerate `CGST | SGST/UTGST | IGST | Cess | State Cess`.
+
+**This escalates Rule 3 from per-field to per-master-type.** A single
+shared `DUTY_HEADS` constant applied to both payload kinds **would be
+silently wrong on one of them**, and per Rule 3 the response would not
+say so. Each master type's vocabulary must be established independently
+against a live instance.
+
+The `RATEDETAILS.LIST` embedded in a *voucher's* inventory entry uses the
+**stock-item** spelling, so the split is by master type, not by
+read-versus-write path.
+
+## 3.5 Master deletion
+
+Documented shape, by name: `<LEDGER NAME="ICICI" ACTION="Delete">`.
+
+> ⚠️ **Read §5.3 before sending any master delete.** Deleting a master
+> that does not exist **crashes TallyPrime**. Whether deleting one that
+> *does* exist works has never been established for any master type.
+
+**Adapter consequences (§3)**
+- Never share an enum constant across master types (§3.4).
+- Resolve GST/HSN through the inheritance chain, never from the item
+  alone (§3.3).
+- Match items on the alias list (§3.3).
+- Existence-check before every delete (§5.3).
+
+---
+
+# 4. Voucher shapes
+
+## 4.1 Reading vouchers **[Tally]** — #11
+
+```xml
+<HEADER>
+  <TALLYREQUEST>EXPORT</TALLYREQUEST>
+  <TYPE>DATA</TYPE>
+  <ID>Day Book</ID>
+</HEADER>
+```
+
+with `SVFROMDATE` / `SVTODATE` in `STATICVARIABLES`. `ID: Voucher
+Register` also works. **`TYPE: COLLECTION` does not** — it returns zero
+with no error (§2.2). Implemented in `spikes/tally_voucher_read.py`.
+
+Day Book responses carry `REMOTEID` and `VCHKEY` attributes per
+`<VOUCHER>` — see §4.5.
+
+## 4.2 Accounting view vs. invoice view **[Tally]** — #7 *(corrected)*
+
+The discriminator for whether a purchase voucher needs inventory
+entries is **`OBJVIEW`, not the company's inventory setting**:
+
+| `OBJVIEW` | On an inventory-enabled company |
+|---|---|
+| *(omitted)* or `Accounting Voucher View` | ✅ Posts fine **with no inventory entries** |
+| `Invoice Voucher View` | ❌ `EXCEPTIONS: 1` unless `ALLINVENTORYENTRIES.LIST` is supplied |
+
+Established by seven variants where five created and two failed; B vs. D
+isolates `OBJVIEW` cleanly (identical ledger entries, differing only in
+that attribute).
+
+> **This finding's original text was wrong** and was corrected
+> 2026-09-16. It recorded all seven variants as failing and concluded
+> Tally requires a stock item on any purchase voucher for an
+> inventory-enabled company. Both claims are contradicted by the
+> artifacts. If you have read an older copy, re-read #7.
+
+**Open practice question, not an API question:** posting accounting-view
+vouchers to an inventory-enabled client is *accepted*, but it bypasses
+stock movement on books configured to track it. Whether that is an
+acceptable adapter default is a judgement for the practice.
+
+## 4.3 Accounting-view voucher **[Tally]** — verified
+
+```xml
+<VOUCHER VCHTYPE="Purchase" ACTION="Create">
+  <DATE>20260801</DATE>
+  <EFFECTIVEDATE>20260801</EFFECTIVEDATE>
+  <VOUCHERTYPENAME>Purchase</VOUCHERTYPENAME>
+  <PARTYLEDGERNAME>Coastal Components Pvt Ltd</PARTYLEDGERNAME>
+  <NARRATION>...</NARRATION>
+  <ALLLEDGERENTRIES.LIST>
+    <LEDGERNAME>Coastal Components Pvt Ltd</LEDGERNAME>
+    <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+    <AMOUNT>21712.00</AMOUNT>
+  </ALLLEDGERENTRIES.LIST>
+  <!-- Purchase @18% -18400.00, CGST -1656.00, SGST -1656.00, all Yes -->
+</VOUCHER>
+```
+
+**Sign convention:** `ISDEEMEDPOSITIVE=Yes` + negative `AMOUNT` = debit;
+`No` + positive = credit.
+
+**The tax split computes correctly** — #8 verified in the Tally UI:
+`Purchase @18% 18,400.00 Dr`, `CGST 1,656.00 Dr`, `SGST 1,656.00 Dr`,
+party `21,712.00 Cr`.
+
+## 4.4 Inventory-bearing voucher **[Tally]** — #21, verified live
+
+The full confirmed-working structure:
+
+```xml
+<VOUCHER VCHTYPE="Purchase" ACTION="Create" OBJVIEW="Invoice Voucher View">
+  <DATE>20260801</DATE>
+  <VOUCHERTYPENAME>Purchase</VOUCHERTYPENAME>
+  <PARTYLEDGERNAME>...</PARTYLEDGERNAME>
+  <PERSISTEDVIEW>Invoice Voucher View</PERSISTEDVIEW>
+  <VCHENTRYMODE>Item Invoice</VCHENTRYMODE>
+  <ISINVOICE>Yes</ISINVOICE>
+
+  <ALLINVENTORYENTRIES.LIST>
+    <STOCKITEMNAME>Test</STOCKITEMNAME>
+    <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+    <AMOUNT>-18400.00</AMOUNT>
+    <BATCHALLOCATIONS.LIST>
+      <GODOWNNAME>Main Location</GODOWNNAME>
+      <BATCHNAME>Primary Batch</BATCHNAME>
+      <AMOUNT>-18400.00</AMOUNT>
+    </BATCHALLOCATIONS.LIST>
+    <ACCOUNTINGALLOCATIONS.LIST>          <!-- purchase ledger lives HERE -->
+      <LEDGERNAME>Purchase @18%</LEDGERNAME>
+      <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+      <AMOUNT>-18400.00</AMOUNT>
+    </ACCOUNTINGALLOCATIONS.LIST>
+  </ALLINVENTORYENTRIES.LIST>
+
+  <LEDGERENTRIES.LIST>                     <!-- note: NOT ALLLEDGERENTRIES -->
+    <LEDGERNAME>Coastal Components Pvt Ltd</LEDGERNAME>
+    <ISPARTYLEDGER>Yes</ISPARTYLEDGER>
+    <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+    <AMOUNT>21712.00</AMOUNT>              <!-- gross -->
+  </LEDGERENTRIES.LIST>
+  <LEDGERENTRIES.LIST>                     <!-- tax: voucher-level siblings -->
+    <LEDGERNAME>CGST</LEDGERNAME>
+    <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+    <AMOUNT>-1656.00</AMOUNT>
+  </LEDGERENTRIES.LIST>
+  <!-- SGST likewise -->
+</VOUCHER>
+```
+
+Three structural points that differ from the accounting-view shape and
+are easy to get wrong:
+
+1. **The purchase ledger is nested inside the inventory entry**, under
+   `ACCOUNTINGALLOCATIONS.LIST` — not a voucher-level sibling.
+2. **Tax ledgers *are* voucher-level siblings**, in `LEDGERENTRIES.LIST`,
+   alongside the party. Confirmed by read-back on the first attempt.
+3. **The container is `LEDGERENTRIES.LIST`, not `ALLLEDGERENTRIES.LIST`.**
+   Invoice-view import accepts the spelling the voucher stores;
+   accounting-view vouchers use the `ALL...` spelling. **This is
+   view-dependent** — neither spelling is globally correct.
+
+> **What #21 does NOT establish** — stated plainly because the shape
+> above looks more complete than it is:
+> - **Tax amounts were supplied, not computed.** `1656.00` was sent and
+>   stored verbatim. Whether Tally *derives* correct tax from the stock
+>   item's own GST config is untested, and per §3.3 would require the
+>   inheritance chain.
+> - **No quantity, rate or UoM was exercised.** The `Test` item has no
+>   `BASEUNITS` **[Sandbox]**, so `ACTUALQTY`, `BILLEDQTY` and `RATE`
+>   are present-but-empty on every voucher in this sandbox. **Do not
+>   read that as "quantity is optional."**
+
+## 4.5 Identity and correlation **[Tally]** — #10, #14, #15
+
+This determines whether Rule 1's read-back can find what it needs to
+verify.
+
+| Field | Verdict | Evidence |
+|---|---|---|
+| `REMOTEID` | ✅ **Stable for read correlation** — survives reads, restarts and edits | #15 |
+| `REMOTEID` | ❌ **NOT confirmed addressable for writes** — a delete addressed by it returned `Voucher does not exist!` | #16 |
+| `VCHKEY` | ⚠️ Demoted — stable in testing but superseded by `REMOTEID` | #15 |
+| `GUID` | ✅ Stable | #15 |
+| `VOUCHERNUMBER` | ❌ **Unusable as identity** — Tally assigns its own | #10, #14 |
+| `MASTERID` | ⚠️ Stable per object, but see #14's caution | #15 |
+| `ALTERID` | ℹ️ **Company-wide alteration sequence, not a per-object counter** | #15 |
+
+**`ALTERID` is widely misread.** An edited voucher's `ALTERID` went
+`1 → 5`, not `1 → 2`, because the counter is shared across the whole
+company. So `ALTERID > MASTERID` means *"this object has been altered
+since creation"* — it is **not** a per-object version number and must
+not be used as one. The stock item's `ALTERID 223` against a voucher's
+`ALTERID 6` reflects position in the company's alteration history, not
+223 edits to that item.
+
+**Two claims about `REMOTEID` that must not be conflated:** stable for
+*read-back correlation* (confirmed, and what BK-07 needs), versus
+addressable for *writes* (disconfirmed). If the adapter ever needs to
+delete or amend a voucher it posted, it cannot assume the identifier it
+reads back is one it can write against; it may need to supply `REMOTEID`
+itself at create time — **untested in either direction**.
+
+## 4.6 Duplicates are not prevented **[Tally]** — #9, CG7 CONFIRMED
+
+Two identical imports produced two vouchers, both `CREATED: 1,
+ERRORS: 0`, party balance `43,424.00 Cr` (= 2 × 21,712).
+
+**Tally's own TPA documentation is wrong here** — it states *"invalid or
+duplicate requests will reflect in the error count."* For voucher
+imports, they do not. **CG7's platform-side duplicate check against the
+platform's own `Voucher` table is genuinely necessary**, and since Tally
+also controls voucher numbering (§1.3), the check *cannot* live on
+Tally's side even in principle.
+
+**Adapter consequences (§4)**
+- Use `TYPE: DATA` + `ID: Day Book` for reads; never `COLLECTION` (§4.1).
+- Choose `OBJVIEW` deliberately — it decides whether inventory is
+  required (§4.2).
+- Capture `REMOTEID` at post time for read-back; never use
+  `VOUCHERNUMBER` (§4.5).
+- Never treat `ALTERID` as a per-object version (§4.5).
+- Keep CG7's duplicate check platform-side (§4.6).
+
+---
+
+# 5. Failure modes, by severity
+
+**These are three different severities, not a list.** The differences
+decide how much a mistake costs, and on the practice's single-tenant
+deployment (ADR 0009) every client company shares one Tally instance
+(ADR 0001, TC-01) — so the blast radius of the top two is *every client
+on the box*, not just the one whose request failed.
+
+## 5.1 ☠️ CRITICAL — master delete on a nonexistent target crashes Tally — #22
+
+**Trigger:** `ACTION="Delete"` for a master whose name does not exist.
+
+```xml
+<STOCKITEM NAME="CAOS-PROBE-DELETE-ME-NOT-EVIDENCE" ACTION="Delete" />
+```
+
+**Result:** request hangs, no response, 30s timeout. At the console:
+
+```
+Internal Error. Contact Tally Solutions.
+Software Exception c0000005 (Memory Access Violation)
+```
+
+**Recovery: full application restart.** Dismissing a dialog is not
+sufficient — the process is dead.
+
+**The payload was not malformed.** It mirrors the documented master
+delete pattern with the object type changed. This is plausibly
+reproducible on any TallyPrime instance and looks like an **application
+bug worth reporting to Tally Solutions** (`PENDING:016`).
+
+> **A crashed Tally still LISTENs on port 9000.** A TCP-connect health
+> check reports healthy against a dead process. TC-05 needs a real
+> request/response round trip with an explicit timeout.
+
+**Rule: never send a master delete without first confirming the target
+exists via a read.** Per Rule 1, a prior `CREATED: 1` is **not**
+sufficient evidence that it exists.
+
+## 5.2 ⚠️ HIGH — malformed read raises a modal dialog and blocks the listener — #13
+
+**Trigger:** `TYPE: COLLECTION` with `ID: Day Book` — a plausible-looking
+mix of two valid shapes.
+
+**Result:** a modal GUI dialog — *"Error in TDL. 'Collection:Day Book'
+Could not find description!"* While it is open the HTTP listener serves
+nothing. Three further requests each raised it again and TallyPrime then
+**closed itself entirely**.
+
+**Recovery:** a human dismisses the dialog at the console. On a headless
+or hosted instance there may be nobody to click OK.
+
+**The platform sees a timeout, not an error** — it cannot distinguish
+"Tally is down" from "Tally is waiting on a dialog nobody can see".
+
+> **The irony worth remembering:** #12 established that Tally reports
+> import failures with no diagnostic detail anywhere. Here it produced a
+> genuinely useful message — and sent it to a GUI dialog box, the one
+> place an integration cannot read it.
+
+**Rule: send only request shapes verified against a real instance.**
+Constructing TDL dynamically from user-supplied values is a crash risk,
+not merely a correctness risk.
+
+## 5.3 ✅ BENIGN — voucher delete refused cleanly — #16
+
+**Trigger:** `ACTION="Delete"` on a voucher, by either addressing scheme.
+
+| Addressed by | Response | Time |
+|---|---|---|
+| `REMOTEID` + `VCHKEY` | `Voucher does not exist!`, `ERRORS: 1` | 0.1s |
+| `MASTERID` | `Cannot delete unnamed object: VOUCHER!`, `ERRORS: 0` | 0.1s |
+
+Well-formed, fast, no side effects, all vouchers intact afterwards. The
+second error is the informative one: addressing *resolved*, and Tally
+objected to the **kind of object** — a voucher has no name, and the
+documented delete syntax deletes by name.
+
+### The contrast is the finding
+
+| | Nonexistent **voucher** | Nonexistent **master** |
+|---|---|---|
+| Result | `Voucher does not exist!` | **crash, `c0000005`** |
+| Time | 0.1s | 30s, then dead |
+| Recovery | none needed | full restart |
+
+Same envelope, same `ACTION="Delete"`, target absent in both cases.
+**Object type is the only variable** — and there is no way to learn
+which behaviour a given type has except by triggering it.
+
+**Practical consequence: vouchers cannot be deleted through this API at
+all.** There is no scripted sandbox reset; resetting a company is a
+manual UI procedure (`PENDING:009`). Every test voucher is permanent, so
+mark probe data — `NARRATION` and `REFERENCE` both survive a post and
+round-trip verbatim (#21a), while `VOUCHERNUMBER` cannot (§4.5).
+
+---
+
+# 6. Confirmed working vs. explicitly untested
+
+## 6.1 Verified live
+
+| Capability | Finding |
+|---|---|
+| Response sanitisation handles all four `&#4;` forms | #1 |
+| Ledger create and alter | #2, #3 |
+| `GSTDUTYHEAD: CGST` produces a **correct** intra-state split (UI-verified) | #8 |
+| Full-field master dump via `COLLECTION` + `FETCH *` | #6 |
+| Stock-item master read and schema | #18 |
+| Voucher read via `TYPE: DATA` + `ID: Day Book` | #11 |
+| Accounting-view purchase voucher with tax split | #8 |
+| **Inventory-bearing voucher incl. tax placement** | #21 |
+| `OBJVIEW` decides whether inventory entries are required | #7 *(corrected)* |
+| Tally does **not** prevent duplicate vouchers | #9 |
+| `REMOTEID` stable across reads, restarts and edits | #15 |
+| `NARRATION` / `REFERENCE` survive a post verbatim | #21a |
+| Vouchers **cannot** be deleted | #16 |
+| Master delete on a nonexistent target **crashes** Tally | #22 |
+
+## 6.2 Genuinely unknown — *cheap to resolve*
+
+| Question | Why it's cheap |
+|---|---|
+| Quantity / rate / UoM handling on a voucher | Needs a stock item with `BASEUNITS`; read-verifiable |
+| Whether `BASEUNITS` implicitly creates a `Unit` master | The attempt **is** the test — create, then re-dump units |
+| Whether `<EOT>` sentinels must carry `\x04` on import | One create attempt, read back |
+| The `SRCOFGSTDETAILS` "specify here" literal | Rule 3 probe, like #3's — **but** needs §6.3's answer first |
+| Supplier invoice number in a non-`VOUCHERNUMBER` field | #10's open item; one post + read-back |
+
+## 6.3 Genuinely unknown — *expensive, cost now known*
+
+| Question | Why it's expensive |
+|---|---|
+| **Can a stock item that exists be deleted?** | #22 established what asking carelessly costs: a crash and a restart. The question that decides whether all of §6.2's master probes are iterative or one-shot — and it is **still open**, because #22's probe tested the nonexistent-target path, not the delete path |
+| Can `REMOTEID` be supplied at create time and used to address writes? | #15/#16 leave this open in both directions; tests the write path with no undo |
+| Does Tally **derive** tax from a stock item's GST config? | Needs §3.3's inheritance chain resolved first, and every attempt is a permanent voucher (#16) |
+
+## 6.4 Not tested — different category entirely
+
+> ### ⚠️ Zoho Books
+>
+> **Zoho is not "untested" — it has never been attempted.** It is the
+> other `BooksConnector` backend (ADR 0011 addendum), reached over
+> **OAuth2 + REST/JSON**, not XML-over-HTTP.
+>
+> **Nothing in this document transfers to it.** Not the envelope, not the
+> trust rules, not the failure modes, not the identity semantics. Every
+> line here describes TallyPrime specifically.
+>
+> `ZohoAdapter` remains `NotImplementedError` pending `P0-06` / `ENV-07`
+> sandbox credentials. Its equivalent findings document does not exist
+> yet, and when it does, the two must be compared deliberately rather
+> than assumed to be parallel — **that comparison is exactly what
+> ADR 0011's single `BooksConnector` interface has to absorb.**
+
+---
+
+# Appendix — finding index
+
+| # | Subject | § |
+|---|---|---|
+| 1 | `&#4;` breaks standard XML parsers | 2.1 |
+| 2 | Success response ≠ data landed (**Rule 1**) | 2.3 |
+| 3 | `GSTDUTYHEAD` validated against unknown list (**Rule 3**) | 2.3, 3.2 |
+| 4 | TDL Reference Manual predates GST — dead end | preamble |
+| 5 | `CMPINFO.LEDGER` is not a ledger count | — |
+| 6 | Request shapes that work | 1.2, 2.2 |
+| 7 | `OBJVIEW` decides inventory requirement *(corrected)* | 4.2 |
+| 8 | Tax split computes correctly | 3.2, 4.3 |
+| 9 | Duplicates not prevented — CG7 confirmed | 4.6 |
+| 10 | Tally assigns its own voucher numbers | 1.3 |
+| 11 | Voucher reads need `TYPE: DATA` + `ID: Day Book` | 2.2, 4.1 |
+| 12 | Import exceptions have no diagnostic detail | 2.4 |
+| 13 | Malformed read → modal dialog → hang | 5.2 |
+| 14 | `VOUCHERNUMBER` unusable as identity | 1.3, 4.5 |
+| 15 | `REMOTEID` stable; `ALTERID` is company-wide | 4.5 |
+| 16 | Vouchers cannot be deleted | 5.3 |
+| 17 | `ERRORS: 0` ≠ no error (**Rule 2**) | 2.3 |
+| 18 | Stock item `Test` is real; master schema | 3.3 |
+| 19 | Duty-head spelling differs by master type | 3.4 |
+| 20 | `SRCOF...` inheritance chain | 3.3 |
+| 21 | Inventory voucher tax placement | 4.4 |
+| 22 | Master delete on nonexistent target crashes Tally | 5.1 |
+
+## Related documents
+
+| Document | Bearing |
+|---|---|
+| `spikes/p0-02-tally/FINDINGS.md` | **Source of truth** — evidence and reasoning |
+| ADR 0001 | Tally integration via XML-over-HTTP; TC-01 single instance |
+| ADR 0011 addendum | `BooksConnector` interface, dual backend |
+| ADR 0011 amendment 1 | Tax modelling in `DraftEntry` |
+| ADR 0009 | Single-tenant deployment — why §5's blast radius is all clients |
+| ADR 0002 | GST via GSP — **out of scope**, contains no Tally content |
+| `docs/STUB_ISSUES.md` | `PENDING:009`, `PENDING:014`, `PENDING:015`, `PENDING:016` |
