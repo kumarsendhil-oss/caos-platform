@@ -52,6 +52,12 @@ Phase 0 Tally integration spike (`spikes/p0-02-tally/`), verifying the multi-bac
 - The script still never names the condition. It reports whether identifiers moved since a baseline; asserting *what changed* between the two runs stays with the human, deliberately.
 - `flag_value()` extracted so `--baseline` reuses `--company`'s argv guards. This is the file's internal duplication only — **`PENDING:011` (the same helper triplicated across three spike scripts) is untouched and stays open.**
 
+**Investigate session — edit-stability: `PENDING:010` RESOLVED**
+- The last open risk is closed. A stored voucher's amount was altered in the Tally UI; **`REMOTEID` survived it**. `REMOTEID` is now confirmed stable across all three conditions — repeated reads, a TallyPrime restart, and an edit — and is the correlation field for `TallyAdapter.post_entry`, including the BK-07 amended-voucher case. Recorded as the third extension to **FINDINGS.md #15**; artifacts committed.
+- New fact worth not misreading: **`ALTERID` is a company-wide alteration sequence, not a per-voucher revision counter** (1 → 5 on the edited voucher, with `MASTERID` 1–4 across four vouchers). `ALTERID > MASTERID` means altered; the value orders alterations across the company.
+- **Method note carried into #15.** The first post-edit run read every field `SAME` — because the edit had not saved, and the responses were byte-identical. The asserted voucher was also wrong (voucher 1, not 2). Both were caught only by checking amounts, which the probe does not read. An asserted condition is a hypothesis about the evidence, not a fact about it.
+- New: `PENDING:013` (the probe treats all field movement as failure, and cannot distinguish a void run from a real result — one root cause, one row).
+
 ## Next action
 
 Issue #28's remaining half — the inventory-bearing voucher shape and BK-01 stock-item mapping. Start from voucher #6's structure in `runs/2026-09-16T02-15-54-voucher-2-readback/response.xml` (see above); it is a stored example of the target shape.
