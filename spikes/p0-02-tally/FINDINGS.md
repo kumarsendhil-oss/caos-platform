@@ -347,7 +347,7 @@ and that `TallyAdapter` should capture them at post time. That note is
 the answer to this, and #10's open item about linking a posted voucher
 back to its source document. Tracked as `PENDING:010`.
 
-## 15. `REMOTEID` is stable across reads and restarts; `VCHKEY` is demoted
+## 15. `REMOTEID` is stable across reads, restarts and edits; `VCHKEY` is demoted
 
 Finding #14 rules out `VOUCHERNUMBER` as an identity field, leaving
 `PENDING:010`'s proposal — `REMOTEID`/`VCHKEY`, inherited from #11 —
@@ -442,22 +442,79 @@ voucher. `REMOTEID` remains the field to use, now on strictly better
 evidence: object identity (`== GUID`), stable per response, stable
 across a restart.
 
-**One risk remains open. This finding still does not close `PENDING:010`.**
+### Edit-stability — RESOLVED 2026-09-16. Both risks now closed.
 
-1. ~~**Across a TallyPrime restart — untested.**~~ **Resolved above.**
-2. **Across a voucher edit — untested, and today's restart test did
-   nothing to reduce it.** No voucher was altered in either the
-   pre- or post-restart run, so the case still has not occurred.
-   `ALTERID` still equals `MASTERID` on every voucher checked. That is
-   an **absence of a negative result, not a positive one** — it says
-   the case has not occurred, not that `REMOTEID` survives it.
-   `ALTERID` exists because Tally tracks alterations, and a voucher
-   corrected in the UI after posting is an ordinary BK-07 case, not an
-   edge one.
+Risk 2 is the last one, and it is now settled. A voucher already stored
+in `Coastal Services Ltd` was altered in the TallyPrime UI — its amount
+changed and saved — with a read taken before and after.
 
-`TallyAdapter.post_entry` can be built on `REMOTEID`. The caveat that
-the platform should not depend on the correlation "until at least the
-restart case is checked" is now satisfied — that case is checked and
-`REMOTEID` held. Edit-stability is the remaining unknown, and it is the
-one to settle before treating the correlation as reliable for vouchers
-that may be amended after posting.
+`runs/2026-09-16T07-18-22-remoteid-stability-read-1/` — pre-edit baseline
+`runs/2026-09-16T07-18-24-remoteid-stability-read-2/`
+`runs/2026-09-16T07-20-42-remoteid-stability-read-1/` — void attempt, see below
+`runs/2026-09-16T07-20-44-remoteid-stability-read-2/`
+`runs/2026-09-16T07-23-13-remoteid-stability-read-1/` — post-edit
+`runs/2026-09-16T07-23-15-remoteid-stability-read-2/`
+
+**The edit reached stored data**, not a cosmetic field — voucher 1's
+party amount went `21712.00` to `21714.00` and Tally recomputed the tax
+split to `1657.00` CGST and `1657.00` SGST (`Purchase @18%` unchanged at
+`18400.00`).
+
+**`REMOTEID` survived it.** On the edited voucher, `REMOTEID`, `VCHKEY`,
+`GUID`, `VOUCHERNUMBER` and `MASTERID` are all byte-identical to the
+pre-edit baseline. One field moved, and only one:
+
+| # | edited | `REMOTEID` | `MASTERID` | `ALTERID` pre → post |
+|---|---|---|---|---|
+| 1 | yes | unchanged | 1 | **1 → 5** |
+| 2 | no | unchanged | 2 | 2 → 2 |
+| 3 | no | unchanged | 3 | 3 → 3 |
+| 4 | no | unchanged | 4 | 4 → 4 |
+
+Editing one voucher had **zero effect on the other three's identifiers**
+— every field held, `ALTERID` included.
+
+**`ALTERID` is a company-wide alteration sequence, not a per-voucher
+revision counter. This is easy to misread and worth reading twice.** The
+edited voucher's `ALTERID` went `1 → 5`, not `1 → 2`. With `MASTERID`
+1–4 across the four vouchers, 5 is simply the next number in a sequence
+the whole company shares. So `ALTERID > MASTERID` means "this voucher
+has been altered"; the *value* orders alterations across the company,
+not within one voucher's own history. Reading it as "revision 5 of this
+voucher" would be wrong — voucher 1 has been altered exactly once.
+
+**Both risks are now resolved.** `REMOTEID` is confirmed stable across
+repeated reads, across a TallyPrime restart, and across an edit to an
+existing voucher.
+
+### Method note — an asserted condition needs checking against evidence
+
+`--baseline` is built so the script never claims what condition held
+between two runs; the human asserts it. That division only works if the
+assertion is then **verified against the evidence rather than taken on
+trust**, and this run demonstrates why, twice:
+
+1. **A void run that read clean.** The first post-edit attempt
+   (`07-20-42`) reported every field `SAME`, which looks like a result.
+   The two responses were byte-identical, so nothing in that company had
+   changed at all — the edit had not been saved. Reported as
+   "`REMOTEID` survived an edit", it would have been a false positive on
+   the one question `PENDING:010` was still open on. The same shape as
+   #14's void `TEST-INV-0001` check: a test that reads clean while
+   exercising nothing.
+2. **The wrong voucher.** The condition was asserted as voucher 2. The
+   amounts show voucher 1, and `ALTERID` moved on exactly the voucher
+   whose amounts moved. The conclusion is unaffected — an edited voucher
+   kept its `REMOTEID` either way — but the finding would have recorded
+   the wrong voucher permanently.
+
+Both were caught by comparing amounts in the readback, which the probe
+does not read (`PENDING:013`). The generalisable rule: **an asserted
+condition is a hypothesis about the evidence, not a fact about it.**
+Check it against what the artifacts actually show, every time, not only
+when something looks off — in both cases here, nothing looked off.
+
+`TallyAdapter.post_entry` should capture `REMOTEID` at post time and use
+it for read-back verification, including for vouchers amended after
+posting — the ordinary BK-07 correction case, now tested rather than
+assumed. `PENDING:010` is resolved.

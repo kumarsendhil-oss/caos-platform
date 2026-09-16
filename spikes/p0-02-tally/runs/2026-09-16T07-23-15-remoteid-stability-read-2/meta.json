@@ -1,0 +1,11 @@
+{
+  "name": "remoteid-stability-read-2",
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "sent_at_utc": "2026-09-16T07:23:15.587567+00:00",
+  "script": "remoteid_stability_probe.py",
+  "request_bytes": 446,
+  "status": 200,
+  "response_bytes": 258240,
+  "elapsed_ms": 91
+}
