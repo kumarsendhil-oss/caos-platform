@@ -22,6 +22,7 @@ docs/spikes/tally_payloads.py.
 
     python post_voucher.py            # print the payloads
     python post_voucher.py --send     # reset CGST, post, verify, duplicate
+    python post_voucher.py --send --company "Some Other Co"
 """
 
 from __future__ import annotations
@@ -57,6 +58,24 @@ TOTAL = TAXABLE + CGST + SGST  # 21712.00
 # dropped. Whether it *computes* correctly is what test 2 below decides.
 CGST_DUTY_HEAD = "CGST"
 SGST_DUTY_HEAD = "State Tax"
+
+
+def company_from_argv(argv: list[str]) -> str:
+    """--company VALUE, defaulting to COMPANY.
+
+    Validates the value, unlike no_inventory_test.py's copy of this
+    parsing (STUB_ISSUES PENDING:008), which raises IndexError when the
+    flag is last and silently accepts the next flag as a company name.
+    """
+    if "--company" not in argv:
+        return COMPANY
+    i = argv.index("--company") + 1
+    if i >= len(argv):
+        sys.exit("error: --company requires a company name")
+    value = argv[i]
+    if value.startswith("--"):
+        sys.exit(f"error: --company requires a company name, got the flag {value!r}")
+    return value
 
 
 def _import_envelope(company: str, report: str) -> tuple[ET.Element, ET.Element]:
@@ -152,33 +171,37 @@ def verify_split(response: str) -> None:
 
 
 if __name__ == "__main__":
+    company = company_from_argv(sys.argv)
+
     if "--send" not in sys.argv:
         print("=== reset duty heads ===")
-        print(build_reset_duty_heads())
+        print(build_reset_duty_heads(company))
         print("\n=== voucher ===")
-        print(build_voucher())
-        print("\n(dry run — pass --send to run the full sequence)")
+        print(build_voucher(company))
+        print(f"\n(dry run — pass --send to run against {company!r})")
         sys.exit(0)
 
+    print(f"Target company: {company!r}\n")
+
     print("--- 0. reset CGST/SGST duty heads (probe left CGST empty) ---")
-    run("voucher-0-reset-duty-heads", build_reset_duty_heads())
+    run("voucher-0-reset-duty-heads", build_reset_duty_heads(company))
 
     print("\n--- 1. post the voucher ---")
-    body = run("voucher-1-post", build_voucher())
+    body = run("voucher-1-post", build_voucher(company))
     print(f"  counts: {_counts(body) if body else 'no response'}")
 
     print("\n--- 2. read it back and verify the split ---")
-    body = run("voucher-2-readback", build_read_daybook())
+    body = run("voucher-2-readback", build_read_daybook(company))
     if body:
         verify_split(body)
 
     print("\n--- 3. post the IDENTICAL voucher again (CG7) ---")
-    body = run("voucher-3-duplicate", build_voucher())
+    body = run("voucher-3-duplicate", build_voucher(company))
     counts = _counts(body) if body else {}
     print(f"  counts: {counts}")
 
     print("\n--- 4. read back again — one voucher or two? ---")
-    body = run("voucher-4-readback-after-duplicate", build_read_daybook())
+    body = run("voucher-4-readback-after-duplicate", build_read_daybook(company))
     if body:
         verify_split(body)
 
