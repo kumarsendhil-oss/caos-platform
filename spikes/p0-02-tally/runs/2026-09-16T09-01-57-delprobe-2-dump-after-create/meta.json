@@ -1,0 +1,12 @@
+{
+  "name": "delprobe-2-dump-after-create",
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "sent_at_utc": "2026-09-16T09:01:57.802254+00:00",
+  "script": null,
+  "request_bytes": 610,
+  "status": 200,
+  "response_bytes": 9666,
+  "elapsed_ms": 10,
+  "note": "Stock-item deletability probe, 2026-09-16 -- the run that crashed TallyPrime (finding #22). Issued by an ad-hoc scratchpad script, so 'script' is null; payloads are reproduced in FINDINGS.md #22. Step 1 create failed clean on an invalid PARENT; step 2 confirms nothing was created; step 3 ACTION=Delete on the resulting nonexistent stock item hung and crashed the process (c0000005), so steps 3 and 4 have no response.xml -- the timeout IS the evidence."
+}

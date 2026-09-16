@@ -987,3 +987,151 @@ and `REFERENCE`. `Coastal Services Ltd` gained one, marked
 `GAP2-PROBE-DO-NOT-USE-AS-EVIDENCE`. None can be deleted (finding #16);
 all three are unambiguously identifiable as test artifacts by any future
 reader or script.
+
+# Round 6 — Master creation and deletion (2026-09-16)
+
+Investigate session against issue #28's two remaining cases (tax
+derivation via #20's inheritance chain, and an item with a unit of
+measure). Both need a stock item that does not exist in either sandbox,
+so the session opened with a deletability probe — establishing whether
+master experimentation is one-shot or iterative before spending any
+budget on the harder GST-vocabulary question.
+
+The probe never reached the question it was designed to answer. It
+crashed TallyPrime instead. Artifacts:
+`runs/2026-09-16T09-01-57-delprobe-*`, `09-02-27-*`.
+
+Two read-only collection dumps earlier in the same session established
+the setup facts: `Coastal Test Traders` has **zero `Unit` masters and
+zero `StockGroup` masters**. That is why `Test` carries
+`BASEUNITS: <EOT> Not Applicable` — there was never a unit to pick — and
+it is directly why step 1 below failed.
+
+## 22. `ACTION="Delete"` for a nonexistent master crashes TallyPrime — CRITICAL, escalates #13
+
+**Severity note.** This is not a restatement of #13. #13 was a malformed
+*read* raising a modal dialog that blocked the HTTP listener, recoverable
+by dismissing it at the console. This is a **well-formed write** causing
+a memory access violation that terminates the process. Different trigger,
+different failure mode, worse outcome.
+
+### The exact sequence
+
+**Step 1 — `ACTION="Create"` with an invalid `PARENT`: failed clean.**
+
+```xml
+<STOCKITEM NAME="CAOS-PROBE-DELETE-ME-NOT-EVIDENCE" ACTION="Create">
+  <NAME>CAOS-PROBE-DELETE-ME-NOT-EVIDENCE</NAME>
+  <PARENT>Primary</PARENT>
+</STOCKITEM>
+```
+
+```
+<LINEERROR>Stock Group 'Primary' does not exist!</LINEERROR>
+<CREATED>0</CREATED> <ERRORS>0</ERRORS> <EXCEPTIONS>1</EXCEPTIONS>
+```
+
+The bare word `Primary` was wrong. The `Test` item reads back
+`PARENT: <EOT> Primary`, where the `&#4;` prefix marks a **sentinel, not
+a name** — and the `TYPE>StockGroup` dump from earlier in the same
+session had already shown the company has no stock groups at all. The
+evidence to predict this failure was in hand and was not applied to the
+payload.
+
+Note `ERRORS: 0` on a total failure — **finding #17 again**, third
+independent occurrence. `LINEERROR` was the only signal.
+
+**Step 2 — dump: confirms nothing was created.** Exactly one stock item,
+`Test`. This matters for what follows: step 3 therefore targeted a name
+that **did not exist**.
+
+**Step 3 — `ACTION="Delete"` on that nonexistent stock item: hung.**
+
+```xml
+<STOCKITEM NAME="CAOS-PROBE-DELETE-ME-NOT-EVIDENCE" ACTION="Delete" />
+```
+
+No response. Timed out at 30s. **Step 4** (an ordinary read) also timed
+out at 30s. Neither run folder has a `response.xml` — the timeout is the
+evidence.
+
+**Step 5 — diagnosis at the console.** `tally.exe` was still running and
+port 9000 still `LISTENING`, with a `CLOSE_WAIT` socket — which initially
+looked like #13's blocking-dialog pattern. It was not. The TallyPrime
+window showed:
+
+```
+Internal Error. Contact Tally Solutions.
+Software Exception c0000005 (Memory Access Violation)
+```
+
+A genuine application crash. **A full restart was required**; dismissing
+a dialog was not sufficient.
+
+**Recovery was clean.** After restart, a single read-only stock-item dump
+returned `200` in 43ms and was **byte-identical** to the same call made
+earlier that day — same GUID, same `ALTERID 223`, same fields. No data
+loss, no corruption, and the failed create left no residue.
+
+### The contrast with #16 is the point
+
+| | Nonexistent VOUCHER | Nonexistent STOCKITEM |
+|---|---|---|
+| Request | `ACTION="Delete"` | `ACTION="Delete"` |
+| Envelope | `Import Data` | `Import Data` |
+| Result | `Voucher does not exist!` | **process crash, c0000005** |
+| Time | 0.1s | 30s timeout, then dead |
+| Recovery | none needed | full restart |
+
+Same API, same envelope shape, a delete against a target that isn't
+there — and one returns a clean diagnostic while the other kills the
+process. The object type is the only variable. There is no way to
+predict which behaviour a given master type has except by finding out,
+and finding out is what crashes it.
+
+### Consequence for `TallyAdapter` — mandatory, not defensive hygiene
+
+**Never send `ACTION="Delete"` for a master without first confirming the
+target exists via a read.** Not a nice-to-have guard: on the practice's
+deployment every client company runs in one Tally Cloud instance (ADR
+0001, TC-01), so a single delete against a stale or mistyped master name
+takes the integration down **for every client on that instance**, and
+recovery needs a human with console access to restart the application.
+
+This composes badly with two things already known:
+
+- **#2 and #3.** A master's state cannot be trusted from a write
+  response, so "I created it, therefore it exists" is not a safe premise
+  for a later delete. The existence check has to be a real read, not an
+  inference from an earlier `CREATED: 1`.
+- **#13's consequence 3.** A health check must distinguish *unreachable*
+  from *unresponsive*. This adds a third state: **dead but still
+  listening.** The port stayed `LISTENING` on a crashed process, so a
+  TCP-connect health check would have reported Tally healthy. TC-05 needs
+  a real request-response round trip with a timeout, not a socket probe.
+
+### Worth reporting upstream
+
+A `c0000005` from a delete-on-nonexistent-master is plausibly
+reproducible on any TallyPrime instance and is not specific to this
+sandbox or to Educational Mode. Nothing in the payload was malformed —
+it mirrors the documented master-delete pattern from #16
+(`<LEDGER NAME="ICICI" ACTION="Delete">`) exactly, with the object type
+changed. This looks like an application bug worth reporting to Tally
+Solutions directly, separate from anything `TallyAdapter` can work
+around. Tracked as `PENDING:016`.
+
+### What remains unanswered
+
+**Stock-item deletability is still unknown.** The probe was designed to
+answer it and did not: the delete targeted a name that did not exist, so
+it tested the nonexistent-target path, not the delete path. Whether a
+**real** stock item can be deleted by name — the question that decides
+whether master experimentation is iterative or one-shot — is exactly as
+open as it was before, and is now more expensive to ask.
+
+A corrected attempt needs, in order: resolve the parent problem (create a
+stock group first, or establish how the `<EOT>` sentinel must be sent),
+create the item, **read it back to confirm it exists**, and only then
+attempt the delete. The existence check is no longer a matter of rigour;
+#22 is the reason it is mandatory.

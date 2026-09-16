@@ -8,6 +8,14 @@ Phase 0 Tally integration spike (`spikes/p0-02-tally/`), verifying the multi-bac
 
 ## Active work
 
+**TallyPrime crash during deletability probe — finding #22 (2026-09-16)**
+- **CRITICAL, and it escalates #13.** `ACTION="Delete"` for a stock item that **did not exist** crashed TallyPrime: `Software Exception c0000005 (Memory Access Violation)`. Process dead, **full restart required** — dismissing a dialog was not enough, unlike #13.
+- Sequence: the `ACTION="Create"` before it failed clean (`LINEERROR: Stock Group 'Primary' does not exist!`, `ERRORS: 0`, `EXCEPTIONS: 1` — #17's pattern for the third time) because the bare word `Primary` is a sentinel, not a name, and this company has **zero stock groups**. So the delete targeted a name that was never created. Artifacts `runs/2026-09-16T09-0*-delprobe-*`; steps 3 and 4 have no `response.xml` because the timeout *is* the evidence.
+- **Contrast #16:** the same request shape against a nonexistent *voucher* returns `Voucher does not exist!` in 0.1s. Object type is the only variable.
+- **Recovery confirmed clean.** Post-restart read returned `200` in 43ms, byte-identical to the morning's dump. **Nothing was created; sandbox state is unchanged from before this attempt** — 8 vouchers and 1 stock item (`Test`) in `Coastal Test Traders`, exactly as the previous session left it.
+- `TallyAdapter` consequence and the upstream bug report are tracked as `PENDING:016`. Also sharpens TC-05: the port stayed `LISTENING` on a dead process, so a socket-level health check would have reported healthy.
+- **Stock-item deletability is still unknown** — the probe tested the nonexistent-target path, not the delete path.
+
 **Gap 2 resolved + finding #7 corrected — findings #21, #7 (2026-09-16, authorised live probe)**
 - **Gap 2 CLOSED.** Tax ledgers on an inventory-bearing voucher attach at **voucher level, as `LEDGERENTRIES.LIST` siblings of the party**, party line carrying the gross. Candidate 1, correct first try; candidates 2 and 3 not tried. Verified by read-back, not response counters. Artifacts `runs/2026-09-16T08-5*-gap2-*`.
 - Two side results: `NARRATION` and `REFERENCE` both survive a post verbatim (so probe vouchers can be self-identifying, which `VOUCHERNUMBER` cannot do per #14); and the control post settled `LEDGERENTRIES.LIST` vs `ALLLEDGERENTRIES.LIST` — invoice-view import accepts the spelling voucher #6 stores.
@@ -111,6 +119,13 @@ Tax ledgers attach at **voucher level, as `LEDGERENTRIES.LIST` siblings of the p
 2. **Nothing exercised quantity, rate or unit of measure.** The `Test` item has no `BASEUNITS` (finding #18), so every voucher in this sandbox carries empty `ACTUALQTY`/`BILLEDQTY`/`RATE`. An item *with* a unit is untested and is the most likely place for a further surprise.
 
 **If #28 continues, those two are the next scope** — and both need a stock item that does not exist yet in either sandbox, so the first step is creating one (a master write, not a voucher write), not another voucher post.
+
+**The approach needs correcting first, per finding #22.** Two prerequisites before any further master experimentation:
+
+1. **Resolve the parent question.** `PARENT: Primary` is rejected — this company has zero stock groups, and the `<EOT> Primary` seen on `Test` is a sentinel, not a name. Either create a stock group first, or establish how the sentinel must be sent (whether the `\x04` prefix is required on import is untested). This is answerable partly from a read; the `TYPE>StockGroup` dump is already known empty.
+2. **Existence-check before every delete, without exception.** Finding #22 makes this mandatory rather than careful: a delete against a nonexistent master crashes the process, and per #2/#3 a prior `CREATED: 1` is not evidence the target exists. Any corrected probe runs create → **read back to confirm** → delete, never create → delete.
+
+Stock-item deletability — the question that decides whether master work is iterative or one-shot — remains open and is now more expensive to ask.
 
 ## Known blockers (tracked separately)
 
