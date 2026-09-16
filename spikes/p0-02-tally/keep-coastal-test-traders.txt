@@ -1,0 +1,61 @@
+# Keep-list for `Coastal Test Traders` — pass it explicitly:
+#
+#   python reset_sandbox.py --company "Coastal Test Traders" `
+#       --keep-file keep-coastal-test-traders.txt
+#
+# Nothing in this file is applied by default. reset_sandbox.py hardcodes
+# no protected voucher; this is the mechanism, and which vouchers belong
+# here will change as findings gain and lose evidence.
+#
+# Built 2026-09-16 by a voucher-by-voucher pass over the live Day Book
+# (`runs/2026-09-16T10-12-43-reset-enumerate`) cross-referenced against
+# every citation in FINDINGS.md.
+#
+# Company holds 8 vouchers: 1-8. ALL EIGHT are cited, and this company
+# is the MORE constrained of the two, not the safer one. Two reasons
+# that are easy to miss:
+#
+#   * #23's reconciliation — the strongest verification method this
+#     spike has established, stronger than Rule 1's read-back because it
+#     checks Tally's own derived aggregates against known inputs — is
+#     reproducible only while all eight vouchers are live. Its five
+#     figures (147,200 / 163,760 / -16,560 / -55,200 / -92,000) are
+#     arithmetic over the complete set. Deleting ANY voucher here
+#     permanently ends the ability to re-run it, and #23 notes it
+#     independently corroborates both #7's correction and #21.
+#
+#   * Voucher 6 is not reproducible by any script. It predates the
+#     spike scripts, has unrecorded provenance, and carries a bill
+#     allocation that #21b's control could not reproduce.
+#
+# There is currently NO safe-to-delete voucher in this company.
+
+1   # #7 (corrected) — variant A, minimal-no-tax, no tax ledgers. The
+    # finding names these explicitly: "those five are vouchers 1-5 in
+    # that company's day book". Also the only untaxed accounting-view
+    # voucher here (18,400 flat), so it is the B-vs-A contrast.
+2   # #7 — variant B, minimal-with-tax. B vs D is what isolates OBJVIEW
+    # as the cause; D never stored, so B is the surviving half.
+3   # #7 — variant C, accounting-objview. Also part of #9/#14's
+    # duplicate evidence: identical 21,712 imports that both landed.
+4   # #7 — variant F, no-voucher-number. Direct evidence for #10/#14:
+    # a voucher posted with no number we chose, numbered by Tally.
+5   # #7 — variant G, no-partyledgername.
+
+6   # #18, #20, #21b — the reference specimen, and the single most
+    # irreplaceable voucher in either sandbox. Item Invoice / Invoice
+    # Voucher View with ALLINVENTORYENTRIES.LIST on stock item `Test`,
+    # amount-only line (no qty/rate, because `Test` has no BASEUNITS),
+    # party in LEDGERENTRIES.LIST, plus a BILLALLOCATIONS bill reference
+    # (NAME: 6, New Ref) that #21b's control could NOT reproduce. Not
+    # created by any committed script; provenance unrecorded. If it is
+    # deleted it cannot be recreated — the stock-group question that
+    # blocks making a new item is still open (#22).
+
+7   # #21b — the control that reproduced voucher 6's shape and resolved
+    # the LEDGERENTRIES.LIST vs ALLLEDGERENTRIES.LIST confound. Its
+    # value is the one-line diff against voucher 6, so it is only
+    # evidence while BOTH are live.
+8   # #21c — the voucher that RESOLVED gap 2: tax ledgers at voucher
+    # level as LEDGERENTRIES.LIST siblings of the party, on an
+    # inventory-bearing voucher. The finding's primary specimen.

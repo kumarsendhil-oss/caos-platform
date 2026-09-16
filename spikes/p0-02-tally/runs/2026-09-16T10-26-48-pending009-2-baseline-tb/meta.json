@@ -1,0 +1,11 @@
+{
+  "name": "pending009-2-baseline-tb",
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "sent_at_utc": "2026-09-16T10:26:48.302094+00:00",
+  "script": "pending009_validate.py",
+  "request_bytes": 451,
+  "status": 200,
+  "response_bytes": 520,
+  "elapsed_ms": 18
+}

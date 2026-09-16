@@ -1,0 +1,41 @@
+# Keep-list for `Coastal Services Ltd` — pass it explicitly:
+#
+#   python reset_sandbox.py --company "Coastal Services Ltd" `
+#       --keep-file keep-coastal-services.txt
+#
+# Nothing in this file is applied by default. reset_sandbox.py hardcodes
+# no protected voucher; this is the mechanism, and which vouchers belong
+# here will change as findings gain and lose evidence.
+#
+# Built 2026-09-16 by a voucher-by-voucher pass over the live Day Book
+# (`runs/2026-09-16T10-12-32-reset-enumerate`) cross-referenced against
+# every citation in FINDINGS.md. An earlier version of this file listed
+# voucher 1 only; that was built from recall and under-protected the
+# other three. If you add vouchers to this company, redo the pass — do
+# not extend this file from memory.
+#
+# Company holds 4 vouchers: 1, 2, 4, 5. All four are cited. There is
+# currently NO safe-to-delete voucher in this company.
+
+1   # #15 — the edited voucher: party 21712 -> 21714, tax recomputed to
+    # 1657/1657, ALTERID 1 -> 5. The live specimen behind edit-stability.
+    # Also #26's reconciliation control (the stray "+2") and part of
+    # #28's post-delete baseline.
+
+2   # #15 — control voucher. "Editing one voucher had zero effect on the
+    # other three's identifiers" is a claim about 2, 3 and 4; voucher 3
+    # is already gone (#28), so 2 and 4 are what remains of that control
+    # set. Also part of #28's reconciliation (1 + 2 + 5 = 65,138 Cr).
+
+4   # #26 — the cancelled voucher, and the ONLY one in either company.
+    # ISCANCELLED=Yes, ledger entries stripped to 0, ALTERID 7, still
+    # visible in the Day Book. It is the sole live example of the state
+    # that #26 established and that reset_sandbox.py's cancelled-voucher
+    # SKIP exists to respect. Deleting it destroys the only specimen of
+    # Tally's cancel semantics either sandbox holds.
+
+5   # #21a — marker round-trip: NARRATION and REFERENCE both stored
+    # verbatim. Also load-bearing for #28's reconciliation, whose
+    # Current Liabilities figure of 65,138 requires exactly 1, 2 and 5
+    # to be live. Marked "DO-NOT-USE-AS-EVIDENCE", which means "this is
+    # not a real business transaction" — not "this voucher is disposable".

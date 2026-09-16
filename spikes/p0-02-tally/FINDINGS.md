@@ -1647,3 +1647,104 @@ own pre-flight** — resolve the parent/stock-group problem, create a
 master, confirm it exists by read, and only then attempt a
 `TAGNAME`-addressed delete. Not formalised as a `STUB_ISSUES` row yet;
 noted there as a candidate.
+
+# Round 9 — Reset-script validation (2026-09-16)
+
+Build session closing out `PENDING:009`. The keep-list audit earlier in
+this session established that **every voucher in both sandbox companies
+is cited by at least one finding** — `Coastal Services Ltd` 1, 2, 4, 5
+and `Coastal Test Traders` 1–8 — so `reset_sandbox.py`'s `--confirm`
+path had no target it could be validated against without destroying
+evidence. A voucher was posted for the sole purpose of being deleted.
+
+Artifacts: `runs/2026-09-16T10-26-48-pending009-1` … `-5`,
+`10-27-08-reset-delete-6`, `10-27-08-reset-readback-6`,
+`10-27-19-pending009-6-final-daybook`, `-7-final-tb`.
+Scripts: `pending009_validate.py` (post + reads only, never deletes) and
+`reset_sandbox.py` (the delete).
+
+## 29. `reset_sandbox.py`'s delete path works end to end — PENDING:009 closed
+
+**The sequence, in order, with the gate between steps 2 and 3 honoured.**
+
+| # | Step | Result |
+|---|---|---|
+| 1 | Post, marked `PENDING009-VALIDATION-DELETE-ME` | `CREATED: 1`, `LASTVCHID: 7`, 168ms |
+| 2 | Read back (Rule 1) | stored as **voucher 6**, marker verbatim in `NARRATION` |
+| 3 | `reset_sandbox.py` dry run | **1 DELETE (voucher 6), 4 KEEP, 0 SKIP** — zero `Import Data` sent |
+| 4 | `reset_sandbox.py --confirm` | `DELETED: 1`, no `LINEERROR`, 140ms; script's own read-back confirmed absence; exit 0 |
+| 5 | Independent Day Book + Trial Balance | count 4, validation voucher gone, survivors untouched |
+
+The payload was #21a's accounting-view shape with **only values
+changed** — the marker, and distinct amounts (1000 / 90 / 90 / 1180
+rather than the usual 18400 / 1656 / 1656 / 21712) chosen so the report
+delta could not be confused with vouchers 2 or 5, whose figures are
+identical to each other.
+
+### Reconciliation — the Trial Balance returned exactly to baseline
+
+Per #23's method, and it is the check that makes this conclusive rather
+than merely consistent:
+
+| Figure | Before post | After post | After delete |
+|---|---|---|---|
+| Purchase Accounts Dr | `-55,200` | `-56,200` | **`-55,200`** ✅ |
+| Current Liabilities Dr | `-9,938` | `-10,118` | **`-9,938`** ✅ |
+| Current Liabilities Cr | `65,138` | — | **`65,138`** ✅ |
+
+The post moved Purchase by exactly `1,000` and Duties by exactly `180`
+(90 + 90); the delete moved both back. **The delete removed exactly the
+voucher that was added and nothing else** — established from derived
+aggregates Tally computed itself, not from the read path that wrote it.
+
+### Survivors — nothing moved
+
+All four checked field-by-field against the pre-post baseline:
+
+| Vch | `ALTERID` | `REMOTEID` | Amounts |
+|---|---|---|---|
+| 1 | 5 → 5 | unchanged | unchanged |
+| 2 | 2 → 2 | unchanged | unchanged |
+| 4 | 7 → 7 | unchanged | unchanged |
+| 5 | 6 → 6 | unchanged | unchanged |
+
+This extends #28, which showed a delete does not renumber survivors, to
+a full **post-and-delete cycle**: the validation voucher carried
+`ALTERID 10`, so the company-wide sequence (#15) advanced past 7, 8, 9
+and 10 while all four survivors held their own values. A voucher's
+`ALTERID` is untouched by other vouchers' lifecycles, not merely by
+their edits.
+
+### `DELETED: 1` was accurate again — and this still establishes no rule
+
+Second accurate `DELETED` counter in two attempts. Set against #26's
+`CANCELLED: 0` on a successful cancel, the position is unchanged: the
+counters are not individually trustworthy, and Rule 1's read-back is
+what decided this run. Had the counter lied in either direction here,
+the script would have caught it — `LINEERROR` is checked independently
+of every counter (#17), and absence is confirmed by a fresh read.
+
+### New, and it contradicts a natural assumption: `REMOTEID`'s trailing counter is not the voucher number
+
+The validation voucher stored as **voucher 6** but carries
+`REMOTEID`/`GUID` suffix **`-00000007`**, matching the `LASTVCHID: 7` in
+the import response rather than its own voucher number.
+
+Every previously observed voucher in this company had suffix == number
+(1→1, 2→2, 4→4, 5→5), which made the two look interchangeable. They are
+not. The suffix follows an internal creation counter that #28's delete
+of voucher 3 had already advanced past. **Consequence for
+`TallyAdapter`:** never derive one identifier from the other in either
+direction. #15 established `REMOTEID` as the correlation field and #14
+ruled out `VOUCHERNUMBER`; this adds that they are independent values
+which merely coincided in the sandbox's early, gap-free state.
+
+### `PENDING:009` is closed
+
+The capability was proven by #28; the script now exists, and its
+destructive path is validated against a live delete. The remaining
+limits are recorded rather than open: masters still cannot be reset
+through the API (#22), and both companies' keep-lists
+(`keep-coastal-services.txt`, `keep-coastal-test-traders.txt`) currently
+protect every voucher they contain, so the script has no routine work to
+do until new debris accumulates.

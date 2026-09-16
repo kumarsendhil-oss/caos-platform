@@ -1,0 +1,11 @@
+{
+  "name": "reset-delete-6",
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "sent_at_utc": "2026-09-16T10:27:08.429898+00:00",
+  "script": "reset_sandbox.py",
+  "request_bytes": 643,
+  "status": 200,
+  "response_bytes": 269,
+  "elapsed_ms": 140
+}
