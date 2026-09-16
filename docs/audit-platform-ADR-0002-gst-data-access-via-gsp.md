@@ -24,6 +24,37 @@ Register the practice directly with a GSTN-licensed GSP offering a developer RES
 
 - GSTN’s OTP/consent step per client GSTIN still applies regardless of GSP chosen — this becomes a scriptable, automated step rather than a manual one, but it doesn’t disappear entirely.
 
+  > **⚠ OPEN QUESTION — this consequence is challenged and unverified. See [issue #51](https://github.com/kumarsendhil-oss/caos-platform/issues/51).**
+  >
+  > "A scriptable, automated step rather than a manual one" is the part at
+  > risk. The P0-04 GSP spike runbook documents two constraints that, if
+  > they hold, mean this step is **not** automated:
+  >
+  > 1. GSTN requires each taxpayer to enable API access from the GST
+  >    portal, and that consent has a duration — commonly **30 days**.
+  > 2. The OTP for that consent goes to the mobile/email registered
+  >    against that GSTIN — **the client, not the practice.** The request
+  >    and the submission are scriptable; the *receipt* is not.
+  >
+  > At 500 clients that is a recurring, per-client, ~monthly human
+  > interaction whose timing the practice does not control.
+  >
+  > **Nothing here is verified** — no live request has been made against
+  > any GSP, the session TTL is unknown, and whether a session can be
+  > refreshed without a fresh OTP is untested (if it can, much of this
+  > deflates). A sandbox alone cannot close it either: the portal consent
+  > duration is a GST-portal property, not a GSP API one.
+  >
+  > **This does not reopen the decision.** A GSP remains far better than
+  > driving Winman's UI per client per period, and the rejected
+  > alternatives stay rejected. What is at stake is the strength of the
+  > claim — the bottleneck is likely **relocated and shrunk**, not
+  > "removed at its root". If confirmed, the fix is an amendment in the
+  > shape of ADR 0011 Amendment 1, not a new decision.
+  >
+  > Blocks confidence in **RC-01** (Reconciliation Agent, Sprint 7) and
+  > **CC-05**, not just P0-04.
+
 - GSP API access has its own subscription cost — a new line item for the investment conversation.
 - WhiteBooks’ free sandbox (apisandbox.whitebooks.in) is confirmed safe to prototype against; their published pricing is not reliable (internally inconsistent on their own site) and needs a direct sales quote before being used in cost planning.
 - Full Winman replacement (ITR, TDS) is explicitly out of scope for this phase — noted as a candidate for a future initiative.

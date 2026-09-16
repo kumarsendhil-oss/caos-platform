@@ -11,9 +11,12 @@ is the safe one:
     inherits a company from a module constant resets the wrong books.
   * **Nothing is permanently protected in code.** Which vouchers matter
     changes as findings accumulate, so protection is a runtime
-    keep-list: `--keep 1,3` and/or `--keep-file PATH`. `Coastal Services
-    Ltd` voucher 1 is finding #15's evidence — protect it by passing
-    `--keep 1`, or `--keep-file keep-coastal-services.txt`.
+    keep-list: `--keep 1,3` and/or `--keep-file PATH`. An entry is
+    either a bare number (protects that number in **every** voucher
+    type — the safe, over-protecting default) or `Type:Number`, e.g.
+    `Sales:1`, which protects exactly one. `Coastal Services Ltd`
+    Purchase 1 is finding #15's evidence — protect it by passing
+    `--keep Purchase:1`, or `--keep-file keep-coastal-services.txt`.
 
 Usage (PowerShell):
 
@@ -37,28 +40,41 @@ Findings this implements:
   #22  Masters are out of scope. ACTION="Delete" against a nonexistent
        master crashes TallyPrime. This script touches vouchers only.
 
-DO NOT RUN THIS AGAINST A COMPANY HOLDING MORE THAN ONE VOUCHER TYPE.
-`Coastal Services Ltd` is in that state as of finding #31 (Purchase 1,
-2, 5 and Sales 1, 2 simultaneously) and is off limits until issue #48 /
-PENDING:019 is resolved. Voucher numbering is a series **per voucher
-type**, not per company, so the number this script is built around is
-not unique. Precisely where that bites:
+MIXED-TYPE COMPANIES: the guard is fixed, the addressing question is not.
 
-  * `classify()` matches the keep-list on a bare number, so a
-    same-numbered voucher of another type is **KEPT**. This
-    over-protects — it fails in the safe direction.
-  * `verify_gone()` is the problem. `still_there`, `expected` and
-    `actual` are all keyed on bare number, so two vouchers numbered "1"
-    **dedupe into one set member**. The guard that exists to detect
-    collateral loss and halt is the one that cannot distinguish them.
-  * Whether Tally itself disambiguates is a third, untested question:
-    the delete payload does carry VCHTYPE alongside TAGNAME/TAGVALUE.
+Voucher numbering is a series **per voucher type**, not per company
+(#31), so a bare number identifies nothing on a company holding more
+than one type. `Coastal Services Ltd` holds Purchase 1, 2, 4, 5 and
+Sales 1, 2 simultaneously. Three layers were affected and they are in
+different states now:
 
-Resolving it needs its own investigation — establish whether VCHTYPE
-disambiguates, test TAGNAME="MASTER ID" (schema reference 6.3, still
-untested), then rekey on whatever survives. REMOTEID is stable for
-reads (#15) but NOT confirmed addressable for writes (#16), so it is
-not automatically the answer. Guessing is how #22 happened.
+  * `classify()` matched the keep-list on a bare number, so a
+    same-numbered voucher of another type was **KEPT**. That
+    over-protects — it always failed in the safe direction. Still the
+    default, and now joined by an exact `Type:Number` spelling for the
+    cases a bare-number file cannot express.
+  * `verify_gone()` was the unsound one: `still_there`, `expected` and
+    `actual` were keyed on bare number, so two vouchers numbered "1"
+    **deduped into one set member** — the guard meant to detect
+    collateral loss was the one that could not. **FIXED (#33)**: every
+    set is now keyed on `voucher_key()`, i.e. (type, number), and an
+    unexplained *appearance* halts alongside an unexplained vanishing.
+  * Whether Tally itself disambiguates is the third question and it is
+    **still untested** — the delete payload carries VCHTYPE alongside
+    TAGNAME/TAGVALUE, but nothing establishes that Tally reads it.
+
+Because that third question is open, this script **refuses to delete
+anything on a company holding more than one voucher type** unless
+`--allow-mixed-types` is passed. A dry run still enumerates and prints
+the plan; only the deletes are refused. Retire that refusal when the
+addressing question is answered (issue #48 step 1) — **not** when the
+guard was fixed. Those are different milestones.
+
+Answering it means: establish whether VCHTYPE disambiguates, test
+TAGNAME="MASTER ID" (schema reference 6.3, still untested), then rekey
+on whatever survives. REMOTEID is stable for reads (#15) but NOT
+confirmed addressable for writes (#16), so it is not automatically the
+answer. Guessing is how #22 happened.
 
 Scope limits worth knowing before you trust a summary:
 
@@ -121,6 +137,7 @@ KNOWN_FLAGS = (
     "--confirm",
     "--url",
     "--max",
+    "--allow-mixed-types",
 )
 
 # Both spellings are real. `ALLLEDGERENTRIES.LIST` is what the
@@ -241,15 +258,61 @@ def _read_keep_file(path: Path) -> set[str]:
     return out
 
 
+def voucher_key(voucher: dict) -> tuple[str, str]:
+    """The identity this script compares vouchers on: (type, number).
+
+    Finding #31: TallyPrime numbers vouchers in a series **per voucher
+    type**, so a bare number identifies nothing on a company holding more
+    than one type. `Coastal Services Ltd` holds Purchase 1 and Sales 1
+    simultaneously — different vouchers, same number.
+
+    The type is case-folded because it arrives from two different places
+    in `enumerate_vouchers` (the `VCHTYPE` attribute and the
+    `VOUCHERTYPENAME` element) and nothing guarantees they agree on case.
+    The number is not: it is a Tally-assigned string, compared verbatim.
+    """
+    return ((voucher.get("vchtype") or "").strip().casefold(),
+            (voucher.get("number") or "").strip())
+
+
+def keep_matches(voucher: dict, keep: set[str]) -> str | None:
+    """The keep-list entry protecting this voucher, or None.
+
+    Two spellings, and the looser one is the default deliberately:
+
+      * `1` — a bare number protects voucher 1 **of every type**. This
+        over-protects on a mixed-type company, which is the safe
+        direction, and it is what every existing keep-file means.
+      * `Sales:1` — a type-qualified entry protects exactly one voucher.
+        Needed to express "delete Purchase 1, keep Sales 1" at all, which
+        a bare-number file cannot say.
+    """
+    vtype, number = voucher_key(voucher)
+    if not number:
+        return None
+    for entry in keep:
+        if ":" in entry:
+            want_type, _, want_number = entry.partition(":")
+            if (want_type.strip().casefold(), want_number.strip()) == (vtype, number):
+                return entry
+        elif entry.strip() == number:
+            return entry
+    return None
+
+
 def classify(vouchers: list[dict], keep: set[str]) -> list[dict]:
     """Attach a verdict to each voucher. Pure — sends nothing."""
     for v in vouchers:
+        matched = keep_matches(v, keep)
         if not v["number"]:
             v["verdict"] = "SKIP"
             v["reason"] = "no VOUCHERNUMBER — not addressable, inspect manually"
-        elif v["number"] in keep:
+        elif matched:
             v["verdict"] = "KEEP"
-            v["reason"] = "matched keep-list"
+            v["reason"] = (
+                f"matched keep-list entry {matched!r}"
+                + ("" if ":" in matched else " (bare number — protects every type)")
+            )
         elif v["cancelled"]:
             # Deleting an already-cancelled voucher has never been tested.
             # #28 deleted a live voucher; nothing establishes what this
@@ -263,6 +326,64 @@ def classify(vouchers: list[dict], keep: set[str]) -> list[dict]:
             v["verdict"] = "DELETE"
             v["reason"] = ""
     return vouchers
+
+
+def voucher_types(vouchers: list[dict]) -> list[str]:
+    """Distinct voucher types present, in display order."""
+    seen: dict[str, str] = {}
+    for v in vouchers:
+        vtype = (v.get("vchtype") or "").strip()
+        seen.setdefault(vtype.casefold(), vtype or "(no type)")
+    return [seen[k] for k in sorted(seen)]
+
+
+def check_mixed_types(vouchers: list[dict], allowed: bool) -> list[str]:
+    """Refuse a mixed-type company unless `--allow-mixed-types` is passed.
+
+    `verify_gone()` is type-aware as of #33, so this is no longer guarding
+    a *detection* hole. It guards the one that is still open: whether the
+    `VCHTYPE` the delete payload already carries actually disambiguates
+    **Tally-side** has never been tested (issue #48, step 1). Until it
+    has, a delete addressed at "Purchase 1" on a company that also holds
+    "Sales 1" may remove either. The read-back would now catch that — but
+    catching it means the voucher is already gone, and on these sandboxes
+    several are irreplaceable.
+
+    So the refusal stays until the addressing question is answered, not
+    until the guard is fixed. Those are different milestones and it would
+    be easy to retire this on the wrong one.
+    """
+    types = voucher_types(vouchers)
+    if len(types) <= 1:
+        return types
+    numbers_by_type = {
+        t: sorted(v["number"] for v in vouchers
+                  if (v.get("vchtype") or "").strip().casefold() == t.casefold()
+                  and v["number"])
+        for t in types
+    }
+    collisions = sorted(
+        {n for t in types for n in numbers_by_type[t]
+         if sum(n in numbers_by_type[o] for o in types) > 1}
+    )
+    print(f"\n  MIXED VOUCHER TYPES: {', '.join(types)}")
+    for t in types:
+        print(f"    {t}: {numbers_by_type[t] or '(none numbered)'}")
+    if collisions:
+        print(f"    colliding numbers across types: {collisions}")
+    if not allowed:
+        raise Stop(
+            "this company holds more than one voucher type, and whether VCHTYPE "
+            "disambiguates a delete Tally-side is still untested (issue #48). "
+            "Deletes refused. Pass --allow-mixed-types only once you have "
+            "established that, or after a live test on a disposable voucher."
+        )
+    print(
+        "    --allow-mixed-types was passed: proceeding on the caller's assertion "
+        "that VCHTYPE addressing is safe here. The read-back guard is type-aware "
+        "(#33) and will halt on collateral loss, but only after the fact."
+    )
+    return types
 
 
 def print_plan(vouchers: list[dict], company: str, keep: set[str]) -> None:
@@ -280,7 +401,7 @@ def print_plan(vouchers: list[dict], company: str, keep: set[str]) -> None:
         )
 
     for entry in sorted(keep):
-        if not any(v["number"] == entry for v in vouchers):
+        if not any(keep_matches(v, {entry}) for v in vouchers):
             print(f"\n  WARNING: keep-list entry {entry!r} matched no voucher.")
             print("           A typo in a keep-list protects nothing.")
 
@@ -333,24 +454,59 @@ def read_daybook(company: str, name: str, url: str, dates: tuple[str, str]) -> s
     return response
 
 
-def verify_gone(before: list[dict], after: list[dict], target: str) -> None:
+def _label(obj: dict | tuple[str, str]) -> str:
+    """A voucher rendered the way the plan table reads: "Sales 1".
+
+    Takes either a voucher dict or a bare `voucher_key()`. The dict form
+    is preferred wherever one is in hand, because the key case-folds the
+    type for comparison and a message reading "purchase 1" looks like a
+    different object than the "Purchase" in the plan table above it.
+    """
+    if isinstance(obj, dict):
+        vtype = (obj.get("vchtype") or "").strip()
+        number = (obj.get("number") or "").strip()
+    else:
+        vtype, number = obj
+    return f"{vtype or '(no type)'} {number or '(no number)'}"
+
+
+def verify_gone(before: list[dict], after: list[dict], target: dict) -> None:
     """Rule 1. The response counters are recorded, never trusted.
 
     Two collateral checks beyond "is the target gone", because an
     unattended tool must stop on anything it cannot explain rather than
     continue through it.
-    """
-    still_there = [v for v in after if v["number"] == target]
-    if still_there:
-        raise Stop(f"voucher {target} is still present after its delete — stopping")
 
-    expected = {v["number"] for v in before if v["number"] != target}
-    actual = {v["number"] for v in after}
+    Every set here is keyed on `voucher_key()` — (type, number) — not on
+    the bare number. Issue #48 / finding #33: keyed on number alone,
+    Purchase 1 and Sales 1 **deduped into one set member**, so a delete
+    that took both would leave `expected - actual` empty and this guard
+    would report the run clean. The guard whose whole job is detecting
+    collateral loss was the one place the collision was fatal.
+    """
+    target_key = voucher_key(target)
+    # Display case is only recoverable from the dicts, not from the keys.
+    shown = {voucher_key(v): v for v in [*before, *after]}
+
+    still_there = [v for v in after if voucher_key(v) == target_key]
+    if still_there:
+        raise Stop(
+            f"voucher {_label(target)} is still present after its delete — stopping"
+        )
+
+    expected = {voucher_key(v) for v in before if voucher_key(v) != target_key}
+    actual = {voucher_key(v) for v in after}
     vanished = expected - actual
     if vanished:
         raise Stop(
-            f"vouchers {sorted(vanished)} vanished alongside {target} — "
-            "unexplained collateral, stopping"
+            f"vouchers {sorted(_label(shown[k]) for k in vanished)} vanished "
+            f"alongside {_label(target)} — unexplained collateral, stopping"
+        )
+    appeared = actual - expected
+    if appeared:
+        raise Stop(
+            f"vouchers {sorted(_label(shown[k]) for k in appeared)} appeared during "
+            f"a delete of {_label(target)} — unexplained, stopping"
         )
     if len(after) != len(before) - 1:
         raise Stop(
@@ -364,8 +520,12 @@ def delete_one(
 ) -> list[dict]:
     """Send one delete, read back, verify. Returns the new enumeration."""
     number = voucher["number"]
+    # The artifact name carries the type too: two vouchers numbered "1"
+    # would otherwise write their request/response into run directories
+    # that differ only by timestamp (#33).
+    slug = f"{(voucher['vchtype'] or 'untyped').replace(' ', '-')}-{number}"
     response = run(
-        f"reset-delete-{number}",
+        f"reset-delete-{slug}",
         build_delete(company, voucher),
         url=url,
         timeout=HANG_SECONDS,
@@ -376,10 +536,10 @@ def delete_one(
         raise Stop(f"LINEERROR deleting voucher {number} — stopping (#17)")
 
     after = enumerate_vouchers(
-        read_daybook(company, f"reset-readback-{number}", url, dates)
+        read_daybook(company, f"reset-readback-{slug}", url, dates)
     )
-    verify_gone(before, after, number)
-    print(f"  voucher {number}: deleted and confirmed absent by read-back")
+    verify_gone(before, after, voucher)
+    print(f"  {_label(voucher)}: deleted and confirmed absent by read-back")
     return after
 
 
@@ -396,7 +556,7 @@ def run_deletes(
             current = delete_one(voucher, company, url, dates, current)
         except Stop as exc:
             return done, str(exc)
-        done.append(voucher["number"])
+        done.append(_label(voucher))
     return done, None
 
 
@@ -407,7 +567,7 @@ def print_summary(
     if confirmed:
         print(f"  Deleted ({len(deleted)}): {deleted or '(none)'}")
     else:
-        would = [v["number"] for v in vouchers if v["verdict"] == "DELETE"]
+        would = [_label(v) for v in vouchers if v["verdict"] == "DELETE"]
         print("  Deleted (0): dry run — nothing was sent")
         print(f"  Would delete ({len(would)}): {would or '(none)'}")
 
@@ -415,8 +575,7 @@ def print_summary(
         rows = [v for v in vouchers if v["verdict"] == verdict]
         print(f"  {verdict} ({len(rows)}):")
         for v in rows:
-            label = v["number"] or "(no number)"
-            print(f"    {label}: {v['reason']}")
+            print(f"    {_label(v)}: {v['reason']}")
 
     unaddressable = [v for v in vouchers if not v["number"]]
     if unaddressable:
@@ -458,6 +617,7 @@ def parse_argv(argv: list[str]) -> dict:
         "url": flag_value(argv, "--url", "a Tally URL") or "http://localhost:9000",
         "max": int(raw_max) if raw_max else DEFAULT_MAX,
         "confirm": "--confirm" in argv,
+        "allow_mixed_types": "--allow-mixed-types" in argv,
     }
 
 
@@ -471,6 +631,17 @@ def main() -> None:
     response = read_daybook(company, "reset-enumerate", url, dates)
     vouchers = classify(enumerate_vouchers(response), opts["keep"])
     print_plan(vouchers, company, opts["keep"])
+
+    # The plan above is printed first on purpose: a refusal that shows you
+    # nothing is a refusal you cannot act on. The gate sits between the
+    # plan and the first Import Data, so a dry run on a mixed-type company
+    # still tells you what is there — and still refuses to delete it.
+    try:
+        check_mixed_types(vouchers, opts["allow_mixed_types"])
+    except Stop as exc:
+        if opts["confirm"]:
+            raise
+        print(f"\n  WOULD REFUSE: {exc}")
 
     planned = [v for v in vouchers if v["verdict"] == "DELETE"]
     if len(planned) > opts["max"]:
