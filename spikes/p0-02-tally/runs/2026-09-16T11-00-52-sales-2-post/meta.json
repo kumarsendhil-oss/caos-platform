@@ -1,0 +1,11 @@
+{
+  "name": "sales-2-post",
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "sent_at_utc": "2026-09-16T11:00:52.093572+00:00",
+  "script": "sales_invoice_probe.py",
+  "request_bytes": 1874,
+  "status": 200,
+  "response_bytes": 269,
+  "elapsed_ms": 147
+}

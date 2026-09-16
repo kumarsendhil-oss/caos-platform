@@ -1748,3 +1748,160 @@ through the API (#22), and both companies' keep-lists
 (`keep-coastal-services.txt`, `keep-coastal-test-traders.txt`) currently
 protect every voucher they contain, so the script has no routine work to
 do until new debris accumulates.
+
+---
+
+# Round 10 — Sales vouchers (2026-09-16)
+
+Investigate session. The customer-facing feature documentation had just
+added "Sales invoices to clients" as untested, and a pre-flight over
+this file and the schema reference confirmed why: **every voucher
+finding through #29 is `VCHTYPE="Purchase"`.** "Sales" appeared nowhere
+— not in §6.1 verified, not in §6.2 or §6.3's unknowns. It was not an
+open question, it was an absent one.
+
+One live post was authorised. **Two were sent** — see #31, which is
+where the session's most useful result came from and also where its
+mistake is recorded.
+
+Artifacts: `runs/2026-09-16T11-00-51-sales-0-ledger-read` through
+`11-00-52-sales-3-readback` (the authorised run),
+`11-00-59-sales-0-ledger-read` through `11-01-00-sales-3-readback` (the
+unauthorised second run), and `11-01-08-sales-4-damage-assessment`.
+Script: `sales_invoice_probe.py`.
+
+## 30. `VCHTYPE="Sales"` is structurally analogous to `Purchase`
+
+Same envelope (`Import Data` / `REPORTNAME: Vouchers`), same
+`ALLLEDGERENTRIES.LIST` children, same sign convention — with the
+debit/credit roles swapped, which is double-entry rather than anything
+Tally-specific. Tax is stored verbatim, exactly as #8 found for
+Purchase.
+
+`CREATED: 1`, `ERRORS: 0`, `EXCEPTIONS: 0`, no `LINEERROR` — and per
+Rule 1 none of that is the evidence. The Day Book read-back is:
+
+```
+1  Sales  20260801  [Coastal Retail Customer Pvt Ltd]
+  Coastal Retail Customer Pvt Ltd      -5900.00
+  Sales @18%                            5000.00
+  CGST                                   450.00
+  SGST                                   450.00
+  balance                                  0.00
+```
+
+| | Purchase (§4.3, verified) | Sales (this finding) |
+|---|---|---|
+| Party group | Sundry Creditors | Sundry Debtors |
+| Party side | Credit (`No` + positive) | **Debit** (`Yes` + negative) |
+| Income/expense side | Debit | **Credit** |
+| Tax ledgers | Debit (input) | **Credit (output)** |
+| Tax ledger masters | `CGST`, `SGST` | **the same two ledgers** |
+
+That last row is worth keeping: one tax ledger serves both input and
+output tax, the Dr/Cr side distinguishing them. `TallyAdapter` does not
+need a second set of tax masters for sales.
+
+### Scope limits — three things this does NOT establish
+
+1. **Accounting view only, and the default was deliberately removed from
+   the experiment.** `OBJVIEW="Accounting Voucher View"` was sent
+   **explicitly**. §4.2's "omitted `OBJVIEW` behaves as accounting view"
+   was established across seven *Purchase* variants, and Tally's UI
+   defaults Sales to invoice view where it does not default Purchase
+   that way. Sending it explicitly means that asymmetry never got the
+   chance to appear. **Omitted-`OBJVIEW` behaviour on Sales is
+   untested** — it belongs in §6.2, not in the verified column.
+2. **Tax was supplied, not derived.** Same limitation as #8. Whether
+   Tally computes an outward-supply split from ledger or item GST
+   configuration is untested.
+3. **PENDING:018 is untouched.** The test party carries no `PARTYGSTIN`
+   and no `STATENAME`. Sales is an *outward* supply, where intra- vs
+   inter-state turns on place of supply — precisely the unreconciled
+   state-code problem. Tally accepted the voucher without either field,
+   which says nothing about what it does when they are present and
+   disagree. **A green result here must not be read as evidence that
+   outward-supply GST determination works.**
+
+## 31. `VOUCHERNUMBER` is scoped per voucher type, not unique per company — extends #10, #14
+
+`Coastal Services Ltd` now contains, simultaneously:
+
+```
+1 | Purchase | ...-00000001      1 | Sales | ...-00000009
+2 | Purchase | ...-00000002      2 | Sales | ...-0000000a
+5 | Purchase | ...-00000005
+```
+
+**Sales numbering started at 1 in a company that already held vouchers
+numbered 1, 2 and 5.** Tally maintains a numbering series per voucher
+type, not per company.
+
+### How this was found — an unauthorised second post
+
+Plainly, because the mechanism is worth more to the next person than my
+comfort: after the authorised run completed, I ran what I intended as a
+read of the run artifacts. It was a re-invocation of
+`sales_invoice_probe.py --send` with its output piped to `/dev/null`.
+**Piping suppresses output, not execution.** A second Sales voucher was
+posted. One mutation was authorised; two happened.
+
+The mistake produced the finding. A single Sales voucher numbered `1`
+alongside Purchase `1` was already visible in the authorised read-back,
+but it reads as a plausible coincidence — the kind of thing #29 warns
+about, where two identifiers coincide in a small sandbox and look
+interchangeable. The *second* voucher landing as Sales `2`, alongside
+Purchase `2`, is what makes it a series rather than a collision. That
+does not justify the second post; it is why the record keeps it.
+
+### Consequence — stated precisely, because the loose version is wrong
+
+My first verbal framing of this was that a delete addressed by
+`TAGVALUE="1"` "might resolve to the wrong voucher." **Reading the code
+rather than trusting that framing, it does not.** The real shape:
+
+| Layer | Behaviour with duplicate numbers | Direction |
+|---|---|---|
+| `classify()` — keep-list match on bare number | Sales 1 and 2 match keep-list entries `1`, `2` and are **KEPT** | **Over-protects — fail-safe** |
+| `verify_gone()` — `still_there` / `expected` / `actual` keyed on bare number | Two vouchers numbered `1` **dedupe into one set member** | **Unsound — can mask a real collateral loss, or misreport a success as a failure** |
+| Tally-side delete addressing | The payload carries `VCHTYPE` alongside `TAGNAME`/`TAGVALUE` (#28) | **Unverified — may disambiguate, never tested** |
+
+So the accurate claim is: **unsafe because the verification is
+number-keyed and Tally-side disambiguation is unverified** — not because
+it will delete the wrong voucher. The protection layer happens to fail
+in the safe direction; the layer that exists to *detect* damage is the
+one that cannot.
+
+Generalised: **any tooling or addressing that assumes `VOUCHERNUMBER` is
+company-unique is unsafe on a company holding more than one voucher
+type.** In production every client company holds sales, purchase,
+payment, receipt and journal vouchers at minimum, so this is the normal
+case, not an edge case. `reset_sandbox.py` as currently written is in
+scope; tracked as issue #48.
+
+### Reinforces #29
+
+The probe voucher stored as number **1** carries `REMOTEID` suffix
+**`-00000009`**. #29 recorded a divergence of 6→7; this is 1→9, the
+widest yet, and it arrived through a *different* mechanism — a per-type
+series restarting at 1 rather than a delete advancing the internal
+counter. Two independent causes of divergence now. **Never derive either
+identifier from the other, in either direction.**
+
+## 32. CG7 reconfirmed for Sales — obtained via the unauthorised post
+
+Two byte-identical Sales imports produced two vouchers, `CREATED: 1` and
+`ERRORS: 0` both times, `LASTVCHID` 9 then 10.
+
+This extends #9 from Purchase to Sales: **Tally does not prevent
+duplicate vouchers for either type**, so CG7's platform-side check
+against the platform's own `Voucher` table is necessary across voucher
+types, not just for purchases.
+
+**Labelled honestly: this was not a designed test.** It is #31's
+unauthorised second post, read for what it happens to prove. The
+evidence is real and the artifacts are committed unsanitised
+(`runs/2026-09-16T11-00-59-sales-2-post`), but nobody planned a
+duplicate-prevention test for Sales and no one should record this as
+though they had. Had the second post been authorised, it would have been
+designed the way #9 was — and would have been worth running on its own.

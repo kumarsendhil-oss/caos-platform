@@ -1,0 +1,11 @@
+{
+  "name": "sales-1-ledgers",
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "sent_at_utc": "2026-09-16T11:00:52.024882+00:00",
+  "script": "sales_invoice_probe.py",
+  "request_bytes": 902,
+  "status": 200,
+  "response_bytes": 269,
+  "elapsed_ms": 66
+}

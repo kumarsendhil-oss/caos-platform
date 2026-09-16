@@ -1,0 +1,11 @@
+{
+  "name": "sales-0-ledger-read",
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "sent_at_utc": "2026-09-16T11:00:51.952252+00:00",
+  "script": "sales_invoice_probe.py",
+  "request_bytes": 766,
+  "status": 200,
+  "response_bytes": 3555,
+  "elapsed_ms": 70
+}

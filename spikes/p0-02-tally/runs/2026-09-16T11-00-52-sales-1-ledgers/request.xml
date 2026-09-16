@@ -1,0 +1,29 @@
+<ENVELOPE>
+  <HEADER>
+    <TALLYREQUEST>Import Data</TALLYREQUEST>
+  </HEADER>
+  <BODY>
+    <IMPORTDATA>
+      <REQUESTDESC>
+        <REPORTNAME>All Masters</REPORTNAME>
+        <STATICVARIABLES>
+          <SVCURRENTCOMPANY>Coastal Services Ltd</SVCURRENTCOMPANY>
+        </STATICVARIABLES>
+      </REQUESTDESC>
+      <REQUESTDATA>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Coastal Retail Customer Pvt Ltd" ACTION="Create">
+            <NAME>Coastal Retail Customer Pvt Ltd</NAME>
+            <PARENT>Sundry Debtors</PARENT>
+            <OPENINGBALANCE>0</OPENINGBALANCE>
+          </LEDGER>
+          <LEDGER NAME="Sales @18%" ACTION="Create">
+            <NAME>Sales @18%</NAME>
+            <PARENT>Sales Accounts</PARENT>
+            <OPENINGBALANCE>0</OPENINGBALANCE>
+          </LEDGER>
+        </TALLYMESSAGE>
+      </REQUESTDATA>
+    </IMPORTDATA>
+  </BODY>
+</ENVELOPE>
