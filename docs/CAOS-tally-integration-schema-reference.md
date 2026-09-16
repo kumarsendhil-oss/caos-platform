@@ -1,7 +1,7 @@
 # CAOS — TallyPrime XML Integration Schema Reference
 
 **Status:** point-in-time, 2026-09-16. Compiled from Phase 0 spike P0-02.
-**Source of truth:** `spikes/p0-02-tally/FINDINGS.md` (findings #1–#28).
+**Source of truth:** `spikes/p0-02-tally/FINDINGS.md` (findings #1–#32).
 **Evidence:** every claim traces to a run artifact under `spikes/p0-02-tally/runs/`.
 
 This document is a **navigable view over FINDINGS.md**, organised by area
@@ -507,6 +507,30 @@ acceptable adapter default is a judgement for the practice.
 `Purchase @18% 18,400.00 Dr`, `CGST 1,656.00 Dr`, `SGST 1,656.00 Dr`,
 party `21,712.00 Cr`.
 
+### Sales is the same shape with the roles swapped **[Tally]** — #30, verified live
+
+`VCHTYPE="Sales"` takes the identical envelope and `ALLLEDGERENTRIES.LIST`
+structure. Only the accounting roles move:
+
+| | Purchase | Sales |
+|---|---|---|
+| Party group | Sundry Creditors | Sundry Debtors |
+| Party side | Credit (`No` + positive) | **Debit** (`Yes` + negative) |
+| Income/expense side | Debit | **Credit** |
+| Tax ledgers | Debit (input) | **Credit (output)** |
+
+**The same `CGST`/`SGST` ledger masters serve both** — the Dr/Cr side
+distinguishes input from output tax, so `TallyAdapter` does not need a
+second set of tax masters for sales.
+
+**Three scope limits, all of which matter before generalising this:**
+`OBJVIEW="Accounting Voucher View"` was sent **explicitly**, so §4.2's
+omitted-`OBJVIEW` result — established on *Purchase* variants only —
+remains untested for Sales; tax was supplied, not derived (as in #8);
+and the test party carried no `PARTYGSTIN` or `STATENAME`, so this says
+**nothing** about outward-supply place-of-supply determination
+(`PENDING:018` is untouched by it).
+
 ## 4.4 Inventory-bearing voucher **[Tally]** — #21, verified live
 
 The full confirmed-working structure:
@@ -585,9 +609,28 @@ verify.
 | `REMOTEID` | ❌ **NOT confirmed addressable for writes** — a delete addressed by it returned `Voucher does not exist!` | #16 |
 | `VCHKEY` | ⚠️ Demoted — stable in testing but superseded by `REMOTEID` | #15 |
 | `GUID` | ✅ Stable | #15 |
-| `VOUCHERNUMBER` | ❌ **Unusable as identity** — Tally assigns its own | #10, #14 |
+| `VOUCHERNUMBER` | ❌ **Unusable as identity** — Tally assigns its own, **and it is not even unique within a company** | #10, #14, #31 |
 | `MASTERID` | ⚠️ Stable per object, but see #14's caution | #15 |
 | `ALTERID` | ℹ️ **Company-wide alteration sequence, not a per-object counter** | #15 |
+
+**`VOUCHERNUMBER` is scoped per voucher type — a correction, not an
+addition — #31.** #10 and #14 established that Tally assigns the number
+itself, so the platform cannot choose it. It was reasonable to read that
+as "the number is Tally's, but at least it identifies a voucher within
+the company." **It does not.** Numbering is a series *per voucher type*:
+`Coastal Services Ltd` holds Purchase 1, 2, 5 and Sales 1, 2 at the same
+time. A Sales voucher posted into a company already holding Purchase 1
+was itself numbered 1.
+
+> **Consequence, and it is the normal case rather than an edge case.**
+> Any addressing, keep-list, reconciliation or read-back verification
+> that treats `VOUCHERNUMBER` as company-unique is unsound on a company
+> holding more than one voucher type — which in production is every
+> client company. `reset_sandbox.py` is affected today (issue #48,
+> `PENDING:019`): its keep-list over-protects and so fails *safe*, but
+> `verify_gone()` dedupes same-numbered vouchers into one set member and
+> so can **mask a collateral loss**. Whether `VCHTYPE` in the delete
+> payload disambiguates Tally-side is a separate, untested question.
 
 **`ALTERID` is widely misread.** An edited voucher's `ALTERID` went
 `1 → 5`, not `1 → 2`, because the counter is shared across the whole
@@ -910,10 +953,12 @@ is precisely what §5.1 established.
 | Stock-item master read and schema | #18 |
 | Voucher read via `TYPE: DATA` + `ID: Day Book` | #11 |
 | Accounting-view purchase voucher with tax split | #8 |
+| **Accounting-view Sales voucher** — same shape, roles swapped | #30 |
 | **Inventory-bearing voucher incl. tax placement** | #21 |
 | `OBJVIEW` decides whether inventory entries are required | #7 *(corrected)* |
-| Tally does **not** prevent duplicate vouchers | #9 |
+| Tally does **not** prevent duplicate vouchers (Purchase **and** Sales) | #9, #32 |
 | `REMOTEID` stable across reads, restarts and edits | #15 |
+| **`VOUCHERNUMBER` is per-voucher-type, not company-unique** | #31 |
 | `NARRATION` / `REFERENCE` survive a post verbatim | #21a |
 | **Vouchers CAN be deleted** (`TAGNAME`/`TAGVALUE`, `dd-Mmm-yyyy`, non-empty body) — *overturns #16* | #28 |
 | `ACTION="Cancel"` works; voucher stays visible, entries stripped | #26 |
@@ -933,6 +978,7 @@ is precisely what §5.1 established.
 | Whether `<EOT>` sentinels must carry `\x04` on import | One create attempt, read back |
 | The `SRCOFGSTDETAILS` "specify here" literal | Rule 3 probe, like #3's — **but** needs §6.3's answer first |
 | Supplier invoice number in a non-`VOUCHERNUMBER` field | #10's open item; one post + read-back |
+| Whether an **omitted `OBJVIEW`** behaves as accounting view on **Sales** | #30 sent it explicitly, so the default is untested for this type; one post + read-back |
 | Whether any report exposes **ledger-level** detail | Report-name and parameter discovery is safe (#25) |
 | The other 32 master types (§3.6) | Reads are safe; only creation carries risk |
 
@@ -980,6 +1026,10 @@ is precisely what §5.1 established.
 | 26 | `ACTION="Cancel"` works; `CANCELLED` counter lies | 4.8 |
 | 27 | Master type catalogue (34 types) | 3.6 |
 | 28 | Vouchers CAN be deleted — overturns #16 | 4.8, 5.3 |
+| 29 | `REMOTEID` suffix is not the voucher number | 4.5 |
+| 30 | Sales voucher = Purchase shape, roles swapped | 4.3 |
+| 31 | `VOUCHERNUMBER` is per-type, not company-unique | 4.5 |
+| 32 | Duplicates not prevented for Sales either | 4.6 |
 
 ## Related documents
 
@@ -991,4 +1041,4 @@ is precisely what §5.1 established.
 | ADR 0011 amendment 1 | Tax modelling in `DraftEntry` |
 | ADR 0009 | Single-tenant deployment — why §5's blast radius is all clients |
 | ADR 0002 | GST via GSP — **out of scope**, contains no Tally content |
-| `docs/STUB_ISSUES.md` | `PENDING:009`, `PENDING:014`, `PENDING:015`, `PENDING:016` |
+| `docs/STUB_ISSUES.md` | `PENDING:009`, `PENDING:014`, `PENDING:015`, `PENDING:016`, `PENDING:019` |

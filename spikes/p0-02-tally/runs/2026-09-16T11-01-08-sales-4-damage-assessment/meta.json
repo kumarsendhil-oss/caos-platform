@@ -1,0 +1,11 @@
+{
+  "name": "sales-4-damage-assessment",
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "sent_at_utc": "2026-09-16T11:01:08.706529+00:00",
+  "script": "x",
+  "request_bytes": 446,
+  "status": 200,
+  "response_bytes": 349990,
+  "elapsed_ms": 81
+}

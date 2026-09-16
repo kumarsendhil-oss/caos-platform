@@ -37,6 +37,29 @@ Findings this implements:
   #22  Masters are out of scope. ACTION="Delete" against a nonexistent
        master crashes TallyPrime. This script touches vouchers only.
 
+DO NOT RUN THIS AGAINST A COMPANY HOLDING MORE THAN ONE VOUCHER TYPE.
+`Coastal Services Ltd` is in that state as of finding #31 (Purchase 1,
+2, 5 and Sales 1, 2 simultaneously) and is off limits until issue #48 /
+PENDING:019 is resolved. Voucher numbering is a series **per voucher
+type**, not per company, so the number this script is built around is
+not unique. Precisely where that bites:
+
+  * `classify()` matches the keep-list on a bare number, so a
+    same-numbered voucher of another type is **KEPT**. This
+    over-protects — it fails in the safe direction.
+  * `verify_gone()` is the problem. `still_there`, `expected` and
+    `actual` are all keyed on bare number, so two vouchers numbered "1"
+    **dedupe into one set member**. The guard that exists to detect
+    collateral loss and halt is the one that cannot distinguish them.
+  * Whether Tally itself disambiguates is a third, untested question:
+    the delete payload does carry VCHTYPE alongside TAGNAME/TAGVALUE.
+
+Resolving it needs its own investigation — establish whether VCHTYPE
+disambiguates, test TAGNAME="MASTER ID" (schema reference 6.3, still
+untested), then rekey on whatever survives. REMOTEID is stable for
+reads (#15) but NOT confirmed addressable for writes (#16), so it is
+not automatically the answer. Guessing is how #22 happened.
+
 Scope limits worth knowing before you trust a summary:
 
   * A voucher with no VOUCHERNUMBER cannot be addressed by the only
