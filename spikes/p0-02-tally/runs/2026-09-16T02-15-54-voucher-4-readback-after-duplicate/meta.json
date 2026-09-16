@@ -1,0 +1,11 @@
+{
+  "name": "voucher-4-readback-after-duplicate",
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "sent_at_utc": "2026-09-16T02:15:54.442225+00:00",
+  "script": "post_voucher.py",
+  "request_bytes": 446,
+  "status": 200,
+  "response_bytes": 359479,
+  "elapsed_ms": 62
+}
