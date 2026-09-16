@@ -347,7 +347,7 @@ and that `TallyAdapter` should capture them at post time. That note is
 the answer to this, and #10's open item about linking a posted voucher
 back to its source document. Tracked as `PENDING:010`.
 
-## 15. `REMOTEID` is stable across reads; `VCHKEY` is demoted
+## 15. `REMOTEID` is stable across reads and restarts; `VCHKEY` is demoted
 
 Finding #14 rules out `VOUCHERNUMBER` as an identity field, leaving
 `PENDING:010`'s proposal — `REMOTEID`/`VCHKEY`, inherited from #11 —
@@ -387,26 +387,77 @@ decomposes as `<company-GUID>-0000b49a:<8-hex>`:
   but stable only while that layout is;
 - the middle `0000b49a` is **identical across two different companies**
   (`5f8d5006-...` and `e0b7ed19-...`), on different days. It is not
-  company-derived. Unexplained; a build or session handle is the
-  obvious guess, and that is precisely the kind of value that changes
-  when TallyPrime restarts.
+  company-derived. Unexplained — see the restart result below, which
+  rules out the build/session-handle guess this finding originally
+  made without replacing it.
 
 #11 named `REMOTEID` and `VCHKEY` together as "the only stable handles".
 That was right about `REMOTEID` and optimistic about `VCHKEY`.
 
-**Two risks remain open. This finding does not close `PENDING:010`.**
+### Restart-stability — RESOLVED 2026-09-16, `REMOTEID` holds
 
-1. **Across a TallyPrime restart — untested.** Both reads ran inside one
-   session, which cannot distinguish a per-voucher value from a
-   per-session one. A live concern for `VCHKEY` specifically, per the
-   `0000b49a` constant above.
-2. **Across a voucher edit — untested.** `ALTERID` equals `MASTERID` on
-   every voucher checked, so nothing has ever been altered. That is an
-   **absence of a negative result, not a positive one** — it says the
-   case has not occurred, not that `REMOTEID` survives it. `ALTERID`
-   exists because Tally tracks alterations, and a voucher corrected in
-   the UI after posting is an ordinary BK-07 case, not an edge one.
+Risk 1 below is now closed. TallyPrime was fully closed and reopened
+and the same company reloaded, with a baseline read taken before and a
+comparison read after — two separate invocations of the probe, compared
+field by field (timestamps and request ids differ by construction and
+are not the signal).
 
-`TallyAdapter.post_entry` can be built on `REMOTEID` before these are
-settled. The platform should not *depend* on the correlation in
-production until at least the restart case is checked.
+`runs/2026-09-16T06-49-24-remoteid-stability-read-1/` — pre-restart baseline
+`runs/2026-09-16T06-49-26-remoteid-stability-read-2/`
+`runs/2026-09-16T06-55-26-remoteid-stability-read-1/` — post-restart
+`runs/2026-09-16T06-55-28-remoteid-stability-read-2/`
+
+**`REMOTEID` is byte-identical across the restart on all four vouchers.**
+`VCHKEY` likewise, including both of its variable parts:
+
+| # | `REMOTEID` (pre = post) | `VCHKEY` (pre = post) |
+|---|---|---|
+| 1 | `5f8d5006-...-7b23-00000001` | `5f8d5006-...-7b23-0000b49a:00000008` |
+| 2 | `5f8d5006-...-7b23-00000002` | `5f8d5006-...-7b23-0000b49a:00000010` |
+| 3 | `5f8d5006-...-7b23-00000003` | `5f8d5006-...-7b23-0000b49a:00000018` |
+| 4 | `5f8d5006-...-7b23-00000004` | `5f8d5006-...-7b23-0000b49a:00000020` |
+
+Full company prefix on every value, both runs:
+`5f8d5006-709d-427b-bc95-57a3212e7b23`. `VOUCHERNUMBER`, `MASTERID`,
+`ALTERID` and `GUID` also held.
+
+**Correction — the `0000b49a` build/session-handle guess is wrong.**
+This finding predicted the segment was "precisely the kind of value
+that changes when TallyPrime restarts." It did not change. A session
+handle would not survive the process closing and reopening, so that
+reading is ruled out. The segment is **durable but still unexplained**,
+and what is unaccounted for is now sharper than before: it is neither
+session-scoped (survives a restart) nor company-derived (shared by
+`5f8d5006-...` and `e0b7ed19-...` on different days). Nothing yet
+explains what it actually encodes. The stride-of-8 pattern in the
+trailing segment (`08, 10, 18, 20`) held across the restart too, which
+rules out the load-time-offset reading of that half as well.
+
+**`VCHKEY` stays demoted, and this result does not promote it.** The
+demotion above rests on structure — an opaque constant plus a storage
+offset, neither documented nor tied to voucher identity — not on the
+session-handle guess. One wrong sub-hypothesis does not restore a field
+whose stability is a property of a storage layout rather than of the
+voucher. `REMOTEID` remains the field to use, now on strictly better
+evidence: object identity (`== GUID`), stable per response, stable
+across a restart.
+
+**One risk remains open. This finding still does not close `PENDING:010`.**
+
+1. ~~**Across a TallyPrime restart — untested.**~~ **Resolved above.**
+2. **Across a voucher edit — untested, and today's restart test did
+   nothing to reduce it.** No voucher was altered in either the
+   pre- or post-restart run, so the case still has not occurred.
+   `ALTERID` still equals `MASTERID` on every voucher checked. That is
+   an **absence of a negative result, not a positive one** — it says
+   the case has not occurred, not that `REMOTEID` survives it.
+   `ALTERID` exists because Tally tracks alterations, and a voucher
+   corrected in the UI after posting is an ordinary BK-07 case, not an
+   edge one.
+
+`TallyAdapter.post_entry` can be built on `REMOTEID`. The caveat that
+the platform should not depend on the correlation "until at least the
+restart case is checked" is now satisfied — that case is checked and
+`REMOTEID` held. Edit-stability is the remaining unknown, and it is the
+one to settle before treating the correlation as reliable for vouchers
+that may be amended after posting.

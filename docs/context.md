@@ -40,6 +40,12 @@ Phase 0 Tally integration spike (`spikes/p0-02-tally/`), verifying the multi-bac
 - `spikes/p0-02-tally/remoteid_stability_probe.py` is committed alongside them — it is the re-run tool for the two risks below, not just the script that produced this result.
 - **`PENDING:010` stays open.** Two risks are unverified (restart-stability, edit-stability); they are tracked there, deliberately not restated here.
 
+**Investigate session — restart-stability (live read-only, pre/post TallyPrime restart)**
+- Closed the first of `PENDING:010`'s two risks: **`REMOTEID` is byte-identical across a full TallyPrime restart**, all 4 vouchers on `Coastal Services Ltd`. Recorded as an extension to **FINDINGS.md #15** (not a new finding — it closes #15's own open risk), with the pre-restart baseline and post-restart artifact pairs committed.
+- Corrected #15's `0000b49a` build/session-handle hypothesis, which the restart disproved. `VCHKEY` stays demoted — that rested on structure, not on the guess.
+- **`PENDING:010` stays open on edit-stability alone**, which this test did nothing to reduce; tracked there, not restated here.
+- New: `PENDING:012` (the probe's closing banner contradicts a restart result and the script cannot diff across runs).
+
 ## Next action
 
 Issue #28's remaining half — the inventory-bearing voucher shape and BK-01 stock-item mapping. Start from voucher #6's structure in `runs/2026-09-16T02-15-54-voucher-2-readback/response.xml` (see above); it is a stored example of the target shape.
