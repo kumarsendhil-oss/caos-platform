@@ -35,6 +35,11 @@ Phase 0 Tally integration spike (`spikes/p0-02-tally/`), verifying the multi-bac
 - New: `PENDING:010` (BK-07 post-verification needs a non-`VOUCHERNUMBER` correlation field; `REMOTEID`/`VCHKEY` is the likely answer per #11).
 - **Incidental, relevant to issue #28:** voucher #6 is a real inventory-bearing purchase voucher sitting in the sandbox — `ALLINVENTORYENTRIES.LIST` with `STOCKITEMNAME: Test`, `LEDGERENTRIES.LIST`, `VCHENTRYMODE: Item Invoice`. #28's remaining half needs exactly this shape, and this is a worked example of it from Tally's own storage rather than a guess. Not yet turned into a payload or verified as postable.
 
+**Investigate session — `REMOTEID` vs `VCHKEY` (live read-only, two Day Book reads)**
+- Settled which field `PENDING:010`'s correlation direction should use: **`REMOTEID`**, not `VCHKEY`. It is byte-identical to the voucher's own `GUID` and unchanged across repeated reads; `VCHKEY` is demoted on structural grounds. Recorded as **FINDINGS.md #15** with both run artifacts committed.
+- `spikes/p0-02-tally/remoteid_stability_probe.py` is committed alongside them — it is the re-run tool for the two risks below, not just the script that produced this result.
+- **`PENDING:010` stays open.** Two risks are unverified (restart-stability, edit-stability); they are tracked there, deliberately not restated here.
+
 ## Next action
 
 Issue #28's remaining half — the inventory-bearing voucher shape and BK-01 stock-item mapping. Start from voucher #6's structure in `runs/2026-09-16T02-15-54-voucher-2-readback/response.xml` (see above); it is a stored example of the target shape.
@@ -71,4 +76,4 @@ Resetting `Coastal Test Traders` to a clean state before further duplicate-preve
 - Build/wrap-up workflow: `.claude/commands/build.md`, `.claude/commands/wrapup.md`, `docs/CAOS-prompt-conventions.md`
 
 ---
-*Last updated: 2026-09-16 by `/wrapup` (finding #14, Coastal Test Traders anomaly narrowed, `PENDING:010`). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*
+*Last updated: 2026-09-16 by `/wrapup` (finding #15, `REMOTEID` confirmed as the correlation field). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*

@@ -346,3 +346,67 @@ that Day Book responses carry `REMOTEID` and `VCHKEY` per `<VOUCHER>`
 and that `TallyAdapter` should capture them at post time. That note is
 the answer to this, and #10's open item about linking a posted voucher
 back to its source document. Tracked as `PENDING:010`.
+
+## 15. `REMOTEID` is stable across reads; `VCHKEY` is demoted
+
+Finding #14 rules out `VOUCHERNUMBER` as an identity field, leaving
+`PENDING:010`'s proposal — `REMOTEID`/`VCHKEY`, inherited from #11 —
+resting on an assumption nobody had tested: that the identifier is
+assigned once at creation rather than regenerated per response. An
+identifier that moves on read cannot correlate anything.
+
+**Method.** The same Day Book read (`EXPORT` / `TYPE: DATA` / `ID: Day
+Book`, the #11 shape) sent twice as two separate requests, ~2s apart,
+against `Coastal Services Ltd`. Read-only — nothing posted, nothing
+altered. Both HTTP 200 (177ms, 100ms).
+
+`runs/2026-09-16T06-32-15-remoteid-stability-read-1/`
+`runs/2026-09-16T06-32-17-remoteid-stability-read-2/`
+`remoteid_stability_probe.py` is the script; re-run it to test the two
+open risks below.
+
+**Result: every identifier field identical across both reads**, on all
+four vouchers — `REMOTEID`, `VCHKEY`, `GUID`, `MASTERID`, `ALTERID`,
+`VOUCHERNUMBER`. Voucher 1:
+
+```
+REMOTEID  5f8d5006-709d-427b-bc95-57a3212e7b23-00000001   both reads
+VCHKEY    5f8d5006-709d-427b-bc95-57a3212e7b23-0000b49a:00000008
+```
+
+**`REMOTEID` is byte-identical to the voucher's own `GUID`** — checked
+on all 4 vouchers here and all 6 in the `Coastal Test Traders` readback
+(`runs/2026-09-16T02-15-54-voucher-2-readback/`). That makes it object
+identity, not a transport artifact of the response. Use it.
+
+**`VCHKEY` is demoted — structure, not this test, is the reason.** It
+decomposes as `<company-GUID>-0000b49a:<8-hex>`:
+
+- the trailing segment is a **storage offset**, stepping by 8 in hex
+  (`08, 10, 18, 20, 28, 30` across six vouchers) — not a read counter,
+  but stable only while that layout is;
+- the middle `0000b49a` is **identical across two different companies**
+  (`5f8d5006-...` and `e0b7ed19-...`), on different days. It is not
+  company-derived. Unexplained; a build or session handle is the
+  obvious guess, and that is precisely the kind of value that changes
+  when TallyPrime restarts.
+
+#11 named `REMOTEID` and `VCHKEY` together as "the only stable handles".
+That was right about `REMOTEID` and optimistic about `VCHKEY`.
+
+**Two risks remain open. This finding does not close `PENDING:010`.**
+
+1. **Across a TallyPrime restart — untested.** Both reads ran inside one
+   session, which cannot distinguish a per-voucher value from a
+   per-session one. A live concern for `VCHKEY` specifically, per the
+   `0000b49a` constant above.
+2. **Across a voucher edit — untested.** `ALTERID` equals `MASTERID` on
+   every voucher checked, so nothing has ever been altered. That is an
+   **absence of a negative result, not a positive one** — it says the
+   case has not occurred, not that `REMOTEID` survives it. `ALTERID`
+   exists because Tally tracks alterations, and a voucher corrected in
+   the UI after posting is an ordinary BK-07 case, not an edge one.
+
+`TallyAdapter.post_entry` can be built on `REMOTEID` before these are
+settled. The platform should not *depend* on the correlation in
+production until at least the restart case is checked.
