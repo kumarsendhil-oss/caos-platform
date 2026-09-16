@@ -58,6 +58,15 @@ Phase 0 Tally integration spike (`spikes/p0-02-tally/`), verifying the multi-bac
 - **Method note carried into #15.** The first post-edit run read every field `SAME` — because the edit had not saved, and the responses were byte-identical. The asserted voucher was also wrong (voucher 1, not 2). Both were caught only by checking amounts, which the probe does not read. An asserted condition is a hypothesis about the evidence, not a fact about it.
 - New: `PENDING:013` (the probe treats all field movement as failure, and cannot distinguish a void run from a real result — one root cause, one row).
 
+**Build session — shared argv helper extracted (`PENDING:011`, resolved)**
+- `spikes/_args.py` now holds `flag_value(argv, flag, what)` and `company_from_argv(argv, default)`; `post_voucher.py`, `no_inventory_test.py` and `remoteid_stability_probe.py` import from it and retain no local copies. Placed at the `spikes/` root beside `_runner.py`, not inside `p0-02-tally/` — same precedent, and the `sys.path.insert` every script already carries makes it reachable with no new plumbing.
+- **The copies were byte-identical; their context was not.** Each closed over a different module-level `COMPANY` (`Coastal Test Traders` vs `Coastal Services Ltd`), which the `PENDING:011` row did not record. So the shared helper takes `default` as a **required positional** — a script silently inheriting another's target company would post to the wrong books. This is the reason the row's own "just move it" framing would have been wrong.
+- `flag_value()` is the shared primitive; `company_from_argv()` stays as a named wrapper rather than collapsing into a spelled-out `flag_value(...) or COMPANY` at each call site. That is what keeps the error text byte-identical across all three scripts — three independent spellings could diverge on a typo in a refactor meant to prove nothing changed.
+- **Verified as a pure refactor, both directions.** Pre-extraction output was captured to files *first*, then diffed against post-extraction output — not compared by eye. Missing-value and flag-as-value cases on all three scripts, `--baseline` with no value on the probe, and the full default dry-run payloads for both posting scripts: all byte-identical. `--company "Override Co"` confirmed still reaching `<SVCURRENTCOMPANY>`.
+- Gates: `ruff` clean on `spikes/` and `services/api`. Backend suite not run — nothing under `services/api/` references `spikes/`, so the diff cannot reach it.
+- `PENDING:011` marked **Resolved** in `docs/STUB_ISSUES.md`. Never promoted to a GitHub issue, so no closing keyword. `PENDING:013` is untouched and now has `_args.py` in place to build on.
+
+
 ## Next action
 
 Issue #28's remaining half — the inventory-bearing voucher shape and BK-01 stock-item mapping. Start from voucher #6's structure in `runs/2026-09-16T02-15-54-voucher-2-readback/response.xml` (see above); it is a stored example of the target shape.
@@ -94,4 +103,4 @@ Resetting `Coastal Test Traders` to a clean state before further duplicate-preve
 - Build/wrap-up workflow: `.claude/commands/build.md`, `.claude/commands/wrapup.md`, `docs/CAOS-prompt-conventions.md`
 
 ---
-*Last updated: 2026-09-16 by `/wrapup` (finding #15, `REMOTEID` confirmed as the correlation field). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*
+*Last updated: 2026-09-16 by `/wrapup` (`PENDING:011` — shared argv helper extracted to `spikes/_args.py`). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*

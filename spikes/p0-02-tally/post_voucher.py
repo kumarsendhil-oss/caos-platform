@@ -33,6 +33,7 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from _args import company_from_argv  # noqa: E402
 from _runner import run  # noqa: E402
 from tally_voucher_read import (  # noqa: E402
     build_daybook_read,
@@ -58,25 +59,6 @@ TOTAL = TAXABLE + CGST + SGST  # 21712.00
 # dropped. Whether it *computes* correctly is what test 2 below decides.
 CGST_DUTY_HEAD = "CGST"
 SGST_DUTY_HEAD = "State Tax"
-
-
-def company_from_argv(argv: list[str]) -> str:
-    """--company VALUE, defaulting to COMPANY.
-
-    Validates the value: exits with a message rather than raising
-    IndexError when the flag is last, and rejects a following flag as a
-    company name (`--company --send` would otherwise target a company
-    named "--send" and still post live).
-    """
-    if "--company" not in argv:
-        return COMPANY
-    i = argv.index("--company") + 1
-    if i >= len(argv):
-        sys.exit("error: --company requires a company name")
-    value = argv[i]
-    if value.startswith("--"):
-        sys.exit(f"error: --company requires a company name, got the flag {value!r}")
-    return value
 
 
 def _import_envelope(company: str, report: str) -> tuple[ET.Element, ET.Element]:
@@ -172,7 +154,7 @@ def verify_split(response: str) -> None:
 
 
 if __name__ == "__main__":
-    company = company_from_argv(sys.argv)
+    company = company_from_argv(sys.argv, COMPANY)
 
     if "--send" not in sys.argv:
         print("=== reset duty heads ===")

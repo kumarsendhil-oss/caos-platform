@@ -32,6 +32,7 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from _args import company_from_argv  # noqa: E402
 from _runner import run  # noqa: E402
 from tally_voucher_read import (  # noqa: E402
     build_daybook_read,
@@ -50,27 +51,6 @@ TAXABLE = Decimal("18400.00")
 CGST = Decimal("1656.00")
 SGST = Decimal("1656.00")
 TOTAL = TAXABLE + CGST + SGST
-
-
-def company_from_argv(argv: list[str]) -> str:
-    """--company VALUE, defaulting to COMPANY.
-
-    Validates the value: exits with a message rather than raising
-    IndexError when the flag is last, and rejects a following flag as a
-    company name. Copied from post_voucher.py (STUB_ISSUES PENDING:008);
-    `--company --send` previously targeted a company named "--send" and,
-    because "--send" was still in argv, posted live while doing it.
-    """
-    if "--company" not in argv:
-        return COMPANY
-    i = argv.index("--company") + 1
-    if i >= len(argv):
-        sys.exit("error: --company requires a company name")
-    value = argv[i]
-    if value.startswith("--"):
-        sys.exit(f"error: --company requires a company name, got the flag {value!r}")
-    return value
-
 
 
 def _import_env(company: str, report: str) -> tuple[ET.Element, ET.Element]:
@@ -170,7 +150,7 @@ def verify(response: str) -> None:
 
 
 if __name__ == "__main__":
-    company = company_from_argv(sys.argv)
+    company = company_from_argv(sys.argv, COMPANY)
 
     if "--send" not in sys.argv:
         print("=== ledgers ===")

@@ -51,6 +51,7 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from _args import company_from_argv, flag_value  # noqa: E402
 from _runner import run  # noqa: E402
 from tally_voucher_read import build_daybook_read  # noqa: E402
 from tally_xml import sanitise  # noqa: E402
@@ -61,32 +62,6 @@ DATE = "20260801"
 # REMOTEID and VCHKEY are the candidates; the rest are read alongside
 # them because a field that moves while those hold still is a clue.
 FIELDS = ("REMOTEID", "VCHKEY", "VOUCHERNUMBER", "MASTERID", "ALTERID", "GUID")
-
-
-def flag_value(argv: list[str], flag: str, what: str) -> str | None:
-    """VALUE for `flag`, or None if the flag is absent.
-
-    Exits with a message rather than raising IndexError when the flag is
-    last with no value, and rejects a following flag as the value.
-    Extracted so --company and --baseline share one set of guards rather
-    than carrying a copy each; this file's own duplication only. The
-    cross-file triplication of company_from_argv() across post_voucher.py
-    and no_inventory_test.py is STUB_ISSUES PENDING:011 and is untouched.
-    """
-    if flag not in argv:
-        return None
-    i = argv.index(flag) + 1
-    if i >= len(argv):
-        sys.exit(f"error: {flag} requires {what}")
-    value = argv[i]
-    if value.startswith("--"):
-        sys.exit(f"error: {flag} requires {what}, got the flag {value!r}")
-    return value
-
-
-def company_from_argv(argv: list[str]) -> str:
-    """--company VALUE, defaulting to COMPANY."""
-    return flag_value(argv, "--company", "a company name") or COMPANY
 
 
 def load_baseline(path_str: str) -> list[tuple[str | None, ...]]:
@@ -178,7 +153,7 @@ def banner_vs_baseline(moved: int, source: str) -> None:
 
 
 def main() -> None:
-    company = company_from_argv(sys.argv)
+    company = company_from_argv(sys.argv, COMPANY)
     baseline_path = flag_value(sys.argv, "--baseline", "a run dir or response.xml")
     baseline = load_baseline(baseline_path) if baseline_path else None
 
