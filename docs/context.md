@@ -8,6 +8,12 @@ Phase 0 Tally integration spike (`spikes/p0-02-tally/`), verifying the multi-bac
 
 ## Active work
 
+**Tracker housekeeping + issue #10 decision — 2026-09-16 (docs only, no code)**
+- `STUB_ISSUES.md`: `PENDING:008`–`013` moved from the open table to **Resolved**, matching `PENDING:007`'s pattern. They had been sitting in the open table with a resolved status, so the table read as 16 open stubs when **9** are open (001–006 credential-blocked, 014–016 unfiled by choice). `PENDING:009`'s row was malformed two ways — a duplicated status cell *and* no Blocked-on cell, its narrative sitting in the Title column; both fixed in the move. No row's text was rewritten.
+- **`PENDING:017` is new**: `EXTRACTED_DATA.invoice_date` is in the ER diagram and absent from the model. Found during the #10 schema check, not by a failure. Decide it **with** #10 — `DraftEntry.invoice_date` is likewise persisted nowhere, so it is plausibly the same problem, not simple drift.
+- **Issue #10 decided (comment only, issue left open):** persist the four tax determinants as new nullable `VOUCHER` columns. `EXTRACTED_DATA` was ruled out on schema grounds, not preference — it is **1:many** to `VOUCHER`, so it cannot carry a per-voucher split, and `extracted_data_id` is nullable so upstream provenance is not reachable from every posted voucher. Implementation (model, migration, ER diagram) is **not** done; it belongs with issue #2.
+- Corrections posted to #28 (three stale body claims) and #2 (`PENDING:014`, `PENDING:016` — the latter safety-critical and previously invisible to anyone opening #2 from GitHub alone).
+
 **Voucher lifecycle live — findings #26, #28; #16 overturned (2026-09-16)**
 - Three authorised mutations against `Coastal Services Ltd`, each with a documentation pre-flight, existence-check read, payload checkpoint and immediate read-back. Artifacts `runs/2026-09-16T09-55-00-*`, `10-05-00-*`, `10-15-00-*`.
 - **`ACTION="Cancel"` works** (#26). Voucher 4 cancelled: stays in the Day Book, `ISCANCELLED: Yes`, **all ledger entries stripped**. The right primitive for BK-07 corrections — it preserves the audit trail that delete destroys.
@@ -157,6 +163,8 @@ A voucher stored as **6** carried `REMOTEID`/`GUID` suffix `-00000007`, followin
 
 ## Known blockers (tracked separately)
 
+- **Issue #10 — tax-determinant persistence is decided but not implemented.** Blocks nothing today, but it is a schema change with a migration, and #10's own argument is that deciding it after issue #2 ships means either a second migration over posted rows or backfilling values that may no longer be recoverable. Whoever starts #2 should land this first or alongside. See also `PENDING:017`.
+
 - ~~`post_voucher.py` is hardcoded to `Coastal Test Traders` with no `--company` flag~~ — **resolved** by the `fix/post-voucher-company-flag` PR above (issue #28, first half). Previously the argument was silently unread, so a run *looks* like it succeeded against a company it never touched; PR #23 worked around it by verifying via `no_inventory_test.py` instead.
 - Inventory/stock-item mapping for inventory-enabled clients — also #28, **substantially scoped as of 2026-09-16**. The stock-item master schema is documented (findings #18–#20) and the postable inventory-voucher shape including tax placement is verified live (finding #21). What remains is narrower than it was: tax *derivation* from the item's GST config via the inheritance chain (`PENDING:015`), and anything involving an item with a unit of measure. Neither is blocked; both need a new stock item in the sandbox first.
 
@@ -199,7 +207,7 @@ A Day Book read against `Coastal Test Traders` returned **6 vouchers**, not the 
 
 **The check this file previously called "the single check that would settle it" — comparing voucher #6's `VOUCHERNUMBER` against `post_voucher.py`'s `TEST-INV-0001` — is void and has been struck.** Tally auto-assigns voucher numbers (`NUMBERINGSTYLE: Auto Retain`), so **no** voucher in this sandbox can ever carry that value, whatever created it. Voucher #6's number is `6`; so is every other voucher's, sequentially. See FINDINGS.md #14.
 
-Resetting `Coastal Test Traders` to a clean state before further duplicate-prevention testing still stands — leftover vouchers make it hard to trust what a duplicate test measures against. `PENDING:009` is now resolved, so the *procedure* exists (manual, see above); what remains is remembering to run it before a test whose result depends on a known starting state.
+Resetting `Coastal Test Traders` to a clean state before further duplicate-prevention testing still stands — leftover vouchers make it hard to trust what a duplicate test measures against. `PENDING:009` is now resolved, so the reset is **scripted and validated** — `reset_sandbox.py`, see the sandbox-state section above; what remains is remembering to run it before a test whose result depends on a known starting state. Note the keep-list caveat there: every voucher in this company is currently cited by a finding, so a reset is not free.
 
 ## Reference
 
