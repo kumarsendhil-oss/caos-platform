@@ -854,3 +854,136 @@ today. Tracked as `PENDING:015`.
 **Not yet established:** what a stock group or company-level GST master
 looks like on the wire, or whether the chain can terminate anywhere
 other than those two levels. Only the item level has been read.
+
+## 21. Gap 2 RESOLVED — tax ledgers attach at voucher level, as `LEDGERENTRIES.LIST` siblings of the party
+
+Four live calls in the approved order, each read back before the next.
+Artifacts `runs/2026-09-16T08-51-12-gap2-step2-*`,
+`08-51-46-gap2-step3-*`, `08-52-15-gap2-step4-*`.
+
+### 21a. Marker fields survive a post — `NARRATION` and `REFERENCE` both round-trip
+
+Sent against `Coastal Services Ltd` (disposable per `PENDING:009`) on the
+proven accounting-view shape, so the only variable was the markers:
+
+```xml
+<NARRATION>GAP2-PROBE-DO-NOT-USE-AS-EVIDENCE</NARRATION>
+<REFERENCE>GAP2-PROBE-DO-NOT-USE-AS-EVIDENCE</REFERENCE>
+```
+
+`CREATED: 1`, and the read-back returns **both verbatim**. This was worth
+testing rather than assuming: `NARRATION` had never been observed
+surviving anything in this repo, because the only script that sent one
+(`post_voucher.py`) only ever sent it on requests that failed. Under
+finding #2's silent-discard pattern, an unverified marker that gets
+dropped leaves an *unlabelled* permanent voucher — the exact outcome
+marking is supposed to prevent.
+
+**Consequence:** a `NARRATION`/`REFERENCE` marker is a usable
+self-identification mechanism for probe vouchers, and — unlike
+`VOUCHERNUMBER`, which finding #14 rules out — it is scriptable as a
+filter. All three vouchers this probe created carry one.
+
+### 21b. Control — voucher #6's shape reproduces exactly
+
+Posted against `Coastal Test Traders`: `OBJVIEW="Invoice Voucher View"`,
+`VCHENTRYMODE: Item Invoice`, `ISINVOICE: Yes`, one
+`ALLINVENTORYENTRIES.LIST` (`STOCKITEMNAME: Test`, `AMOUNT -18400.00`,
+`BATCHALLOCATIONS.LIST` → `Main Location` / `Primary Batch`,
+`ACCOUNTINGALLOCATIONS.LIST` → `Purchase @18%`), party in
+`LEDGERENTRIES.LIST` at `+18400.00`. No tax, no quantity, no rate.
+
+`CREATED: 1`, no `LINEERROR`. Read back as voucher 7. A structural diff
+against voucher #6 — comparing list nesting, ledger names and amounts —
+differs in **exactly one** respect:
+
+```diff
+  <AMOUNT>18400.00</AMOUNT>
+- <BILLALLOCATIONS.LIST>
+- <AMOUNT>18400.00</AMOUNT>
+- </BILLALLOCATIONS.LIST>
+  </LEDGERENTRIES.LIST>
+```
+
+Voucher #6 carries a bill reference (`NAME: 6`, `BILLTYPE: New Ref`) on
+the party line; the control does not, because none was sent. Everything
+else — including the `LEDGERENTRIES.LIST` spelling — matches.
+
+**This resolves the `LEDGERENTRIES.LIST` vs `ALLLEDGERENTRIES.LIST`
+confound.** The spelling voucher #6 stores is the spelling import
+accepts, on an invoice-view voucher. Note the existing accounting-view
+scripts send `ALLLEDGERENTRIES.LIST` and those vouchers store it too, so
+this is view-dependent, not one spelling being globally correct.
+
+### 21c. Candidate 1 is correct — and it was the first one tried
+
+Same payload plus two `LEDGERENTRIES.LIST` siblings of the party for
+CGST and SGST, with the party line raised to the gross `21712.00`:
+
+```xml
+<LEDGERENTRIES.LIST>
+  <LEDGERNAME>CGST</LEDGERNAME>
+  <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+  <AMOUNT>-1656.00</AMOUNT>
+</LEDGERENTRIES.LIST>
+```
+
+`CREATED: 1`, no `LINEERROR`. Read back as voucher 8:
+
+| Container | Ledger / item | Amount |
+|---|---|---|
+| `ALLINVENTORYENTRIES.LIST` | `Test` | `-18400.00` |
+| ` → ACCOUNTINGALLOCATIONS.LIST` | `Purchase @18%` | `-18400.00` |
+| `LEDGERENTRIES.LIST` | `Coastal Components Pvt Ltd` | `21712.00` |
+| `LEDGERENTRIES.LIST` | `CGST` | `-1656.00` |
+| `LEDGERENTRIES.LIST` | `SGST` | `-1656.00` |
+
+The amounts landed exactly as sent and the voucher balances
+(`-18400 - 1656 - 1656 + 21712 = 0`).
+
+**Candidates 2 and 3 were not tried and are not needed.** Candidate 1
+worked on the first attempt, so nothing further was posted — deliberately,
+since every attempt is permanent (finding #16). Candidate 2 (tax inside
+`ACCOUNTINGALLOCATIONS.LIST`) and candidate 3 (no explicit tax ledgers,
+letting Tally infer from the item's `GSTDETAILS`) remain untested; #3 in
+particular was expected to produce zero tax here, because per finding #20
+the `Test` item defers its rates upward and they resolve to `0`.
+
+**The pre-flight risk analysis held.** Structural guesses were predicted
+to fail cleanly rather than land wrong data, on the strength of variants
+D/E returning `EXCEPTIONS: 1` with nothing created. No wrong-shape post
+was actually needed to test that prediction, so it remains a prediction —
+three for three succeeded.
+
+### What this does and does not establish
+
+**Established:** the structural placement of tax ledgers on an
+inventory-bearing purchase voucher, verified by read-back rather than by
+the response counters (findings #2 and #17).
+
+**Not established — the amounts here were supplied, not computed.** CGST
+and SGST were sent as explicit `1656.00` values and stored verbatim. This
+probe says nothing about whether Tally would *derive* the correct tax
+from the stock item's own GST configuration, which is what candidate 3
+would have tested and what a real client's voucher may depend on. Per
+finding #20 that derivation requires the item → stock group → company
+inheritance chain, none of which is exercised here.
+
+**Also not established:** anything about quantity, rate or unit of
+measure. The `Test` item has no `BASEUNITS` (finding #18), so both
+vouchers this probe created carry empty `ACTUALQTY`/`BILLEDQTY`/`RATE`,
+exactly as voucher #6 does. A voucher for an item that *has* a unit is
+still untested, and remains the most likely place for a further
+surprise.
+
+### Sandbox state after this probe
+
+`Coastal Test Traders` now holds **8** vouchers: 1–5 from
+`voucher_variants.py` (finding #7 as corrected), 6 unattributed, and
+**7 and 8 from this probe**, both marked
+`GAP2-PROBE-CONTROL-DO-NOT-USE-AS-EVIDENCE` and
+`GAP2-PROBE-TAX-DO-NOT-USE-AS-EVIDENCE` respectively in both `NARRATION`
+and `REFERENCE`. `Coastal Services Ltd` gained one, marked
+`GAP2-PROBE-DO-NOT-USE-AS-EVIDENCE`. None can be deleted (finding #16);
+all three are unambiguously identifiable as test artifacts by any future
+reader or script.

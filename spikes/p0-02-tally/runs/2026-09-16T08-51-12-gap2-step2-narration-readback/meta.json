@@ -1,0 +1,12 @@
+{
+  "name": "gap2-step2-narration-readback",
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "sent_at_utc": "2026-09-16T08:51:12.168721+00:00",
+  "script": null,
+  "request_bytes": 446,
+  "status": 200,
+  "response_bytes": 322523,
+  "elapsed_ms": 51,
+  "note": "Gap 2 probe, 2026-09-16. Issued by an ad-hoc scratchpad script rather than a committed one, so 'script' is null; the payload builders are reproduced verbatim in FINDINGS.md #21. Steps: 2 = marker-survival test on Coastal Services Ltd, 3 = control post reproducing voucher #6's shape, 4 = candidate 1 (tax ledgers as voucher-level LEDGERENTRIES.LIST siblings)."
+}
