@@ -1,7 +1,7 @@
 # CAOS — TallyPrime XML Integration Schema Reference
 
 **Status:** point-in-time, 2026-09-16. Compiled from Phase 0 spike P0-02.
-**Source of truth:** `spikes/p0-02-tally/FINDINGS.md` (findings #1–#22).
+**Source of truth:** `spikes/p0-02-tally/FINDINGS.md` (findings #1–#27).
 **Evidence:** every claim traces to a run artifact under `spikes/p0-02-tally/runs/`.
 
 This document is a **navigable view over FINDINGS.md**, organised by area
@@ -41,9 +41,6 @@ infer an API rule from it.
 **Out of scope:**
 - **GST return data.** That comes from a GSP, not from Tally — ADR 0002,
   which contains no Tally content at all.
-- **Zoho Books.** The other `BooksConnector` backend, a different API
-  with different semantics. **Nothing in this document transfers to it.**
-  See §6.
 - **Tally's UI, TDL language, and data file formats**, except where a
   failure mode forced us into them.
 
@@ -230,6 +227,31 @@ logic. **No theory here fits the evidence, so none is offered.**
 Any enum-valued field is suspect until probed. §3.4 shows the vocabulary
 also **differs between master types** for the same concept.
 
+### These are write-side rules — the read side is different **[Tally]** — #25
+
+Rules 1–3 describe the **`Import Data` path**. They do **not** generalise
+to reads, and over-generalising them into "nothing in Tally's responses
+can be trusted" would be wrong in a costly direction.
+
+| | Write path (`Import Data`) | Read path (`EXPORT` / `TYPE: DATA`) |
+|---|---|---|
+| Success signal | counters — **unreliable** (#2, #17) | `HEADER/STATUS` — reliable in testing |
+| Failure signal | `LINEERROR`; counters may all read `0` | `STATUS 0` **plus** a named `LINEERROR` |
+| Silent wrong result | **yes** (#2, #3) | not observed for `TYPE: DATA` |
+
+Successful `TYPE: DATA` reads carry `STATUS 1` — or, for report
+responses, no `HEADER` at all. Across roughly fifteen probes `STATUS`
+and `LINEERROR` agreed with reality every time (#25).
+
+**Rule 1 works *because* reads are more trustworthy than writes.** If
+reads were equally unreliable, read-back verification would be
+worthless.
+
+> **One scoped exception.** `TYPE: COLLECTION` pointed at vouchers
+> returns zero rows with no error (§2.2, #11) — a genuine read-side
+> silent failure. The claim is therefore: **`TYPE: DATA` reads report
+> their own failures reliably; `COLLECTION` reads do not.**
+
 ## 2.4 Response counters
 
 `CREATED`, `ALTERED`, `DELETED`, `IGNORED`, `ERRORS`, `EXCEPTIONS`,
@@ -369,6 +391,36 @@ Documented shape, by name: `<LEDGER NAME="ICICI" ACTION="Delete">`.
 > that does not exist **crashes TallyPrime**. Whether deleting one that
 > *does* exist works has never been established for any master type.
 
+## 3.6 Master type catalogue **[Tally]** — #27
+
+Every response's `CMPINFO` block enumerates Tally's master types. **This
+is an inventory of what types exist — not confirmation that any are
+populated.** Per #5 the `CMPINFO` numbers are *not* counts.
+
+**Likely relevant to CAOS**
+`GROUP` · `LEDGER` · `COSTCATEGORY` · `COSTCENTRE` · `GODOWN` ·
+`STOCKGROUP` · `STOCKCATEGORY` · `STOCKITEM` · `VOUCHERTYPE` ·
+`CURRENCY` · `UNIT` · `BUDGET` · `TAXUNIT` · `GSTCLASSIFICATION` ·
+`VOUCHERNUMBERSERIES` · `TDSRATE` · `DEDUCTEETYPE` · `COMPANY`
+
+**Legacy, probably dead**
+`FBTCATEGORY` · `FBTASSESSEETYPE` · `EXCISEDUTYCLASSIFICATION` ·
+`TARIFFCLASSIFICATION` · `LBTCLASSIFICATION` · `STCATEGORY` ·
+`ADJUSTMENTCLASSIFICATION`
+
+**Documented, never touched**
+`CLIENTRULE` · `SERVERRULE` · `STATE` · `SERIALNUMBER` ·
+`ATTENDANCETYPE` · `INCOMETAXSLAB` · `INCOMETAXCLASSIFICATION` ·
+`RETURNMASTER` · `TAXCLASSIFICATION`
+
+**Only `LEDGER` (§3.2) and `STOCKITEM` (§3.3) are documented here.**
+`UNIT` and `STOCKGROUP` have been read and confirmed empty **[Sandbox]**
+but never created. Everything else is unexplored.
+
+Nearest-term: **`GODOWN`** and **`STOCKGROUP`** both appear in the
+inventory voucher structure (§4.4), and `STOCKGROUP` is the specific
+blocker on a corrected stock-item create (§5.1).
+
 **Adapter consequences (§3)**
 - Never share an enum constant across master types (§3.4).
 - Resolve GST/HSN through the inheritance chain, never from the item
@@ -378,7 +430,7 @@ Documented shape, by name: `<LEDGER NAME="ICICI" ACTION="Delete">`.
 
 ---
 
-# 4. Voucher shapes
+# 4. Vouchers and financial reports
 
 ## 4.1 Reading vouchers **[Tally]** — #11
 
@@ -556,6 +608,80 @@ platform's own `Voucher` table is genuinely necessary**, and since Tally
 also controls voucher numbering (§1.3), the check *cannot* live on
 Tally's side even in principle.
 
+## 4.7 Financial report reads **[Tally]** — #23, #24
+
+Same envelope as §4.1's Day Book read; only `<ID>` changes.
+
+| `ID` | Status |
+|---|---|
+| `Day Book` | ✅ §4.1 |
+| `Trial Balance` | ✅ |
+| `Balance Sheet` | ✅ |
+| `Profit and Loss` | ✅ — **spelled out** |
+| `Stock Summary` | ✅ |
+| `Profit & Loss` | ❌ `Could not find Report` even when escaped |
+
+`SVCURRENTCOMPANY` is required and validated; `SVFROMDATE`/`SVTODATE`
+are honoured; `SVEXPORTFORMAT` is accepted.
+
+> ## ⚠️ SIGN CONVENTION INVERTS — read this before parsing any report
+>
+> **In report output, a debit is a NEGATIVE number.**
+>
+> ```
+> Purchase Accounts    <DSPCLDRAMTA>-147200.00</DSPCLDRAMTA>   DEBIT
+> Current Liabilities  <DSPCLCRAMTA>163760.00</DSPCLCRAMTA>    CREDIT
+> ```
+>
+> At **voucher** level (§4.3) the convention is the opposite composite:
+> `ISDEEMEDPOSITIVE=Yes` with a **negative** `AMOUNT` is a debit. There,
+> sign is half of a two-field encoding. In **reports**, sign alone
+> carries direction — and carries it the other way round.
+>
+> **A parser that assumes one convention holds everywhere will invert
+> the books.** It will not error, and the figures will look entirely
+> plausible.
+>
+> **Trust the element name, not the sign.** `DSPCLDRAMT` vs
+> `DSPCLCRAMT` already state direction. Decode direction from the
+> containing element; treat the number as magnitude.
+
+### Structure — a display layer, not a data API
+
+```xml
+<DSPACCNAME><DSPDISPNAME>Purchase Accounts</DSPDISPNAME></DSPACCNAME>
+<DSPACCINFO>
+  <DSPCLDRAMT><DSPCLDRAMTA>-147200.00</DSPCLDRAMTA></DSPCLDRAMT>
+  <DSPCLCRAMT><DSPCLCRAMTA></DSPCLCRAMTA></DSPCLCRAMT>
+</DSPACCINFO>
+```
+
+1. **Group-level rollups only — no ledger drill-down.** Trial Balance
+   returns `Current Liabilities` and `Purchase Accounts`, not the
+   ledgers beneath them. Whether any parameter exposes ledger detail is
+   **untested**.
+2. **Name and value are positionally coupled, not nested.**
+   `DSPACCNAME` and `DSPACCINFO` are *siblings* zipped by document
+   order. A parser that loses ordering silently mismatches names to
+   amounts.
+3. **Each report has its own vocabulary** — `BSNAME`/`BSAMT`,
+   `PLAMT`/`BSMAINAMT`, `DSPSTKINFO`/`DSPCLQTY`. No shared schema; each
+   needs its own parser.
+
+### Reports do not echo company or period
+
+Nothing in the response identifies which company or date range produced
+it. An empty period returns `<ENVELOPE></ENVELOPE>` — **indistinguishable
+from a correctly-empty company**. The adapter must track request context
+itself; the response cannot tell you.
+
+### Report-name discovery is safe **[Tally]** — #25
+
+An unknown report name returns `STATUS 0` and a named `LINEERROR`, not a
+hang and not a silent zero. §5.2's caution about dynamically-constructed
+requests applies to `COLLECTION`/TDL, **not** to `TYPE: DATA` report
+names.
+
 **Adapter consequences (§4)**
 - Use `TYPE: DATA` + `ID: Day Book` for reads; never `COLLECTION` (§4.1).
 - Choose `OBJVIEW` deliberately — it decides whether inventory is
@@ -564,6 +690,9 @@ Tally's side even in principle.
   `VOUCHERNUMBER` (§4.5).
 - Never treat `ALTERID` as a per-object version (§4.5).
 - Keep CG7's duplicate check platform-side (§4.6).
+- Decode report debit/credit from the **element name**, never the sign
+  (§4.7) — and never reuse the voucher-level convention there.
+- Track company and period yourself; reports don't echo them (§4.7).
 
 ---
 
@@ -657,8 +786,24 @@ Same envelope, same `ACTION="Delete"`, target absent in both cases.
 **Object type is the only variable** — and there is no way to learn
 which behaviour a given type has except by triggering it.
 
-**Practical consequence: vouchers cannot be deleted through this API at
-all.** There is no scripted sandbox reset; resetting a company is a
+> **`ACTION="Cancel"` is a documented, untested lead** — #26. Tally's
+> help documentation states that deleting removes a voucher with no
+> trace while **cancelling keeps it visible, marked Cancelled**, and
+> that XML import supports `ACTION="Cancel"`. **This explains the
+> `CANCELLED` counter** (§2.4), unaccounted for until now.
+>
+> #16 tried two *delete* addressing schemes; **Cancel was never tried.**
+> If it works it is the first way to neutralise a posted voucher — and
+> for a CA practice it is the *correct* operation anyway, since
+> cancellation preserves the audit trail that deletion destroys.
+>
+> **Untested and deliberately not attempted.** It is a mutation, neither
+> sandbox has a scripted reset (`PENDING:009`), and §5.1 established
+> what an unlucky mutation costs. Needs its own authorisation and an
+> existence-check-first probe design.
+
+**Practical consequence: vouchers cannot be *deleted* through this API
+at all** (Cancel above remains open). There is no scripted sandbox reset; resetting a company is a
 manual UI procedure (`PENDING:009`). Every test voucher is permanent, so
 mark probe data — `NARRATION` and `REFERENCE` both survive a post and
 round-trip verbatim (#21a), while `VOUCHERNUMBER` cannot (§4.5).
@@ -685,6 +830,10 @@ round-trip verbatim (#21a), while `VOUCHERNUMBER` cannot (§4.5).
 | `NARRATION` / `REFERENCE` survive a post verbatim | #21a |
 | Vouchers **cannot** be deleted | #16 |
 | Master delete on a nonexistent target **crashes** Tally | #22 |
+| Trial Balance / Balance Sheet / Profit and Loss / Stock Summary reads | #23 |
+| Report figures reconcile exactly against known posted data | #23 |
+| Report sign convention inverts the voucher convention | #24 |
+| `TYPE: DATA` read failures are clean and self-describing | #25 |
 
 ## 6.2 Genuinely unknown — *cheap to resolve*
 
@@ -695,6 +844,8 @@ round-trip verbatim (#21a), while `VOUCHERNUMBER` cannot (§4.5).
 | Whether `<EOT>` sentinels must carry `\x04` on import | One create attempt, read back |
 | The `SRCOFGSTDETAILS` "specify here" literal | Rule 3 probe, like #3's — **but** needs §6.3's answer first |
 | Supplier invoice number in a non-`VOUCHERNUMBER` field | #10's open item; one post + read-back |
+| Whether any report exposes **ledger-level** detail | Report-name and parameter discovery is safe (#25) |
+| The other 32 master types (§3.6) | Reads are safe; only creation carries risk |
 
 ## 6.3 Genuinely unknown — *expensive, cost now known*
 
@@ -703,24 +854,7 @@ round-trip verbatim (#21a), while `VOUCHERNUMBER` cannot (§4.5).
 | **Can a stock item that exists be deleted?** | #22 established what asking carelessly costs: a crash and a restart. The question that decides whether all of §6.2's master probes are iterative or one-shot — and it is **still open**, because #22's probe tested the nonexistent-target path, not the delete path |
 | Can `REMOTEID` be supplied at create time and used to address writes? | #15/#16 leave this open in both directions; tests the write path with no undo |
 | Does Tally **derive** tax from a stock item's GST config? | Needs §3.3's inheritance chain resolved first, and every attempt is a permanent voucher (#16) |
-
-## 6.4 Not tested — different category entirely
-
-> ### ⚠️ Zoho Books
->
-> **Zoho is not "untested" — it has never been attempted.** It is the
-> other `BooksConnector` backend (ADR 0011 addendum), reached over
-> **OAuth2 + REST/JSON**, not XML-over-HTTP.
->
-> **Nothing in this document transfers to it.** Not the envelope, not the
-> trust rules, not the failure modes, not the identity semantics. Every
-> line here describes TallyPrime specifically.
->
-> `ZohoAdapter` remains `NotImplementedError` pending `P0-06` / `ENV-07`
-> sandbox credentials. Its equivalent findings document does not exist
-> yet, and when it does, the two must be compared deliberately rather
-> than assumed to be parallel — **that comparison is exactly what
-> ADR 0011's single `BooksConnector` interface has to absorb.**
+| **Does `ACTION="Cancel"` work on a voucher?** | Documented and distinct from Delete (#26), never tried. A mutation on a company with no scripted reset — but potentially #16's missing answer |
 
 ---
 
@@ -750,6 +884,11 @@ round-trip verbatim (#21a), while `VOUCHERNUMBER` cannot (§4.5).
 | 20 | `SRCOF...` inheritance chain | 3.3 |
 | 21 | Inventory voucher tax placement | 4.4 |
 | 22 | Master delete on nonexistent target crashes Tally | 5.1 |
+| 23 | Financial reports read via `TYPE: DATA`; reconciliation method | 4.7 |
+| 24 | Report sign convention inverts | 4.7 |
+| 25 | Read-side failures are clean; reads vs writes | 2.3, 4.7 |
+| 26 | `ACTION="Cancel"` documented, untested | 5.3 |
+| 27 | Master type catalogue (34 types) | 3.6 |
 
 ## Related documents
 

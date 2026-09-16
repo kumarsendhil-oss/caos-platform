@@ -1,0 +1,9 @@
+{
+  "name": "report-reads",
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "sent_at_utc": "2026-09-16T09:30:00+00:00",
+  "script": null,
+  "status": 200,
+  "note": "Read-only probe of standard TDL report names via EXPORT/TYPE:DATA (finding #23-#27). One request per report; only the <ID> differs from request-template.xml. Issued by an ad-hoc scratchpad script, so 'script' is null. Responses are the four financial reports whose figures the reconciliation in #23 ties out against. Error-shape responses (unknown report, bad company, malformed XML) are quoted verbatim in FINDINGS.md #25 rather than stored, being one line each."
+}

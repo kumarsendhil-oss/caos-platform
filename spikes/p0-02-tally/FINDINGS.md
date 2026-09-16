@@ -1135,3 +1135,266 @@ stock group first, or establish how the `<EOT>` sentinel must be sent),
 create the item, **read it back to confirm it exists**, and only then
 attempt the delete. The existence check is no longer a matter of rigour;
 #22 is the reason it is mandatory.
+
+# Round 7 — Financial reports and voucher lifecycle (2026-09-16)
+
+Investigate session, read-only. Standard financial reports had never
+been attempted — the reference covered Day Book reads, ledger and
+stock-item masters, and voucher posting, and nothing else.
+
+About fifteen read-only requests, no writes, no hangs. Artifacts:
+`runs/2026-09-16T09-30-00-report-reads`.
+
+**Documentation was useful here, which is worth noting against #4.**
+That finding established the TDL Reference Manual as a dead end *for GST
+field questions* because it predates GST. Report names and voucher
+lifecycle are older than GST, and the same documentation answers both
+cleanly. #4's conclusion should be read as scoped to GST-era fields, not
+as "the documentation is useless."
+
+## 23. Standard financial reports read cleanly via `TYPE: DATA`
+
+Same envelope as the verified Day Book read (#11); only `<ID>` changes.
+
+| `ID` | Result | Size |
+|---|---|---|
+| `Day Book` *(control)* | ✅ | 486 KB |
+| `Trial Balance` | ✅ | 523 B |
+| `Balance Sheet` | ✅ | 923 B |
+| `Profit and Loss` | ✅ | 654 B |
+| `Stock Summary` | ✅ | 238 B |
+| `Profit & Loss` | ❌ `Could not find Report` | 214 B |
+
+**The report is named `Profit and Loss`, spelled out.** `Profit & Loss`
+fails even when correctly escaped as `Profit &amp; Loss`. Sent with a
+raw `&` it fails differently — see #25.
+
+`SVCURRENTCOMPANY` is required and validated. `SVFROMDATE`/`SVTODATE`
+are honoured (see the methodology note below). `SVEXPORTFORMAT` is
+accepted.
+
+### Structure: a display layer, not a data API
+
+Responses are `DSP*`-prefixed **display** structures:
+
+```xml
+<DSPACCNAME><DSPDISPNAME>Purchase Accounts</DSPDISPNAME></DSPACCNAME>
+<DSPACCINFO>
+  <DSPCLDRAMT><DSPCLDRAMTA>-147200.00</DSPCLDRAMTA></DSPCLDRAMT>
+  <DSPCLCRAMT><DSPCLCRAMTA></DSPCLCRAMTA></DSPCLCRAMT>
+</DSPACCINFO>
+```
+
+Three limitations, all structural:
+
+1. **Group-level rollups only — no ledger drill-down.** Trial Balance
+   returned `Current Liabilities` and `Purchase Accounts`, not the
+   individual ledgers beneath them. Whether any parameter exposes
+   ledger-level detail is untested.
+2. **Name and value are positionally coupled, not nested.**
+   `DSPACCNAME` and `DSPACCINFO` are *siblings* that must be zipped by
+   document order. A parser that loses ordering silently mismatches
+   names to amounts.
+3. **Each report has its own vocabulary.** `BSNAME`/`BSAMT` for Balance
+   Sheet, `PLAMT`/`BSMAINAMT` for P&L, `DSPSTKINFO`/`DSPCLQTY` for Stock
+   Summary. There is no shared schema; each needs its own parser.
+
+### Verified by reconciliation, not by a single read-back
+
+Because this sandbox's entire contents are known, five independent
+report figures could be checked against the posted vouchers
+arithmetically:
+
+| Report figure | Reconciles to | ✓ |
+|---|---|---|
+| Purchase Accounts `-147,200` | 8 vouchers × 18,400 | ✅ |
+| Current Liabilities `163,760` Cr | 18,400 + (4 × 21,712) + 18,400 + 18,400 + 21,712 | ✅ |
+| Duties & Taxes `-16,560` Dr | 5 taxed vouchers × 3,312 | ✅ |
+| Stock Summary `Test` `-55,200` | 3 inventory vouchers × 18,400 | ✅ |
+| P&L Cost of Sales `-92,000` | 147,200 − 55,200 | ✅ |
+
+**This is a stronger verification than Rule 1's read-back, and the
+difference is worth stating as method.** A read-back confirms that what
+was written can be read again — it shares the write path's assumptions,
+so a systematic error in those assumptions survives it. Reconciliation
+checks *derived aggregates computed by Tally itself* against
+independently-known inputs. Five figures from four separate reports all
+tying out cannot easily be a coincidence of a shared bug.
+
+**It also independently corroborates two earlier findings.** The
+`147,200` total requires all eight vouchers to have posted, including
+the five that #7's original text recorded as having failed — so the #7
+correction is confirmed from a second direction. The `55,200` stock
+figure requires exactly the three inventory-bearing vouchers to carry
+stock value, confirming #21's structure landed as intended.
+
+**Where reconciliation is available, prefer it.** For a real client it
+usually will not be, and Rule 1 remains the fallback.
+
+### Methodology note — a test that could not distinguish its hypotheses
+
+The date-range question was initially answered wrongly. Full-year,
+single-day and no-dates requests all returned **identical** output,
+which reads as "`SVFROMDATE`/`SVTODATE` are ignored."
+
+They are not. Every voucher in this company is dated `20260801`, so all
+three ranges close *after* every transaction — identical closing
+balances are the correct result in all three cases, and the test could
+not have distinguished "dates ignored" from "dates honoured." Requesting
+**`20260401`–`20260701`**, ending before any transaction, returns
+`<ENVELOPE></ENVELOPE>`. Dates are honoured.
+
+Same class of error as #15's voucher-1-vs-2 mix-up, and the same lesson:
+**an asserted condition is a hypothesis about the evidence, not a fact
+about it.** Here the flaw was subtler — the test ran correctly and the
+data was real; the *discriminating power* was absent. Check that a test
+can distinguish its hypotheses before trusting a negative result.
+
+## 24. Report sign convention inverts the voucher convention — DATA CORRUPTION RISK
+
+**In report output, a debit is a negative number.**
+
+```
+Purchase Accounts   <DSPCLDRAMTA>-147200.00</DSPCLDRAMTA>   (a DEBIT balance)
+Current Liabilities <DSPCLCRAMTA>163760.00</DSPCLCRAMTA>    (a CREDIT balance)
+```
+
+At voucher level the convention is the opposite composite:
+`ISDEEMEDPOSITIVE=Yes` **with a negative `AMOUNT`** is a debit; `No`
+with a positive amount is a credit (§4.3). There, sign is one half of a
+two-field encoding. In reports, **sign alone carries direction**, and it
+carries it the other way round.
+
+**Stated plainly: a parser that assumes one convention holds everywhere
+will invert the books.** It will not error, and per #23 the figures look
+entirely plausible. Debit/credit direction must be decoded per response
+type — voucher entries by `ISDEEMEDPOSITIVE` + sign, report figures by
+the containing element (`DSPCLDRAMT` vs `DSPCLCRAMT`) with sign treated
+as magnitude-plus-convention, never as direction on its own.
+
+Note the element names already state direction — `...DRAMT` vs
+`...CRAMT`. **Trust the element, not the sign.**
+
+## 25. Read failures are clean and self-describing — the read side can be trusted
+
+Three distinct failure shapes, each naming itself:
+
+```xml
+<!-- unknown report name -->
+<STATUS>0</STATUS> <LINEERROR>Could not find Report 'Profit &amp; Loss'!</LINEERROR>
+
+<!-- company that does not exist -->
+<STATUS>0</STATUS> <LINEERROR>Could not set 'SVCurrentCompany' to 'No Such Company Xyz'</LINEERROR>
+
+<!-- malformed XML (raw & in the ID) -->
+<RESPONSE>Unknown Request, cannot be processed</RESPONSE>
+```
+
+Successful reads carry `STATUS 1`, or for report responses no `HEADER`
+at all. **Across roughly fifteen probes, `STATUS` and `LINEERROR` agreed
+with reality every time.**
+
+### This is NOT Rule 2 — it is close to its opposite
+
+Rules 1–3 are all **write-side**: import responses misreport what
+happened, and per #17 `ERRORS: 0` can accompany total failure. **That
+does not generalise to reads.**
+
+| | Write path (`Import Data`) | Read path (`EXPORT`) |
+|---|---|---|
+| Success signal | counters — **unreliable** (#2, #17) | `STATUS` — reliable in testing |
+| Failure signal | `LINEERROR`, counters may all be `0` | `STATUS 0` + named `LINEERROR` |
+| Silent wrong result | **yes** — #2, #3 discard values silently | not observed for `TYPE: DATA` |
+
+**Do not over-generalise "nothing in Tally's responses can be trusted."**
+The write path cannot be trusted; the read path's own status reporting
+can, so far. Read-back verification works *because* reads are more
+trustworthy than writes — if reads were equally unreliable, Rule 1 would
+be worthless.
+
+**One important exception remains: `TYPE: COLLECTION` pointed at
+vouchers returns zero rows with no error** (#11). That is a read-side
+silent failure. So the claim is scoped: **`TYPE: DATA` reads report
+their own failures reliably; `COLLECTION` reads do not.**
+
+### Consequence: report-name discovery is safe to do empirically
+
+An unknown report name produces a named error, not a hang and not a
+silent zero. The caution #13 imposed on constructing requests
+dynamically **applies to `COLLECTION`/TDL, not to `TYPE: DATA` report
+names.** Exploring the rest of Tally's report surface is low-risk.
+
+## 26. `ACTION="Cancel"` is documented and distinct from Delete — a lead against #16
+
+**Documentation only. Not tested. Not attempted this session.**
+
+Tally's help documentation states that deleting removes a voucher
+entirely with no trace, while **cancelling keeps it visible and marks it
+Cancelled**. XML import supports `ACTION="Cancel"`, and Tally's Marked
+Voucher Register includes altered, added and cancelled vouchers while
+excluding deleted ones.
+
+**This explains the `CANCELLED` counter**, present in every import
+response since the first and never accounted for by any finding.
+
+**Why it matters against #16.** That finding concluded vouchers cannot
+be removed through the XML API, having tried two *delete* addressing
+schemes. Cancel was not tried. If it works it would be the first way to
+neutralise a posted voucher — and for a CA practice it is the *correct*
+operation anyway: cancellation preserves the audit trail, which
+deletion by design does not.
+
+**Explicitly untested, and deliberately not attempted.** It is a
+mutation, neither sandbox has a scripted reset (`PENDING:009`), and #22
+established what an unlucky mutation costs. It needs its own
+authorisation and its own probe design — existence-check first, per #22.
+
+## 27. Master type catalogue — 34 types, two documented
+
+Every response's `CMPINFO` block enumerates Tally's master types. This
+is an **inventory of what types exist, not confirmation any are
+populated** — per #5 the `CMPINFO` numbers are not counts.
+
+**Likely relevant to CAOS:** `GROUP`, `LEDGER`, `COSTCATEGORY`,
+`COSTCENTRE`, `GODOWN`, `STOCKGROUP`, `STOCKCATEGORY`, `STOCKITEM`,
+`VOUCHERTYPE`, `CURRENCY`, `UNIT`, `BUDGET`, `TAXUNIT`,
+`GSTCLASSIFICATION`, `VOUCHERNUMBERSERIES`, `TDSRATE`, `DEDUCTEETYPE`,
+`COMPANY`
+
+**Legacy, probably dead:** `FBTCATEGORY`, `FBTASSESSEETYPE`,
+`EXCISEDUTYCLASSIFICATION`, `TARIFFCLASSIFICATION`, `LBTCLASSIFICATION`,
+`STCATEGORY`, `ADJUSTMENTCLASSIFICATION`
+
+**Documented, never touched:** `CLIENTRULE`, `SERVERRULE`, `STATE`,
+`SERIALNUMBER`, `ATTENDANCETYPE`, `INCOMETAXSLAB`,
+`INCOMETAXCLASSIFICATION`, `RETURNMASTER`, `TAXCLASSIFICATION`
+
+**Only `LEDGER` and `STOCKITEM` are documented in the schema
+reference.** `UNIT` and `STOCKGROUP` were read and confirmed empty
+(#22's setup) but never created. Everything else is unexplored.
+
+Nearest-term relevance: **`GODOWN`** and **`STOCKGROUP`** both appear in
+voucher #6's inventory structure, and `STOCKGROUP` is the specific
+blocker on a corrected stock-item create (#22).
+
+### There is no fixed-asset register report
+
+Stated plainly so it does not read as unexplored: **Tally has no
+dedicated asset-register report.** Fixed assets are a *group* within the
+Balance Sheet, not a separate report, so there is no report name to
+call. `Coastal Test Traders` has no such group, so its Balance Sheet
+shows none. Asset data would come from a Balance Sheet read or a
+group-scoped ledger collection — neither attempted.
+
+## Sources
+
+Documentation consulted for #26 and the report names in #23. Cited
+because these findings rest partly on documentation rather than purely
+on observation, which is unusual for this file:
+
+- [Understanding Integration — Reports](https://help.tallysolutions.com/developer-reference/introduction/understanding-integration-reports/) — `TYPE: DATA` + `ID` as TDL report name
+- [Cancel/Delete Voucher in TallyPrime](https://help.tallysolutions.com/cancel-einv-ewb-voucher-delete/) — Cancel vs Delete semantics
+- [Objects and Collections in TDL](https://help.tallysolutions.com/developer-reference/tally-definition-language/objects-and-collections/) — master object types
+
+Everything in #23–#25 and #27's catalogue was observed live; only #26 is
+documentation-only, and it says so.
