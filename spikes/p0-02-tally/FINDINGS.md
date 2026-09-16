@@ -300,3 +300,49 @@ reports import exceptions with no diagnostic detail anywhere. Here it
 produced a genuinely useful message — "Could not find description" —
 and sent it to a GUI dialog box, the one place an integration cannot
 read it.
+
+## 14. `VOUCHERNUMBER` is unusable as an identity field — extends #10
+
+Finding #10 established that Tally discards the `VOUCHERNUMBER` we send
+and assigns its own, observed once, on `Coastal Services Ltd`. This
+extends it in three ways. Nothing here contradicts #10 — #10 remains
+the canonical statement of the discard itself.
+
+**1. Confirmed on a second company.** Not specific to one company's
+configuration:
+
+| Company | Sent | Stored | Artifact |
+|---|---|---|---|
+| Coastal Test Traders | `TEST-INV-0001` | `1`–`6` | `runs/2026-09-16T02-15-54-voucher-2-readback/` |
+| Coastal Services Ltd | `SVC-INV-0001` | `1`–`4` | `runs/2026-09-16T04-34-13-noinv-5-readback-after-duplicate/` |
+
+Observed, not inferred: the `TEST-INV-0001` value is present in that
+run's own `voucher-1-post/request.xml` and `voucher-3-duplicate/request.xml`,
+and absent from every voucher in the readback taken minutes later.
+
+**2. The mechanism has a name.** The stored vouchers carry
+`NUMBERINGSTYLE: Auto Retain`. So this is Tally's configured numbering
+behaviour for the voucher type, not a parse failure or a silent drop of
+an unrecognised value — which distinguishes it from the §2 class of
+silent discard that #10 grouped it with.
+
+**3. The consequence is wider than CG7.** #10 drew the duplicate-key
+conclusion, which stands. But the same fact also breaks *read-back
+correlation*: after posting, the platform cannot find "the voucher we
+just posted" by the number it sent, because no voucher in Tally will
+ever carry that value. This matters for the read-back-and-verify step
+§2 makes mandatory — verification has to locate the voucher before it
+can verify it.
+
+**Demonstrated concretely, and it already cost us something.**
+`docs/context.md` carried an open action to identify an unexplained
+voucher by comparing its `VOUCHERNUMBER` against `post_voucher.py`'s
+`TEST-INV-0001` constant, described there as "the single check that
+would settle it". That check cannot ever succeed, for any voucher, from
+any source. It was struck rather than performed.
+
+**Direction, not a new open question.** #11 (round 3) already notes
+that Day Book responses carry `REMOTEID` and `VCHKEY` per `<VOUCHER>`
+and that `TallyAdapter` should capture them at post time. That note is
+the answer to this, and #10's open item about linking a posted voucher
+back to its source document. Tracked as `PENDING:010`.
