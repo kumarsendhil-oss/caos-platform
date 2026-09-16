@@ -8,6 +8,12 @@ Phase 0 Tally integration spike (`spikes/p0-02-tally/`), verifying the multi-bac
 
 ## Active work
 
+**Gap 2 resolved + finding #7 corrected — findings #21, #7 (2026-09-16, authorised live probe)**
+- **Gap 2 CLOSED.** Tax ledgers on an inventory-bearing voucher attach at **voucher level, as `LEDGERENTRIES.LIST` siblings of the party**, party line carrying the gross. Candidate 1, correct first try; candidates 2 and 3 not tried. Verified by read-back, not response counters. Artifacts `runs/2026-09-16T08-5*-gap2-*`.
+- Two side results: `NARRATION` and `REFERENCE` both survive a post verbatim (so probe vouchers can be self-identifying, which `VOUCHERNUMBER` cannot do per #14); and the control post settled `LEDGERENTRIES.LIST` vs `ALLLEDGERENTRIES.LIST` — invoice-view import accepts the spelling voucher #6 stores.
+- **Finding #7's evidence was wrong and is corrected.** It recorded all seven `voucher_variants.py` payloads as failing and concluded Tally requires a stock item on any purchase voucher for an inventory-enabled company. Five of the seven were **created**, with no inventory entries. The real discriminator is `OBJVIEW="Invoice Voucher View"` (B vs D isolates it). The `TallyAdapter` consequence survives, restated as a choice the adapter controls via voucher view — plus an open practice question: accounting-view posting to an inventory-enabled client is *accepted*, but whether it is *correct* for books configured to track stock is a judgement these artifacts don't settle.
+- Knock-on: five of the six `Coastal Test Traders` "anomaly" vouchers are now attributed to `voucher_variants.py`, which the mis-recorded #7 had obscured. Only voucher #6 remains unexplained.
+
 **Stock-item master schema — findings #18–#20 (2026-09-16, investigate session)**
 - Closes **gap 1** of issue #28's remaining half. One live read-only call (`TYPE>StockItem` collection, `FETCH *`); artifact `runs/2026-09-16T08-45-10-stockitem-master-dump`. No writes.
 - `Test` **is** a real stock-item master (`GUID ...-000000d2`, `ALTERID 223`) and the company's only one — Tally did not create it implicitly on import. Its definition is near-empty: no `BASEUNITS`, no `HSNCODE`, no opening balance. The missing unit is why voucher #6's line carries `AMOUNT` with empty `ACTUALQTY`/`BILLEDQTY`/`RATE`.
@@ -95,14 +101,34 @@ Issue #28's remaining half is now split in two, with the first half closed.
 
 **Gap 1 — the stock-item master: CLOSED** (findings #18–#20, 2026-09-16). `Test` is a real master; the schema relevant to BK-01's mapping is documented, including the two complications that mapping design now has to account for (#19's per-master-type duty-head vocabulary, #20's inheritance chain).
 
-**Gap 2 — where GST ledgers attach on an inventory-bearing voucher: CLOSED 2026-09-16** (finding #21, user-authorised live probe). Tax ledgers attach at **voucher level, as `LEDGERENTRIES.LIST` siblings of the party**; candidate 1 worked first try, verified by read-back. Candidates 2 and 3 untested and unnecessary. Three marked probe vouchers are now permanent in the sandboxes. Still untested: whether Tally *derives* tax from the item's GST config (candidate 3, and per finding #20 that needs the inheritance chain), and anything involving an item that has a unit of measure. Original framing follows for the record. Voucher #6 carries no tax entries at all (it totals 18400.00, not 21712.00), so the one worked example is silent on exactly the question `post_voucher.py` exists to answer. The candidates — voucher-level siblings vs. nested inside `ACCOUNTINGALLOCATIONS.LIST` — can only be separated by a live post plus read-back, since finding #2 means a `CREATED: 1` response proves nothing on its own.
+**Gap 2 — where GST ledgers attach on an inventory-bearing voucher: CLOSED 2026-09-16** (finding #21, live probe run under explicit authorisation).
 
-**That probe needs explicit go-ahead before it runs.** It is a write, and finding #16 established that vouchers cannot be deleted through the XML import API — a wrong guess leaves an undeletable voucher in `Coastal Test Traders`, recoverable only by the manual company delete/recreate procedure under `PENDING:009`. Finding #7's conclusion (inventory handling is conditional on client config, not universal) stands; what a correct inventory-bearing voucher looks like when *posted* is still untested.
+Tax ledgers attach at **voucher level, as `LEDGERENTRIES.LIST` siblings of the party**, with the party line carrying the gross. Candidate 1 was correct on the first attempt; candidates 2 (tax nested in `ACCOUNTINGALLOCATIONS.LIST`) and 3 (no explicit tax ledgers, inferred from the item) were deliberately not tried, since every attempt is permanent. Confirmed by read-back, not by the response counters — per findings #2 and #17 a `CREATED: 1` proves nothing on its own. A side effect of the control post also settled the `LEDGERENTRIES.LIST` vs `ALLLEDGERENTRIES.LIST` confound: on an invoice-view voucher, import accepts the spelling voucher #6 stores.
+
+**Two things gap 2 did NOT establish, and they are the real remaining scope:**
+
+1. **Tax amounts were supplied, not computed.** CGST/SGST were sent as explicit values and stored verbatim. Whether Tally *derives* correct tax from a stock item's own GST configuration is untested — that was candidate 3, and per finding #20 it requires the item → stock group → company inheritance chain (`PENDING:015`).
+2. **Nothing exercised quantity, rate or unit of measure.** The `Test` item has no `BASEUNITS` (finding #18), so every voucher in this sandbox carries empty `ACTUALQTY`/`BILLEDQTY`/`RATE`. An item *with* a unit is untested and is the most likely place for a further surprise.
+
+**If #28 continues, those two are the next scope** — and both need a stock item that does not exist yet in either sandbox, so the first step is creating one (a master write, not a voucher write), not another voucher post.
 
 ## Known blockers (tracked separately)
 
 - ~~`post_voucher.py` is hardcoded to `Coastal Test Traders` with no `--company` flag~~ — **resolved** by the `fix/post-voucher-company-flag` PR above (issue #28, first half). Previously the argument was silently unread, so a run *looks* like it succeeded against a company it never touched; PR #23 worked around it by verifying via `no_inventory_test.py` instead.
-- Inventory/stock-item mapping for inventory-enabled clients — also #28, **partly scoped as of 2026-09-16**. The stock-item master schema is now documented (findings #18–#20) and the mapping's two new complications are tracked as `PENDING:015`. Still untested: what a correct inventory-bearing voucher looks like when posted, specifically where the GST ledgers attach — see Next action, and note that probe is a write with no undo (finding #16).
+- Inventory/stock-item mapping for inventory-enabled clients — also #28, **substantially scoped as of 2026-09-16**. The stock-item master schema is documented (findings #18–#20) and the postable inventory-voucher shape including tax placement is verified live (finding #21). What remains is narrower than it was: tax *derivation* from the item's GST config via the inheritance chain (`PENDING:015`), and anything involving an item with a unit of measure. Neither is blocked; both need a new stock item in the sandbox first.
+
+## Sandbox state (after the 2026-09-16 gap 2 probe)
+
+Three vouchers were added by finding #21's probe. All three are marked in **both** `NARRATION` and `REFERENCE` — verified to survive a post (finding #21a), unlike `VOUCHERNUMBER`, which finding #14 rules out as an identifier. None can be deleted (finding #16), so they are permanent until a company reset.
+
+| Company | Vouchers | Of which probe artifacts |
+|---|---|---|
+| `Coastal Test Traders` | 8 | #7 `GAP2-PROBE-CONTROL-DO-NOT-USE-AS-EVIDENCE`, #8 `GAP2-PROBE-TAX-DO-NOT-USE-AS-EVIDENCE` |
+| `Coastal Services Ltd` | 5 | one marked `GAP2-PROBE-DO-NOT-USE-AS-EVIDENCE` |
+
+`Coastal Test Traders` 1–5 are `voucher_variants.py`'s output (see below); #6 is the unattributed one. **Treat #7 and #8 as test fixtures, not evidence** — they were constructed to answer one structural question and their amounts were supplied rather than computed.
+
+Resetting either company is the manual `PENDING:009` procedure. Note a reset of `Coastal Test Traders` destroys voucher #6 *and* the `Test` stock item, and `create_ledgers.py` recreates neither — but both are now captured as committed artifacts (`runs/2026-09-16T02-15-54-voucher-4-readback-after-duplicate`, `runs/2026-09-16T08-45-10-stockitem-master-dump`), so a reset costs rebuild time, not evidence.
 
 ## Open anomaly — script origin ruled out, creator unidentified
 
@@ -110,7 +136,7 @@ Issue #28's remaining half is now split in two, with the first half closed.
 
 **Coastal Services Ltd — benign accumulation (not an anomaly).** Now holds 4 identical `SVC-INV-0001` vouchers. `no_inventory_test.py --send` posts two per run (steps 2 and 4), and the company was not empty when the 2026-09-16 run started — two pre-existed, so two posts produced four. Provenance looks ordinary: all four are `OBJVIEW="Accounting Voucher View"` with sequential REMOTEIDs and voucher numbers 1–4, i.e. leftovers from previous runs of the same script, **not** manual entry. Tracked as `PENDING:009`, **resolved 2026-09-16 as a manual procedure** (delete/recreate the company in the Tally UI, then re-run `create_ledgers.py`) — there is no scripted reset and findings #16/#17 explain why there should not be one. Expect two more per verification run unless the company is reset first. Note voucher 1 is no longer identical to the others: it carries the amount change from finding #15's edit test (`21714`, `ALTERID 5`), and is that finding's live evidence.
 
-**Coastal Test Traders — largely resolved 2026-09-16 (investigate sessions, read-only).**
+**Coastal Test Traders — largely resolved 2026-09-16 (investigate sessions; read-only for the attribution work itself, though the same day's gap 2 probe added vouchers 7–8 under separate authorisation).**
 
 A Day Book read against `Coastal Test Traders` returned **6 vouchers**, not the 2 expected per FINDINGS.md #11. One (`REMOTEID ...-00000006`) has `OBJVIEW="Invoice Voucher View"`, unlike the other five (`"Accounting Voucher View"`).
 
