@@ -1,0 +1,12 @@
+{
+  "name": "stockitem-master-dump",
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "sent_at_utc": "2026-09-16T08:45:10+00:00",
+  "script": null,
+  "request_bytes": 610,
+  "status": 200,
+  "response_bytes": 9666,
+  "elapsed_ms": null,
+  "note": "Ad-hoc read-only StockItem collection dump, issued directly rather than via _runner.run(), so no committed script emitted it and elapsed_ms was not captured. The request shape mirrors runs/2026-09-15T15-08-57-dump-ledger-collection-fetch-all verbatim with TYPE Ledger -> StockItem and the FILTER dropped (finding #13: only send shapes already verified against a real instance). Evidence for findings #18 and #19."
+}

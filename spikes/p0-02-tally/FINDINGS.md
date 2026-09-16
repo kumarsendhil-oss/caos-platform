@@ -117,24 +117,74 @@ endpoints.
 
 # Round 2 — Voucher posting (2026-09-15, runs 15:23–15:50 UTC)
 
-## 7. Purchase vouchers require inventory entries on inventory-enabled companies — RESOLVED
+## 7. `Invoice Voucher View` requires inventory entries on inventory-enabled companies — RESOLVED, evidence corrected 2026-09-16
 
-**Observed:** seven payload variants (varying OBJVIEW, PERSISTEDVIEW,
-tax ledgers, voucher number, party ledger) all failed identically
-against `Coastal Test Traders` with `EXCEPTIONS: 1` and no detail.
-Creating the same voucher by hand in Tally revealed why: that company
-has `Maintain Inventory: Yes` + `Integrate Accounts with Inventory: Yes`,
-so Tally requires a stock item on a Purchase voucher. Manual entry could
-not be completed without creating one.
+> **Correction (2026-09-16).** This finding originally stated that all
+> seven payload variants failed and concluded that Tally "requires a
+> stock item on a Purchase voucher" for an inventory-enabled company.
+> Both claims are wrong against the committed artifacts — **five of the
+> seven were created**, with no inventory entries, on that very company.
+> The discriminator is `OBJVIEW`, not inventory. The original text is
+> replaced below; the *consequence* for `TallyAdapter` was right for the
+> wrong reason and is restated. Caught while designing the gap 2 probe,
+> whose whole design depended on which rule is true.
+
+**Observed.** Seven variants against `Coastal Test Traders`
+(`Maintain Inventory: Yes` + `Integrate Accounts with Inventory: Yes`),
+artifacts `runs/2026-09-15T15-38-17-variant-*`:
+
+| Variant | `OBJVIEW` | Tax ledgers | Result |
+|---|---|---|---|
+| A minimal-no-tax | *(none)* | no | **CREATED 1** |
+| B minimal-with-tax | *(none)* | yes | **CREATED 1** |
+| C accounting-objview | `Accounting Voucher View` | yes | **CREATED 1** |
+| D invoice-objview | `Invoice Voucher View` | yes | `EXCEPTIONS 1` |
+| E invoice-plus-persisted | `Invoice Voucher View` + `PERSISTEDVIEW` | yes | `EXCEPTIONS 1` |
+| F no-voucher-number | *(none)* | yes | **CREATED 1** |
+| G no-partyledgername | *(none)* | yes | **CREATED 1** |
+
+`runs/2026-09-15T15-38-18-variants-readback` confirms the five landed:
+exactly 5 vouchers, numbered 1–5, every one stored as
+`OBJVIEW="Accounting Voucher View"`. **Those five are vouchers 1–5 in
+that company's day book** — not background clutter of unknown origin.
+
+**B vs. D isolates the cause.** Both carry the same four ledger entries
+including CGST and SGST; they differ only in `OBJVIEW` (and a
+`VOUCHERNUMBER` Tally discards anyway, finding #14). So the trigger is
+`OBJVIEW="Invoice Voucher View"` alone. Inventory-enabled companies
+accept accounting-view purchase vouchers with no inventory entries.
+
+**The rule, corrected:** on an inventory-enabled company,
+`Invoice Voucher View` requires inventory entries; `Accounting Voucher
+View` does not, and posts fine without them. The manual-UI observation
+that a hand-entered voucher could not be completed without creating a
+stock item is consistent with this — Tally's manual entry was in item
+invoice mode, which is the mode that needs items — but it was
+generalised past what the payloads showed.
+
+Voucher #6 in the same company is the positive case: `Invoice Voucher
+View` **with** an `ALLINVENTORYENTRIES.LIST`, stored successfully. See
+findings #18–#20.
 
 The identical payload posted first try against `Coastal Services Ltd`
 (`Maintain Inventory: No`) — `CREATED: 1`.
 
 **Consequence for `TallyAdapter` (issue #2):** inventory handling is
-**conditional on client configuration**, not universal. The adapter must
-know each client's inventory setting and supply `ALLINVENTORYENTRIES.LIST`
-only where required. For service-business clients — common in a CA
-practice — accounting-only purchase vouchers post cleanly.
+**conditional on client configuration**, not universal — the original
+conclusion stands, and the corrected evidence sharpens it into a choice
+the adapter actually controls. The adapter picks the voucher *view*: it
+can post `Accounting Voucher View` and need no stock item at all, even
+against an inventory-enabled client, or post `Invoice Voucher View` and
+must then supply a matching `ALLINVENTORYENTRIES.LIST`. For
+service-business clients — common in a CA practice — accounting-only
+purchase vouchers post cleanly either way.
+
+**Open question the correction raises:** posting accounting-view
+vouchers to an inventory-enabled client is *accepted*, but that does not
+make it *correct* for the client's books — it bypasses stock movement on
+a company configured to track it. Whether that is an acceptable adapter
+default or a silent data-quality problem is a judgement for the
+practice, not something these artifacts settle.
 
 **Still unknown:** what a correct inventory-bearing voucher looks like.
 Not yet tested. BK-01 currently extracts invoice line items with no
@@ -642,3 +692,298 @@ for parsing the response more carefully than its counters. Both are
 needed.
 
 Tracked for `TallyAdapter`'s response handling as `PENDING:014`.
+
+# Round 5 — Stock item masters and inventory scope (2026-09-16)
+
+Investigate session against issue #28's remaining half: the
+inventory-bearing voucher shape and BK-01's stock-item mapping gap.
+Starting point was voucher #6 in `Coastal Test Traders` — a stored,
+already-posted `Item Invoice` purchase voucher carrying an
+`ALLINVENTORYENTRIES.LIST`
+(`runs/2026-09-16T02-15-54-voucher-4-readback-after-duplicate`,
+lines 8752–10346). One live call, read-only: a `TYPE>StockItem`
+collection dump, artifact `runs/2026-09-16T08-45-10-stockitem-master-dump`.
+No writes.
+
+## 18. The stock item `Test` is a real master — and near-empty, which is why voucher #6 has no quantity
+
+**Observed.** `Coastal Test Traders` contains exactly **one** stock item:
+
+```xml
+<STOCKITEM NAME="Test" RESERVEDNAME="">
+  <GUID>e0b7ed19-50af-411d-8919-c29f16ad87ae-000000d2</GUID>
+  <PARENT>&#4; Primary</PARENT>
+  <ALTERID> 223</ALTERID>
+```
+
+So voucher #6's `STOCKITEMNAME: Test` resolves to a backing master.
+Tally did **not** create it implicitly on import — the master exists
+independently, with its own GUID under the company's GUID prefix. This
+closes the question left open in `docs/context.md`: the "implicitly
+created on import" possibility is ruled out. `ALTERID 223` against the
+voucher's `ALTERID 6` puts the item far later in the company's
+alteration sequence than the vouchers, consistent with the
+manual-UI-entry reading — but it still does not *prove* provenance, and
+nothing in the artifact records who created it.
+
+**The definition is almost entirely unset:**
+
+| Field | Value |
+|---|---|
+| `BASEUNITS` / `ADDITIONALUNITS` | `<EOT> Not Applicable` — **no unit of measure** |
+| `HSNCODE`, `HSN`, `HSNMASTERNAME`, `HSNCLASSIFICATIONNAME` | empty |
+| `OPENINGBALANCE`, `OPENINGRATE` | empty; `OPENINGVALUE` `0.00` |
+| `DESCRIPTION` | empty |
+| `GSTTYPEOFSUPPLY` | `Goods` |
+| `COSTINGMETHOD` / `VALUATIONMETHOD` | `Default` |
+| `ISBATCHWISEON`, `ISPERISHABLEON`, `IGNOREGODOWNS`, `ISCOSTCENTRESON` | all `No` |
+
+**This explains voucher #6's amount-only line.** That voucher's
+`ACTUALQTY`, `BILLEDQTY`, `RATE` and `GSTITEMUQCUOM` are all
+present-but-empty, with only `AMOUNT: -18400.00` and a
+`BATCHALLOCATIONS.LIST` naming `Main Location` / `Primary Batch`. An
+item with no `BASEUNITS` cannot carry a quantity, so Tally stored the
+line as a value with no quantity or rate.
+
+**Consequence — voucher #6 is the minimum case, not the representative
+one.** It is a valid worked example of the *structural* shape: the
+purchase ledger nested inside
+`ALLINVENTORYENTRIES.LIST/ACCOUNTINGALLOCATIONS.LIST`, the party ledger
+at voucher level in `LEDGERENTRIES.LIST` (not `ALLLEDGERENTRIES.LIST`),
+`VCHENTRYMODE: Item Invoice`, `ISINVOICE: Yes`. It is **not** evidence
+about quantity, rate or UoM handling, because this item cannot exercise
+any of it. A real client's stock item will have a unit, and the quantity
+and rate fields will be populated and are likely mandatory. Do not
+generalise from the empty fields here to "quantity is optional".
+
+### Stock-item master schema, for BK-01
+
+- **Identity:** the `NAME` attribute, plus `LANGUAGENAME.LIST` →
+  `NAME.LIST` → `NAME` (an alias list; here it just repeats `Test`, but
+  a real client's item can carry several). Invoice-line-text → item
+  matching should read the alias list, not only the `NAME` attribute —
+  this is BK-02's vendor-to-ledger matching problem again, against stock
+  items. `GUID` is the stable key; `ALTERID` is change-tracking — the
+  identity-vs-change-tracking distinction finding #15 already drew for
+  vouchers holds here too.
+- **Hierarchy:** `PARENT` (stock group), `CATEGORY`.
+- **Units:** `BASEUNITS`, `ADDITIONALUNITS`, `DENOMINATOR`,
+  `CONVERSION`, and `REPORTINGUOMDETAILS.LIST`.
+- **GST:** `GSTDETAILS.LIST` → `STATEWISEDETAILS.LIST` →
+  `RATEDETAILS.LIST`, keyed by `GSTRATEDUTYHEAD`, each generation dated
+  by `APPLICABLEFROM` (`20260401` here) and scoped by `STATENAME`
+  (`<EOT> Any` here). Rates are **state-wise and time-sliced** — a real
+  client can have per-state rows and several `APPLICABLEFROM`
+  generations. Any mapping that treats "the item's GST rate" as a single
+  scalar is wrong by construction.
+- **HSN:** `HSNDETAILS.LIST`, same `APPLICABLEFROM` + `SRCOF...` shape.
+- **Pricing / stock:** `PRICELEVELLIST.LIST`, `FULLPRICELIST.LIST`,
+  `BATCHALLOCATIONS.LIST`, `STANDARDCOSTLIST.LIST`,
+  `COMPONENTLIST.LIST` (BOM).
+
+## 19. `GSTRATEDUTYHEAD` spells a duty head differently from `GSTDUTYHEAD` — #3's pattern, now cross-master
+
+**Observed.** The stock item's `RATEDETAILS.LIST` entries enumerate:
+
+```
+CGST | SGST/UTGST | IGST | Cess | State Cess
+```
+
+Finding #3 established that a ledger master's `GSTDUTYHEAD` is validated
+against an unknown list, silently dropping unrecognised values — and
+that on ledgers the accepted spellings are `CGST` and `State Tax`, with
+`Central Tax` discarded. **The same duty head is `SGST/UTGST` on a stock
+item and `State Tax` on a ledger.**
+
+**What this changes about #3.** #3 read as a per-field quirk: one field
+with a vocabulary we had to discover by probing. It is now confirmed to
+be **per-master-type** — the vocabulary differs between master types for
+the same underlying concept. A single shared `DUTY_HEADS` constant in
+`TallyAdapter`, applied to both ledger and stock-item payloads, would be
+silently wrong on one of them, and per #3 and #2 the response would not
+say so. Each master type's vocabulary has to be established
+independently against a live instance before anything writes to it.
+
+Note that the `RATEDETAILS.LIST` inside voucher #6's inventory entry
+uses the stock-item spelling (`SGST/UTGST`), not the ledger one — so the
+split is by master type, not by read-vs-write path.
+
+**Also note** the `&#4;` (EOT) sentinels are pervasive in this master —
+`<EOT> Not Applicable`, `<EOT> Primary`, `<EOT> Any`,
+`<EOT> Applicable`. Same control character finding #1 made a parser
+blocker, here carrying *meaningful enum values* rather than incidental
+noise, so `sanitise()` must preserve them distinguishably rather than
+strip them.
+
+## 20. `SRCOFGSTDETAILS` / `SRCOFHSNDETAILS` — an item's own rate and HSN can be empty by inheritance
+
+**Observed.** Both nested blocks carry a source field, and both read the
+same way:
+
+```xml
+<GSTDETAILS.LIST>
+  <APPLICABLEFROM>20260401</APPLICABLEFROM>
+  <SRCOFGSTDETAILS>As per Company/Stock Group</SRCOFGSTDETAILS>
+  ... all five RATEDETAILS GSTRATE values are 0 ...
+
+<HSNDETAILS.LIST>
+  <APPLICABLEFROM>20260401</APPLICABLEFROM>
+  <SRCOFHSNDETAILS>As per Company/Stock Group</SRCOFHSNDETAILS>
+  ... no HSNCODE ...
+```
+
+The zeros and the absent HSN code are **not** the item's effective
+values. They are placeholders for values the item defers upward to its
+stock group or the company.
+
+**Consequence — BK-01 cannot resolve a stock item's effective GST rate
+or HSN code from the item master alone.** It must read
+`SRCOFGSTDETAILS` / `SRCOFHSNDETAILS` first and, when either says
+`As per Company/Stock Group`, walk the chain: item → `PARENT` stock
+group → company. Combined with #18's state-wise and `APPLICABLEFROM`
+dimensions, "the HSN code for this line" is the output of a resolution
+over (item, parent chain, state, date), not a field read.
+
+**This is new, previously-unaccounted-for scope.** Finding #7 flagged
+stock-item *mapping* as unscoped work comparable to BK-02's
+vendor-to-ledger matching. The inheritance chain sits on top of that:
+matching an invoice line to an item is one problem, resolving that
+item's effective tax attributes is a second, and neither is in BK-01
+today. Tracked as `PENDING:015`.
+
+**Not yet established:** what a stock group or company-level GST master
+looks like on the wire, or whether the chain can terminate anywhere
+other than those two levels. Only the item level has been read.
+
+## 21. Gap 2 RESOLVED — tax ledgers attach at voucher level, as `LEDGERENTRIES.LIST` siblings of the party
+
+Four live calls in the approved order, each read back before the next.
+Artifacts `runs/2026-09-16T08-51-12-gap2-step2-*`,
+`08-51-46-gap2-step3-*`, `08-52-15-gap2-step4-*`.
+
+### 21a. Marker fields survive a post — `NARRATION` and `REFERENCE` both round-trip
+
+Sent against `Coastal Services Ltd` (disposable per `PENDING:009`) on the
+proven accounting-view shape, so the only variable was the markers:
+
+```xml
+<NARRATION>GAP2-PROBE-DO-NOT-USE-AS-EVIDENCE</NARRATION>
+<REFERENCE>GAP2-PROBE-DO-NOT-USE-AS-EVIDENCE</REFERENCE>
+```
+
+`CREATED: 1`, and the read-back returns **both verbatim**. This was worth
+testing rather than assuming: `NARRATION` had never been observed
+surviving anything in this repo, because the only script that sent one
+(`post_voucher.py`) only ever sent it on requests that failed. Under
+finding #2's silent-discard pattern, an unverified marker that gets
+dropped leaves an *unlabelled* permanent voucher — the exact outcome
+marking is supposed to prevent.
+
+**Consequence:** a `NARRATION`/`REFERENCE` marker is a usable
+self-identification mechanism for probe vouchers, and — unlike
+`VOUCHERNUMBER`, which finding #14 rules out — it is scriptable as a
+filter. All three vouchers this probe created carry one.
+
+### 21b. Control — voucher #6's shape reproduces exactly
+
+Posted against `Coastal Test Traders`: `OBJVIEW="Invoice Voucher View"`,
+`VCHENTRYMODE: Item Invoice`, `ISINVOICE: Yes`, one
+`ALLINVENTORYENTRIES.LIST` (`STOCKITEMNAME: Test`, `AMOUNT -18400.00`,
+`BATCHALLOCATIONS.LIST` → `Main Location` / `Primary Batch`,
+`ACCOUNTINGALLOCATIONS.LIST` → `Purchase @18%`), party in
+`LEDGERENTRIES.LIST` at `+18400.00`. No tax, no quantity, no rate.
+
+`CREATED: 1`, no `LINEERROR`. Read back as voucher 7. A structural diff
+against voucher #6 — comparing list nesting, ledger names and amounts —
+differs in **exactly one** respect:
+
+```diff
+  <AMOUNT>18400.00</AMOUNT>
+- <BILLALLOCATIONS.LIST>
+- <AMOUNT>18400.00</AMOUNT>
+- </BILLALLOCATIONS.LIST>
+  </LEDGERENTRIES.LIST>
+```
+
+Voucher #6 carries a bill reference (`NAME: 6`, `BILLTYPE: New Ref`) on
+the party line; the control does not, because none was sent. Everything
+else — including the `LEDGERENTRIES.LIST` spelling — matches.
+
+**This resolves the `LEDGERENTRIES.LIST` vs `ALLLEDGERENTRIES.LIST`
+confound.** The spelling voucher #6 stores is the spelling import
+accepts, on an invoice-view voucher. Note the existing accounting-view
+scripts send `ALLLEDGERENTRIES.LIST` and those vouchers store it too, so
+this is view-dependent, not one spelling being globally correct.
+
+### 21c. Candidate 1 is correct — and it was the first one tried
+
+Same payload plus two `LEDGERENTRIES.LIST` siblings of the party for
+CGST and SGST, with the party line raised to the gross `21712.00`:
+
+```xml
+<LEDGERENTRIES.LIST>
+  <LEDGERNAME>CGST</LEDGERNAME>
+  <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+  <AMOUNT>-1656.00</AMOUNT>
+</LEDGERENTRIES.LIST>
+```
+
+`CREATED: 1`, no `LINEERROR`. Read back as voucher 8:
+
+| Container | Ledger / item | Amount |
+|---|---|---|
+| `ALLINVENTORYENTRIES.LIST` | `Test` | `-18400.00` |
+| ` → ACCOUNTINGALLOCATIONS.LIST` | `Purchase @18%` | `-18400.00` |
+| `LEDGERENTRIES.LIST` | `Coastal Components Pvt Ltd` | `21712.00` |
+| `LEDGERENTRIES.LIST` | `CGST` | `-1656.00` |
+| `LEDGERENTRIES.LIST` | `SGST` | `-1656.00` |
+
+The amounts landed exactly as sent and the voucher balances
+(`-18400 - 1656 - 1656 + 21712 = 0`).
+
+**Candidates 2 and 3 were not tried and are not needed.** Candidate 1
+worked on the first attempt, so nothing further was posted — deliberately,
+since every attempt is permanent (finding #16). Candidate 2 (tax inside
+`ACCOUNTINGALLOCATIONS.LIST`) and candidate 3 (no explicit tax ledgers,
+letting Tally infer from the item's `GSTDETAILS`) remain untested; #3 in
+particular was expected to produce zero tax here, because per finding #20
+the `Test` item defers its rates upward and they resolve to `0`.
+
+**The pre-flight risk analysis held.** Structural guesses were predicted
+to fail cleanly rather than land wrong data, on the strength of variants
+D/E returning `EXCEPTIONS: 1` with nothing created. No wrong-shape post
+was actually needed to test that prediction, so it remains a prediction —
+three for three succeeded.
+
+### What this does and does not establish
+
+**Established:** the structural placement of tax ledgers on an
+inventory-bearing purchase voucher, verified by read-back rather than by
+the response counters (findings #2 and #17).
+
+**Not established — the amounts here were supplied, not computed.** CGST
+and SGST were sent as explicit `1656.00` values and stored verbatim. This
+probe says nothing about whether Tally would *derive* the correct tax
+from the stock item's own GST configuration, which is what candidate 3
+would have tested and what a real client's voucher may depend on. Per
+finding #20 that derivation requires the item → stock group → company
+inheritance chain, none of which is exercised here.
+
+**Also not established:** anything about quantity, rate or unit of
+measure. The `Test` item has no `BASEUNITS` (finding #18), so both
+vouchers this probe created carry empty `ACTUALQTY`/`BILLEDQTY`/`RATE`,
+exactly as voucher #6 does. A voucher for an item that *has* a unit is
+still untested, and remains the most likely place for a further
+surprise.
+
+### Sandbox state after this probe
+
+`Coastal Test Traders` now holds **8** vouchers: 1–5 from
+`voucher_variants.py` (finding #7 as corrected), 6 unattributed, and
+**7 and 8 from this probe**, both marked
+`GAP2-PROBE-CONTROL-DO-NOT-USE-AS-EVIDENCE` and
+`GAP2-PROBE-TAX-DO-NOT-USE-AS-EVIDENCE` respectively in both `NARRATION`
+and `REFERENCE`. `Coastal Services Ltd` gained one, marked
+`GAP2-PROBE-DO-NOT-USE-AS-EVIDENCE`. None can be deleted (finding #16);
+all three are unambiguously identifiable as test artifacts by any future
+reader or script.
