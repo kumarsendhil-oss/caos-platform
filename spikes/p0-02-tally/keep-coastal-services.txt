@@ -7,35 +7,77 @@
 # no protected voucher; this is the mechanism, and which vouchers belong
 # here will change as findings gain and lose evidence.
 #
-# Built 2026-09-16 by a voucher-by-voucher pass over the live Day Book
-# (`runs/2026-09-16T10-12-32-reset-enumerate`) cross-referenced against
-# every citation in FINDINGS.md. An earlier version of this file listed
-# voucher 1 only; that was built from recall and under-protected the
-# other three. If you add vouchers to this company, redo the pass — do
-# not extend this file from memory.
+# Rebuilt 2026-09-16 (issue #48 / finding #33) by a voucher-by-voucher
+# pass over a fresh live Day Book read
+# (`runs/2026-09-16T13-39-42-reset-enumerate`, a dry run of this very
+# script against this very keep-file)
+# cross-referenced against every citation in FINDINGS.md.
 #
-# Company holds 4 vouchers: 1, 2, 4, 5. All four are cited. There is
-# currently NO safe-to-delete voucher in this company.
+# ENTRIES ARE TYPE-QUALIFIED NOW, and that is the whole point of this
+# rebuild. Finding #31 established that TallyPrime numbers vouchers in a
+# series **per voucher type**, so `1` names two different vouchers in
+# this company. The previous version of this file was written before
+# that was known: it listed bare `1, 2, 4, 5` and its header claimed
+# "Company holds 4 vouchers", which the live read above disproves — the
+# company holds SIX. A bare number still works and still protects every
+# type (reset_sandbox.py keeps that as the fail-safe default), but it
+# cannot express "keep Sales 1, delete Purchase 1", and a file that
+# cannot say which voucher it means is not an audit of anything.
+#
+# Company holds 6 vouchers: Purchase 1, 2, 4, 5 and Sales 1, 2. All six
+# are cited. There is currently NO safe-to-delete voucher in this
+# company.
+#
+# Note also that reset_sandbox.py currently REFUSES to delete anything
+# here regardless of this file, because the company is mixed-type and
+# whether VCHTYPE disambiguates a delete Tally-side is still untested
+# (issue #48, step 1). This file is what protects these vouchers once
+# that refusal is lifted; it is not what protects them today.
 
-1   # #15 — the edited voucher: party 21712 -> 21714, tax recomputed to
-    # 1657/1657, ALTERID 1 -> 5. The live specimen behind edit-stability.
-    # Also #26's reconciliation control (the stray "+2") and part of
-    # #28's post-delete baseline.
+Purchase:1   # #15 — the edited voucher: party 21712 -> 21714, tax recomputed
+             # to 1657/1657, ALTERID 1 -> 5. The live specimen behind
+             # edit-stability. Also #26's reconciliation control (the stray
+             # "+2") and part of #28's post-delete baseline.
+             # Live read confirms amount 21714.00, REMOTEID ...-00000001.
 
-2   # #15 — control voucher. "Editing one voucher had zero effect on the
-    # other three's identifiers" is a claim about 2, 3 and 4; voucher 3
-    # is already gone (#28), so 2 and 4 are what remains of that control
-    # set. Also part of #28's reconciliation (1 + 2 + 5 = 65,138 Cr).
+Purchase:2   # #15 — control voucher. "Editing one voucher had zero effect on
+             # the other three's identifiers" is a claim about 2, 3 and 4;
+             # voucher 3 is already gone (#28), so 2 and 4 are what remains of
+             # that control set. Also part of #28's reconciliation
+             # (1 + 2 + 5 = 65,138 Cr).
 
-4   # #26 — the cancelled voucher, and the ONLY one in either company.
-    # ISCANCELLED=Yes, ledger entries stripped to 0, ALTERID 7, still
-    # visible in the Day Book. It is the sole live example of the state
-    # that #26 established and that reset_sandbox.py's cancelled-voucher
-    # SKIP exists to respect. Deleting it destroys the only specimen of
-    # Tally's cancel semantics either sandbox holds.
+Purchase:4   # #26 — the cancelled voucher, and the ONLY one in either company.
+             # ISCANCELLED=Yes, ledger entries stripped, still visible in the
+             # Day Book. It is the sole live example of the state that #26
+             # established and that reset_sandbox.py's cancelled-voucher SKIP
+             # exists to respect. Deleting it destroys the only specimen of
+             # Tally's cancel semantics either sandbox holds.
 
-5   # #21a — marker round-trip: NARRATION and REFERENCE both stored
-    # verbatim. Also load-bearing for #28's reconciliation, whose
-    # Current Liabilities figure of 65,138 requires exactly 1, 2 and 5
-    # to be live. Marked "DO-NOT-USE-AS-EVIDENCE", which means "this is
-    # not a real business transaction" — not "this voucher is disposable".
+Purchase:5   # #21a — marker round-trip: NARRATION and REFERENCE both stored
+             # verbatim. Also load-bearing for #28's reconciliation, whose
+             # Current Liabilities figure of 65,138 requires exactly 1, 2 and
+             # 5 to be live. Marked "DO-NOT-USE-AS-EVIDENCE", which means
+             # "this is not a real business transaction" — not "this voucher
+             # is disposable".
+
+Sales:1      # #30, #31 — the first Sales voucher, and the primary specimen
+             # for "VCHTYPE=Sales is structurally analogous to Purchase":
+             # same envelope, same ALLLEDGERENTRIES.LIST, same sign convention
+             # with the Dr/Cr roles swapped, and the SAME CGST/SGST masters as
+             # the Purchase vouchers. Amount 5,900.00, party `Coastal Retail
+             # Customer Pvt Ltd`.
+             # Also #29's widened divergence: numbered 1 while carrying
+             # REMOTEID suffix ...-00000009 — a per-type series restarting at
+             # 1, a different mechanism from the delete-advanced counter.
+
+Sales:2      # #31, #32 — and this one is the evidence, not a duplicate of
+             # Sales 1. One Sales voucher numbered 1 reads as coincidence; a
+             # SECOND landing as Sales 2 alongside an existing Purchase 2 is
+             # what makes per-type numbering a *series* rather than an
+             # anomaly. It is the specimen this entire keep-list format
+             # exists because of.
+             # Also #32 — CG7 reconfirmed for Sales: two identical imports
+             # produced two vouchers, ERRORS 0 both times.
+             # Arrived via the unauthorised second post recorded in #31.
+             # Deliberately left uncleaned; that is a decision, not an
+             # oversight.
