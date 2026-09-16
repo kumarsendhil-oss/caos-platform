@@ -1905,3 +1905,124 @@ evidence is real and the artifacts are committed unsanitised
 duplicate-prevention test for Sales and no one should record this as
 though they had. Had the second post been authorised, it would have been
 designed the way #9 was — and would have been worth running on its own.
+
+# Round 11 — Reset-guard fix (2026-09-16, build session)
+
+## 33. `verify_gone()` rekeyed on (type, number) — issue #48's *guard* half closed, its *addressing* half still open
+
+**Fixes the unsound layer identified in #31 and issue #48.** No live
+mutation was performed to obtain this: the fix is to a pure function, and
+the evidence is a committed artifact plus offline checks. Live work was
+two read-only Day Book enumerations, artifacts
+`runs/2026-09-16T13-39-42-reset-enumerate` (`Coastal Services Ltd`) and
+the `Coastal Test Traders` dry run alongside it.
+
+### What was wrong
+
+Per #31, TallyPrime numbers vouchers in a series **per voucher type**. In
+`reset_sandbox.py`, `verify_gone()` built `still_there`, `expected` and
+`actual` as sets keyed on the bare `VOUCHERNUMBER`. On a company holding
+Purchase 1 and Sales 1, those two vouchers **collapse into one set
+member**.
+
+The failure this produces is worth stating exactly, because it is not the
+obvious one:
+
+| Scenario | Old behaviour | Why |
+|---|---|---|
+| Purchase 1 deleted, Sales 1 survives (**the correct outcome**) | **False halt** — "voucher 1 is still present after its delete" | `after` still contains a voucher numbered 1 |
+| Purchase 1 **and** Sales 1 both deleted (**silent data loss**) | **Reported clean** | `expected - actual` is empty (both collapsed to `"1"`), *and* the count check passes, because exactly one voucher vanished by number |
+| Sales 1 deleted when Purchase 1 was addressed (**wrong voucher**) | Indistinguishable from row 1 | Same collapse |
+
+Row 2 is the one that mattered. Two independent guards — the collateral
+set-difference and the count check — both passed on real data loss. The
+guard whose entire purpose is to detect collateral damage and halt was
+the one place the collision was fatal, and it failed **silently**, which
+puts it in the same family as #2, #17 and #26: a check reporting success
+while the thing it checks did not happen.
+
+### The fix
+
+* `voucher_key()` returns `(vchtype.casefold(), number)`. Every set in
+  `verify_gone()` is keyed on it. The type is case-folded because
+  `enumerate_vouchers()` sources it from two places — the `VCHTYPE`
+  attribute and the `VOUCHERTYPENAME` element — and nothing guarantees
+  they agree on case.
+* An unexplained **appearance** now halts alongside an unexplained
+  vanishing. The old code checked only `expected - actual`; a voucher
+  materialising mid-run was caught only incidentally by the count check.
+* Keep-list entries gained a `Type:Number` spelling (`Sales:1`). A bare
+  number still protects that number in **every** type — unchanged, still
+  the default, and still fail-safe by over-protecting. The qualified form
+  exists because a bare-number file cannot express "delete Purchase 1,
+  keep Sales 1" at all.
+* Run-artifact directory names carry the type (`reset-delete-Sales-2`).
+  Two vouchers numbered 1 previously wrote into directories differing
+  only by timestamp.
+
+### What is still open, and why the script still refuses
+
+**The fix does not make `Coastal Services Ltd` resettable, and it would
+be easy to read it that way.** Issue #48 has three parts; this closes
+one:
+
+1. Does `VCHTYPE` in the delete payload disambiguate **Tally-side**? —
+   **still untested.** The payload has always carried it (#28), but
+   nothing establishes Tally reads it.
+2. Does `TAGNAME="MASTER ID"` work (schema reference §6.3)? — **still
+   untested.**
+3. Is `verify_gone()` sound? — **fixed here.**
+
+Since (1) is open, a delete addressed at "Purchase 1" on a company also
+holding "Sales 1" may still remove the wrong voucher. The read-back guard
+would now *catch* that — but catching it means the voucher is already
+gone, and per the two keep-lists there is currently **no safe-to-delete
+voucher in either sandbox**.
+
+So `reset_sandbox.py` now **refuses to delete anything on a company
+holding more than one voucher type**, unless `--allow-mixed-types` is
+passed. A dry run still enumerates and prints the full plan — a refusal
+that shows you nothing is a refusal you cannot act on — and the gate sits
+between the plan and the first `Import Data`.
+
+**Retire that refusal when (1) is answered, not when (3) was fixed.**
+Those are different milestones and conflating them is the obvious way to
+undo this.
+
+### Verification
+
+Everything below is offline or read-only. **No voucher was deleted,
+created or modified in either sandbox.**
+
+* `reset_sandbox_offline_checks.py`: ALL PASS, `ruff` clean. New cases
+  cover all three rows of the table above, keep-list type-qualification,
+  case-insensitivity of the type, and the refusal in both directions.
+  Every collision case is constructed so a number-only implementation
+  *cannot* pass it.
+* **The decisive check runs `--confirm` against the committed mixed-type
+  artifact with an empty keep-list**, so every deletable voucher is
+  planned, and asserts exactly one request is sent and **no `Import
+  Data`**. The keep-list is empty deliberately: a pass that depended on
+  the keep-file would be testing the keep-file, not the refusal.
+* The delete payload still matches #28's proven request byte-for-byte on
+  every attribute — the addressing scheme was not touched.
+* Live dry run, `Coastal Services Ltd`: all six vouchers matched their
+  exact type-qualified keep entries, collisions on numbers 1 **and** 2
+  reported, refusal fired.
+* Live dry run, `Coastal Test Traders` (8 Purchase vouchers, single-type
+  control): **not** refused, plan printed normally. The gate discriminates
+  rather than blocking everything.
+* Harness gap found and fixed in passing: `drive()` caught only
+  `SystemExit`, so it could not exercise any guard that halts via `Stop`
+   — which is every guard added here. It now mirrors `__main__`.
+
+### Sandbox state — unchanged, and confirmed by live read
+
+`Coastal Services Ltd` holds **6** vouchers: Purchase 1, 2, 4
+(cancelled), 5 and Sales 1, 2. `keep-coastal-services.txt` was rebuilt
+against that read and is now type-qualified. Its previous header claimed
+"Company holds 4 vouchers" — written before the Sales probe and stale in
+exactly the way #31 predicts, which is the second time a bare-number
+artifact in this spike has quietly described the wrong set.
+
+`Coastal Test Traders` holds 8 Purchase vouchers, unchanged.
