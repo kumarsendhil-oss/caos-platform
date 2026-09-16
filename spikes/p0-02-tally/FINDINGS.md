@@ -117,24 +117,74 @@ endpoints.
 
 # Round 2 — Voucher posting (2026-09-15, runs 15:23–15:50 UTC)
 
-## 7. Purchase vouchers require inventory entries on inventory-enabled companies — RESOLVED
+## 7. `Invoice Voucher View` requires inventory entries on inventory-enabled companies — RESOLVED, evidence corrected 2026-09-16
 
-**Observed:** seven payload variants (varying OBJVIEW, PERSISTEDVIEW,
-tax ledgers, voucher number, party ledger) all failed identically
-against `Coastal Test Traders` with `EXCEPTIONS: 1` and no detail.
-Creating the same voucher by hand in Tally revealed why: that company
-has `Maintain Inventory: Yes` + `Integrate Accounts with Inventory: Yes`,
-so Tally requires a stock item on a Purchase voucher. Manual entry could
-not be completed without creating one.
+> **Correction (2026-09-16).** This finding originally stated that all
+> seven payload variants failed and concluded that Tally "requires a
+> stock item on a Purchase voucher" for an inventory-enabled company.
+> Both claims are wrong against the committed artifacts — **five of the
+> seven were created**, with no inventory entries, on that very company.
+> The discriminator is `OBJVIEW`, not inventory. The original text is
+> replaced below; the *consequence* for `TallyAdapter` was right for the
+> wrong reason and is restated. Caught while designing the gap 2 probe,
+> whose whole design depended on which rule is true.
+
+**Observed.** Seven variants against `Coastal Test Traders`
+(`Maintain Inventory: Yes` + `Integrate Accounts with Inventory: Yes`),
+artifacts `runs/2026-09-15T15-38-17-variant-*`:
+
+| Variant | `OBJVIEW` | Tax ledgers | Result |
+|---|---|---|---|
+| A minimal-no-tax | *(none)* | no | **CREATED 1** |
+| B minimal-with-tax | *(none)* | yes | **CREATED 1** |
+| C accounting-objview | `Accounting Voucher View` | yes | **CREATED 1** |
+| D invoice-objview | `Invoice Voucher View` | yes | `EXCEPTIONS 1` |
+| E invoice-plus-persisted | `Invoice Voucher View` + `PERSISTEDVIEW` | yes | `EXCEPTIONS 1` |
+| F no-voucher-number | *(none)* | yes | **CREATED 1** |
+| G no-partyledgername | *(none)* | yes | **CREATED 1** |
+
+`runs/2026-09-15T15-38-18-variants-readback` confirms the five landed:
+exactly 5 vouchers, numbered 1–5, every one stored as
+`OBJVIEW="Accounting Voucher View"`. **Those five are vouchers 1–5 in
+that company's day book** — not background clutter of unknown origin.
+
+**B vs. D isolates the cause.** Both carry the same four ledger entries
+including CGST and SGST; they differ only in `OBJVIEW` (and a
+`VOUCHERNUMBER` Tally discards anyway, finding #14). So the trigger is
+`OBJVIEW="Invoice Voucher View"` alone. Inventory-enabled companies
+accept accounting-view purchase vouchers with no inventory entries.
+
+**The rule, corrected:** on an inventory-enabled company,
+`Invoice Voucher View` requires inventory entries; `Accounting Voucher
+View` does not, and posts fine without them. The manual-UI observation
+that a hand-entered voucher could not be completed without creating a
+stock item is consistent with this — Tally's manual entry was in item
+invoice mode, which is the mode that needs items — but it was
+generalised past what the payloads showed.
+
+Voucher #6 in the same company is the positive case: `Invoice Voucher
+View` **with** an `ALLINVENTORYENTRIES.LIST`, stored successfully. See
+findings #18–#20.
 
 The identical payload posted first try against `Coastal Services Ltd`
 (`Maintain Inventory: No`) — `CREATED: 1`.
 
 **Consequence for `TallyAdapter` (issue #2):** inventory handling is
-**conditional on client configuration**, not universal. The adapter must
-know each client's inventory setting and supply `ALLINVENTORYENTRIES.LIST`
-only where required. For service-business clients — common in a CA
-practice — accounting-only purchase vouchers post cleanly.
+**conditional on client configuration**, not universal — the original
+conclusion stands, and the corrected evidence sharpens it into a choice
+the adapter actually controls. The adapter picks the voucher *view*: it
+can post `Accounting Voucher View` and need no stock item at all, even
+against an inventory-enabled client, or post `Invoice Voucher View` and
+must then supply a matching `ALLINVENTORYENTRIES.LIST`. For
+service-business clients — common in a CA practice — accounting-only
+purchase vouchers post cleanly either way.
+
+**Open question the correction raises:** posting accounting-view
+vouchers to an inventory-enabled client is *accepted*, but that does not
+make it *correct* for the client's books — it bypasses stock movement on
+a company configured to track it. Whether that is an acceptable adapter
+default or a silent data-quality problem is a judgement for the
+practice, not something these artifacts settle.
 
 **Still unknown:** what a correct inventory-bearing voucher looks like.
 Not yet tested. BK-01 currently extracts invoice line items with no

@@ -110,9 +110,11 @@ Issue #28's remaining half is now split in two, with the first half closed.
 
 **Coastal Services Ltd — benign accumulation (not an anomaly).** Now holds 4 identical `SVC-INV-0001` vouchers. `no_inventory_test.py --send` posts two per run (steps 2 and 4), and the company was not empty when the 2026-09-16 run started — two pre-existed, so two posts produced four. Provenance looks ordinary: all four are `OBJVIEW="Accounting Voucher View"` with sequential REMOTEIDs and voucher numbers 1–4, i.e. leftovers from previous runs of the same script, **not** manual entry. Tracked as `PENDING:009`, **resolved 2026-09-16 as a manual procedure** (delete/recreate the company in the Tally UI, then re-run `create_ledgers.py`) — there is no scripted reset and findings #16/#17 explain why there should not be one. Expect two more per verification run unless the company is reset first. Note voucher 1 is no longer identical to the others: it carries the amount change from finding #15's edit test (`21714`, `ALTERID 5`), and is that finding's live evidence.
 
-**Coastal Test Traders — narrowed 2026-09-16 (investigate session, read-only).**
+**Coastal Test Traders — largely resolved 2026-09-16 (investigate sessions, read-only).**
 
 A Day Book read against `Coastal Test Traders` returned **6 vouchers**, not the 2 expected per FINDINGS.md #11. One (`REMOTEID ...-00000006`) has `OBJVIEW="Invoice Voucher View"`, unlike the other five (`"Accounting Voucher View"`).
+
+**The five are now identified (2026-09-16) — they are `voucher_variants.py`'s successful posts.** Five of that script's seven variants (A, B, C, F, G) returned `CREATED: 1`, and `runs/2026-09-15T15-38-18-variants-readback` shows exactly 5 vouchers numbered 1–5, all accounting-view. This was obscured because FINDINGS.md #7 recorded all seven as having failed; that text is corrected as of this session. So five-sixths of the "anomaly" was a known script's known output, mis-recorded — not unexplained residue. Only voucher #6 remains unattributed.
 
 **The previous leading hypothesis — that voucher #6 came from a past `post_voucher.py` run — is ruled out.** `post_voucher.py` contains zero `INVENTORY`-related code and cannot emit a stock item; voucher #6 carries an `ALLINVENTORYENTRIES.LIST` with `STOCKITEMNAME: Test`, and uses `LEDGERENTRIES.LIST` with `VCHENTRYMODE: Item Invoice`. The `OBJVIEW` match that motivated the hypothesis is a property of invoice entry mode generally, not a `post_voucher.py` signature — it never discriminated between the candidate sources.
 
