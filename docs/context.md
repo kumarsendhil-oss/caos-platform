@@ -44,7 +44,13 @@ Phase 0 Tally integration spike (`spikes/p0-02-tally/`), verifying the multi-bac
 - Closed the first of `PENDING:010`'s two risks: **`REMOTEID` is byte-identical across a full TallyPrime restart**, all 4 vouchers on `Coastal Services Ltd`. Recorded as an extension to **FINDINGS.md #15** (not a new finding — it closes #15's own open risk), with the pre-restart baseline and post-restart artifact pairs committed.
 - Corrected #15's `0000b49a` build/session-handle hypothesis, which the restart disproved. `VCHKEY` stays demoted — that rested on structure, not on the guess.
 - **`PENDING:010` stays open on edit-stability alone**, which this test did nothing to reduce; tracked there, not restated here.
-- New: `PENDING:012` (the probe's closing banner contradicts a restart result and the script cannot diff across runs).
+- New: `PENDING:012` (the probe's closing banner contradicts a restart result and the script cannot diff across runs) — **resolved same day** by `fix/probe-cross-run-baseline`.
+
+**Build session — probe cross-run comparison (`PENDING:012`, resolved)**
+- `remoteid_stability_probe.py` now does cross-run comparison itself: `--baseline <run dir>` diffs the current read against a prior run's artifacts, and the closing banner is three cases instead of one static claim that contradicted the restart result.
+- **Relevant to the next test.** Edit-stability now runs as one command against a pre-edit baseline, rather than two invocations compared by eye — which is how the restart result was actually produced.
+- The script still never names the condition. It reports whether identifiers moved since a baseline; asserting *what changed* between the two runs stays with the human, deliberately.
+- `flag_value()` extracted so `--baseline` reuses `--company`'s argv guards. This is the file's internal duplication only — **`PENDING:011` (the same helper triplicated across three spike scripts) is untouched and stays open.**
 
 ## Next action
 
