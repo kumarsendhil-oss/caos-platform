@@ -216,3 +216,87 @@ failed but never *why*. Combined with §2 (success responses that are not
 true), read-back verification is the only mechanism available for
 knowing what actually happened. That belongs in ADR 0001 as a stated
 constraint, not tribal knowledge.
+
+---
+
+# Round 3 — Voucher reads (2026-09-16)
+
+## 11. RESOLVED — vouchers need `TYPE: DATA` + `ID: Day Book`
+
+Finding #11 said our voucher read returned zero while the Day Book
+showed two. The query was wrong, and this is the fix:
+
+| Object | Working shape |
+|---|---|
+| Ledgers, masters | `EXPORT` / `TYPE: COLLECTION` + custom TDL collection |
+| **Vouchers** | `EXPORT` / **`TYPE: DATA`** + **`ID: Day Book`** |
+
+Verified: `runs/2026-09-16T02-04-*-vchread-A-data-daybook` returned both
+posted vouchers with full ledger entries. `ID: Voucher Register` also
+works and returns the same two.
+
+The failure mode matters: pointing a `COLLECTION` at vouchers returns
+**zero results with no error**. It looks like an empty period rather
+than a wrong query, which is how it went unnoticed for a whole session.
+
+Useful extra: Day Book responses carry `REMOTEID` and `VCHKEY`
+attributes on each `<VOUCHER>`. Given finding #10 (Tally discards our
+`VOUCHERNUMBER` and assigns its own), these are the only stable handles
+the platform has on a posted voucher. `TallyAdapter` should capture them
+at post time.
+
+`spikes/tally_voucher_read.py` implements the verified read.
+`post_voucher.py` and `no_inventory_test.py` now delegate to it.
+
+## 13. A malformed TDL request can crash TallyPrime — AVAILABILITY RISK
+
+`TYPE: COLLECTION` with `ID: Day Book` — a plausible-looking mix of the
+two shapes above — makes TallyPrime raise a **modal GUI dialog**:
+
+```
+Error in TDL.
+'Collection:Day Book'
+Could not find description!
+```
+
+While that dialog is open the HTTP listener serves nothing. Three
+further requests each raised it again, and TallyPrime then **closed
+itself entirely**. Observed, not inferred: three consecutive requests
+timed out at 8s, and the process was gone afterwards.
+
+**Why this is more than a spike detail.** The practice runs every client
+company in one Tally Cloud instance (ADR 0001, TC-01). So:
+
+- One malformed request blocks the integration for **every** client on
+  that instance, not just the one whose request failed.
+- Recovery needs a human at the console to dismiss a dialog, or to
+  restart Tally. On a hosted or headless server there may be nobody to
+  click OK.
+- The platform sees a **timeout, not an error** — it cannot distinguish
+  "Tally is down" from "Tally is waiting on a dialog nobody can see".
+
+**Consequences:**
+
+1. CG6's explicit-timeout rule stops being hygiene and becomes load-
+   bearing. Without it a hung Tally call hangs a Celery worker
+   indefinitely. The failure mode is a hang, not a rejection.
+2. `TallyAdapter` must send only request shapes that have been verified
+   against a real instance. Constructing TDL dynamically from
+   user-supplied values is a crash risk, not just a correctness risk.
+3. A Tally health check (TC-05) should distinguish *unreachable* from
+   *unresponsive*, because the second may mean a blocking dialog and
+   needs a different escalation — a person at the server, not a retry.
+4. Worth raising with the Tally Cloud provider alongside the port 9000
+   question: what happens to a hosted instance that raises a modal
+   dialog, and who can dismiss it?
+
+**Not retested deliberately.** Reproducing a crash to confirm it a
+second time costs a restart and teaches nothing new. Variants D, E and F
+remain untested for this reason; A and B work, which is what the adapter
+needs.
+
+**Note the irony against finding #12.** Yesterday established that Tally
+reports import exceptions with no diagnostic detail anywhere. Here it
+produced a genuinely useful message — "Could not find description" —
+and sent it to a GUI dialog box, the one place an integration cannot
+read it.

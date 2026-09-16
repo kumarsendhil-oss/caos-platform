@@ -1,0 +1,11 @@
+{
+  "name": "noinv-5-readback-after-duplicate",
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "sent_at_utc": "2026-09-16T04:34:13.934366+00:00",
+  "script": "no_inventory_test.py",
+  "request_bytes": 446,
+  "status": 200,
+  "response_bytes": 257365,
+  "elapsed_ms": 42
+}

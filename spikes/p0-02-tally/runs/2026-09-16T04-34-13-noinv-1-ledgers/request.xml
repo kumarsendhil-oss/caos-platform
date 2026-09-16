@@ -1,0 +1,47 @@
+<ENVELOPE>
+  <HEADER>
+    <TALLYREQUEST>Import Data</TALLYREQUEST>
+  </HEADER>
+  <BODY>
+    <IMPORTDATA>
+      <REQUESTDESC>
+        <REPORTNAME>All Masters</REPORTNAME>
+        <STATICVARIABLES>
+          <SVCURRENTCOMPANY>Coastal Services Ltd</SVCURRENTCOMPANY>
+        </STATICVARIABLES>
+      </REQUESTDESC>
+      <REQUESTDATA>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <LEDGER NAME="Coastal Components Pvt Ltd" ACTION="Create">
+            <NAME>Coastal Components Pvt Ltd</NAME>
+            <PARENT>Sundry Creditors</PARENT>
+            <OPENINGBALANCE>0</OPENINGBALANCE>
+          </LEDGER>
+          <LEDGER NAME="Purchase @18%" ACTION="Create">
+            <NAME>Purchase @18%</NAME>
+            <PARENT>Purchase Accounts</PARENT>
+            <OPENINGBALANCE>0</OPENINGBALANCE>
+          </LEDGER>
+          <LEDGER NAME="CGST" ACTION="Create">
+            <NAME>CGST</NAME>
+            <PARENT>Duties &amp; Taxes</PARENT>
+            <OPENINGBALANCE>0</OPENINGBALANCE>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <TAXTYPE>GST</TAXTYPE>
+            <GSTDUTYHEAD>CGST</GSTDUTYHEAD>
+            <RATEOFTAXCALCULATION>0</RATEOFTAXCALCULATION>
+          </LEDGER>
+          <LEDGER NAME="SGST" ACTION="Create">
+            <NAME>SGST</NAME>
+            <PARENT>Duties &amp; Taxes</PARENT>
+            <OPENINGBALANCE>0</OPENINGBALANCE>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <TAXTYPE>GST</TAXTYPE>
+            <GSTDUTYHEAD>State Tax</GSTDUTYHEAD>
+            <RATEOFTAXCALCULATION>0</RATEOFTAXCALCULATION>
+          </LEDGER>
+        </TALLYMESSAGE>
+      </REQUESTDATA>
+    </IMPORTDATA>
+  </BODY>
+</ENVELOPE>

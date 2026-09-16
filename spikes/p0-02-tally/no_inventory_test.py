@@ -33,6 +33,11 @@ from xml.etree import ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from _runner import run  # noqa: E402
+from tally_voucher_read import (  # noqa: E402
+    build_daybook_read,
+    parse_vouchers,
+    print_vouchers,
+)
 from tally_xml import sanitise  # noqa: E402
 
 COMPANY = "Coastal Services Ltd"
@@ -113,29 +118,8 @@ def build_voucher(company: str, number: str = NUMBER) -> str:
 
 
 def build_readback(company: str) -> str:
-    env = ET.Element("ENVELOPE")
-    header = ET.SubElement(env, "HEADER")
-    ET.SubElement(header, "VERSION").text = "1"
-    ET.SubElement(header, "TALLYREQUEST").text = "EXPORT"
-    ET.SubElement(header, "TYPE").text = "COLLECTION"
-    ET.SubElement(header, "ID").text = "CAOS Vch Check"
-
-    body = ET.SubElement(env, "BODY")
-    desc = ET.SubElement(body, "DESC")
-    sv = ET.SubElement(desc, "STATICVARIABLES")
-    ET.SubElement(sv, "SVEXPORTFORMAT").text = "$$SysName:XML"
-    ET.SubElement(sv, "SVCURRENTCOMPANY").text = company
-    ET.SubElement(sv, "SVFROMDATE").text = DATE
-    ET.SubElement(sv, "SVTODATE").text = DATE
-
-    tdl = ET.SubElement(desc, "TDL")
-    tdlmsg = ET.SubElement(tdl, "TDLMESSAGE")
-    coll = ET.SubElement(tdlmsg, "COLLECTION", NAME="CAOS Vch Check", ISINITIALIZE="Yes")
-    ET.SubElement(coll, "TYPE").text = "Voucher"
-    ET.SubElement(coll, "FETCH").text = "*"
-
-    ET.indent(env, space="  ")
-    return ET.tostring(env, encoding="unicode")
+    """Delegates to the verified Day Book read — see findings #11 and #13."""
+    return build_daybook_read(company, DATE)
 
 
 def counts(response: str) -> dict[str, str]:
@@ -152,36 +136,10 @@ def counts(response: str) -> dict[str, str]:
 
 
 def verify(response: str) -> None:
-    try:
-        root = ET.fromstring(sanitise(response))
-    except ET.ParseError as exc:
-        print(f"  unparseable: {exc}")
-        return
-
-    vouchers = [e for e in root.iter() if e.tag.upper() == "VOUCHER"]
-    real = []
-    for vch in vouchers:
-        entries = []
-        for e in vch.iter():
-            if e.tag.upper() != "ALLLEDGERENTRIES.LIST":
-                continue
-            name = (e.findtext("LEDGERNAME") or "").strip()
-            raw = (e.findtext("AMOUNT") or "").strip()
-            if name and raw:
-                try:
-                    entries.append((name, Decimal(raw)))
-                except Exception:  # noqa: BLE001
-                    entries.append((name, Decimal("0")))
-        if entries:
-            real.append(((vch.findtext("VOUCHERNUMBER") or "(none)").strip(), entries))
-
-    print(f"  Vouchers with ledger entries on {DATE}: {len(real)}")
-    for number, entries in real:
-        print(f"\n  {number}:")
-        for name, amt in entries:
-            print(f"    {name:32} {amt:>12}")
-        print(f"    {'balance (should be 0)':32} {sum(a for _, a in entries):>12}")
-        found = {n: abs(a) for n, a in entries}
+    vouchers = parse_vouchers(response)
+    print_vouchers(vouchers)
+    for v in vouchers:
+        found = {n: abs(a) for n, a in v["entries"]}
         for want, expect in (("CGST", CGST), ("SGST", SGST)):
             got = found.get(want)
             if got is None:

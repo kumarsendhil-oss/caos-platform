@@ -33,6 +33,11 @@ from xml.etree import ElementTree as ET
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from _runner import run  # noqa: E402
+from tally_voucher_read import (  # noqa: E402
+    build_daybook_read,
+    parse_vouchers,
+    print_vouchers,
+)
 from tally_xml import sanitise  # noqa: E402
 
 COMPANY = "Coastal Test Traders"
@@ -116,30 +121,8 @@ def build_voucher(company: str = COMPANY, number: str = VOUCHER_NUMBER) -> str:
 
 
 def build_read_daybook(company: str = COMPANY) -> str:
-    """Read vouchers back — the only reliable check that the split landed."""
-    env = ET.Element("ENVELOPE")
-    header = ET.SubElement(env, "HEADER")
-    ET.SubElement(header, "VERSION").text = "1"
-    ET.SubElement(header, "TALLYREQUEST").text = "EXPORT"
-    ET.SubElement(header, "TYPE").text = "COLLECTION"
-    ET.SubElement(header, "ID").text = "CAOS Voucher Dump"
-
-    body = ET.SubElement(env, "BODY")
-    desc = ET.SubElement(body, "DESC")
-    sv = ET.SubElement(desc, "STATICVARIABLES")
-    ET.SubElement(sv, "SVEXPORTFORMAT").text = "$$SysName:XML"
-    ET.SubElement(sv, "SVCURRENTCOMPANY").text = company
-    ET.SubElement(sv, "SVFROMDATE").text = VOUCHER_DATE
-    ET.SubElement(sv, "SVTODATE").text = VOUCHER_DATE
-
-    tdl = ET.SubElement(desc, "TDL")
-    tdlmsg = ET.SubElement(tdl, "TDLMESSAGE")
-    coll = ET.SubElement(tdlmsg, "COLLECTION", NAME="CAOS Voucher Dump", ISINITIALIZE="Yes")
-    ET.SubElement(coll, "TYPE").text = "Voucher"
-    ET.SubElement(coll, "FETCH").text = "*"
-
-    ET.indent(env, space="  ")
-    return ET.tostring(env, encoding="unicode")
+    """Delegates to the verified Day Book read — see findings #11 and #13."""
+    return build_daybook_read(company, VOUCHER_DATE)
 
 
 def _counts(response: str) -> dict[str, str]:
@@ -156,45 +139,16 @@ def _counts(response: str) -> dict[str, str]:
 
 
 def verify_split(response: str) -> None:
-    """Did the tax actually land on the right ledgers, in the right amounts?"""
-    try:
-        root = ET.fromstring(sanitise(response))
-    except ET.ParseError as exc:
-        print(f"  Could not parse voucher read-back: {exc}")
-        return
-
-    vouchers = [e for e in root.iter() if e.tag.upper() == "VOUCHER"]
-    print(f"  Vouchers found on {VOUCHER_DATE}: {len(vouchers)}")
-
-    for i, vch in enumerate(vouchers, 1):
-        number = vch.findtext("VOUCHERNUMBER") or "(no number)"
-        print(f"\n  Voucher {i}: {number}")
-        entries: list[tuple[str, Decimal]] = []
-        for entry in vch.iter():
-            if entry.tag.upper() != "ALLLEDGERENTRIES.LIST":
-                continue
-            name = (entry.findtext("LEDGERNAME") or "").strip()
-            raw = (entry.findtext("AMOUNT") or "").strip()
-            if not name or not raw:
-                continue
-            try:
-                entries.append((name, Decimal(raw)))
-            except Exception:  # noqa: BLE001 — a malformed amount is itself the finding
-                print(f"    {name}: unparseable amount {raw!r}")
-
-        for name, amt in entries:
-            print(f"    {name:32} {amt:>12}")
-
-        total = sum((a for _, a in entries), Decimal("0"))
-        print(f"    {'balance (should be 0)':32} {total:>12}")
-
-        found = {n: a for n, a in entries}
-        for want_name, want_abs in (("CGST", CGST), ("SGST", SGST)):
-            got = found.get(want_name)
+    vouchers = parse_vouchers(response)
+    print_vouchers(vouchers)
+    for v in vouchers:
+        found = {n: abs(a) for n, a in v["entries"]}
+        for want, expect in (("CGST", CGST), ("SGST", SGST)):
+            got = found.get(want)
             if got is None:
-                print(f"    MISSING: no {want_name} entry — the split did not land")
-            elif abs(got) != want_abs:
-                print(f"    WRONG: {want_name} is {abs(got)}, expected {want_abs}")
+                print(f"    MISSING: no {want} entry — the split did not land")
+            elif got != expect:
+                print(f"    WRONG: {want} is {got}, expected {expect}")
 
 
 if __name__ == "__main__":
