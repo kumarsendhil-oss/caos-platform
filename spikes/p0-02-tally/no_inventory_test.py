@@ -52,6 +52,27 @@ SGST = Decimal("1656.00")
 TOTAL = TAXABLE + CGST + SGST
 
 
+def company_from_argv(argv: list[str]) -> str:
+    """--company VALUE, defaulting to COMPANY.
+
+    Validates the value: exits with a message rather than raising
+    IndexError when the flag is last, and rejects a following flag as a
+    company name. Copied from post_voucher.py (STUB_ISSUES PENDING:008);
+    `--company --send` previously targeted a company named "--send" and,
+    because "--send" was still in argv, posted live while doing it.
+    """
+    if "--company" not in argv:
+        return COMPANY
+    i = argv.index("--company") + 1
+    if i >= len(argv):
+        sys.exit("error: --company requires a company name")
+    value = argv[i]
+    if value.startswith("--"):
+        sys.exit(f"error: --company requires a company name, got the flag {value!r}")
+    return value
+
+
+
 def _import_env(company: str, report: str) -> tuple[ET.Element, ET.Element]:
     env = ET.Element("ENVELOPE")
     header = ET.SubElement(env, "HEADER")
@@ -149,9 +170,7 @@ def verify(response: str) -> None:
 
 
 if __name__ == "__main__":
-    company = COMPANY
-    if "--company" in sys.argv:
-        company = sys.argv[sys.argv.index("--company") + 1]
+    company = company_from_argv(sys.argv)
 
     if "--send" not in sys.argv:
         print("=== ledgers ===")

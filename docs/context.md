@@ -13,12 +13,20 @@ Phase 0 Tally integration spike (`spikes/p0-02-tally/`), verifying the multi-bac
 - CG7 confirmed: a byte-identical repost was accepted (`CREATED: 1`), readback went 3 → 4 vouchers. Tally does **not** prevent duplicates, so ADR 0001 stands and CG7's platform-side check is justified.
 - Finding #13 (malformed `TYPE:COLLECTION`+`Day Book` crashes Tally's HTTP listener) confirmed non-recurring after the fix.
 
-**PR — `--company` flag for `post_voucher.py` (issue #28, first half) — open, awaiting review**
+**PR — `--company` flag for `post_voucher.py` (issue #28, first half) — merged as PR #29 (`9239744`)**
 - Branch: `fix/post-voucher-company-flag`
 - `company_from_argv()` resolves `--company`, threaded through all eight `__main__` call sites (`build_reset_duty_heads`, `build_voucher`, `build_read_daybook`, across the dry run and the five `--send` steps). The unthreaded call sites were the actual gap — the flag alone would not have fixed it.
 - Adds the validation `no_inventory_test.py`'s copy lacks: a missing value and a flag-as-value both fail with a clear message and exit 1, instead of `IndexError` / silently targeting a company named `--send`.
 - **Verified by dry run only** — `ruff` clean, payload inspection for both the default and `--company "Coastal Services Ltd"`, `build_read_daybook(company)` via direct import, and both error paths. No live `--send` run: this is an argv-parsing change and dry-run coverage was judged sufficient.
 - **Issue #28 is not closed by this PR** — only the `--company` half is done.
+
+**PR — `--company` validation for `no_inventory_test.py` (`PENDING:008`) — open, awaiting review**
+- Branch: `fix/no-inventory-test-company-validation`
+- Copies `post_voucher.py`'s `company_from_argv()` across verbatim (same signature, same two `sys.exit()` guards, same messages); only the docstring differs, since the original defined itself by contrast with this very file. No call sites changed — `no_inventory_test.py` already threaded `company` correctly.
+- Also corrects `post_voucher.py`'s docstring, which cited this file as the cautionary counter-example — a claim this change falsifies directly, so it is fixed in the same diff rather than left stale on a merged file.
+- **This closed a live-posting failure mode, not a cosmetic gap.** `--company --send` consumed `--send` as the company value but left it in `sys.argv`, so the `"--send" not in sys.argv` dry-run guard still saw it and the script posted live against a company named `--send`. Now exits 1 before reaching the `--send` branch.
+- **Verified by dry run only** — `ruff` clean; backend suite 80 passed / 96.17% (unaffected, no `services/api` files in the diff, and nothing under `tests/` imports `spikes/`). Four cases: default, `--company "Coastal Test Traders"`, `--company` with no value, `--company --send`. No live `--send`; nothing reached Tally.
+- `PENDING:008` marked **Resolved** in `docs/STUB_ISSUES.md`. Never promoted to a GitHub issue, so no closing keyword. Issue #28's remaining half is untouched.
 
 ## Next action
 
@@ -29,7 +37,6 @@ Then: the remaining half of **issue #28** — the inventory-bearing voucher shap
 ## Known blockers (tracked separately)
 
 - ~~`post_voucher.py` is hardcoded to `Coastal Test Traders` with no `--company` flag~~ — **resolved** by the `fix/post-voucher-company-flag` PR above (issue #28, first half). Previously the argument was silently unread, so a run *looks* like it succeeded against a company it never touched; PR #23 worked around it by verifying via `no_inventory_test.py` instead.
-- `no_inventory_test.py`'s own `--company` parsing is still unvalidated (`IndexError` on a missing value, accepts the next flag as a company name) — `STUB_ISSUES` `PENDING:008`, a copy-across of `post_voucher.py`'s `company_from_argv()`.
 - Inventory/stock-item mapping for inventory-enabled clients is still unscoped — also #28. Finding #7's conclusion (inventory handling is conditional on client config, not universal) is confirmed; what a correct inventory-bearing voucher looks like is still untested.
 
 ## Open anomaly — leading hypothesis, unconfirmed
@@ -57,4 +64,4 @@ Re-reading the Day Book against `Coastal Test Traders` and comparing #6's vouche
 - Build/wrap-up workflow: `.claude/commands/build.md`, `.claude/commands/wrapup.md`, `docs/CAOS-prompt-conventions.md`
 
 ---
-*Last updated: 2026-09-16 by `/wrapup` (`--company` flag, issue #28 first half). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*
+*Last updated: 2026-09-16 by `/wrapup` (`--company` validation for `no_inventory_test.py`, `PENDING:008`). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*
