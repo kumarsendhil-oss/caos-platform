@@ -1,0 +1,10 @@
+{
+  "url": "http://localhost:9000",
+  "content_type": "text/xml;charset=utf-8",
+  "script": null,
+  "status": 200,
+  "name": "delete-attempt-success",
+  "sent_at_utc": "2026-09-16T10:15:00+00:00",
+  "elapsed_ms": 112,
+  "note": "Successful ACTION=Delete on voucher 3, same addressing shape. DELETED 1, accurate this time. readback.xml shows voucher count 5->4 with no renumbering. Overturns finding #16's practical conclusion."
+}
