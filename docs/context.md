@@ -66,6 +66,15 @@ Phase 0 Tally integration spike (`spikes/p0-02-tally/`), verifying the multi-bac
 - Gates: `ruff` clean on `spikes/` and `services/api`. Backend suite not run — nothing under `services/api/` references `spikes/`, so the diff cannot reach it.
 - `PENDING:011` marked **Resolved** in `docs/STUB_ISSUES.md`. Never promoted to a GitHub issue, so no closing keyword. `PENDING:013` is untouched and now has `_args.py` in place to build on.
 
+**PR — field categories in `remoteid_stability_probe.py` (`PENDING:013`)**
+- Branch: `fix/probe-field-categories`
+- `FIELDS` split into `IDENTITY` (REMOTEID, VCHKEY, GUID) / `CHANGE_TRACKING` (ALTERID) / `CONTEXT` (VOUCHERNUMBER, MASTERID). The `--baseline` banner now reports the actual `PENDING:010`-resolving run (`07-18-22` -> `07-23-13`) as a **success**, not a failure — same artifacts, corrected reading.
+- MASTERID is CONTEXT deliberately: it held through the edit so it is not change-tracking, but finding #14 demotes Tally-assigned sequence numbers, so it is not identity either.
+- Within-run and cross-run banners are asymmetric on purpose — nothing alters a voucher between two back-to-back reads, so *any* movement there, ALTERID included, is still a failure.
+- Also carries per-voucher amounts, so the unsaved-edit run (`07-20-42`) that previously read clean is now caught. Voucher-body content diffing deliberately not built.
+- Verified offline against committed artifacts; the FAILURE/NOTEWORTHY branches have no real artifacts and were exercised against synthetic mutations only.
+- `PENDING:013` marked **Resolved** in `docs/STUB_ISSUES.md`. Never promoted to a GitHub issue, so no closing keyword.
+
 
 ## Next action
 
@@ -103,4 +112,4 @@ Resetting `Coastal Test Traders` to a clean state before further duplicate-preve
 - Build/wrap-up workflow: `.claude/commands/build.md`, `.claude/commands/wrapup.md`, `docs/CAOS-prompt-conventions.md`
 
 ---
-*Last updated: 2026-09-16 by `/wrapup` (`PENDING:011` — shared argv helper extracted to `spikes/_args.py`). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*
+*Last updated: 2026-09-16 by `/wrapup` (`PENDING:013` — identity vs change-tracking field categories in `remoteid_stability_probe.py`). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*
