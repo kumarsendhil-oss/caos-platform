@@ -33,6 +33,8 @@ only if `gh` is unavailable or unauthenticated at the time.
 | PENDING:004 | `app/books_connector/zoho_adapter.py` — `extract_purchase_register`, `extract_sales_register`, `extract_bank_book` | Implement Zoho Books register extraction via REST API v3 (ZB-02) | `P0-06` (Zoho sandbox spike), `ENV-07` (Zoho developer account + sandbox org) | Filed — #4 |
 | PENDING:005 | `app/books_connector/zoho_adapter.py` — `post_entry` | Implement Zoho Bill/Journal Entry posting (ZB-03) | `P0-06`, `ENV-07` | Filed — #5 |
 | PENDING:006 | `app/books_connector/zoho_adapter.py` — `connection_health` | Implement Zoho OAuth refresh-token validation for connection health (ZB-05) | `P0-06` | Filed — #6 |
+| PENDING:008 | `spikes/p0-02-tally/no_inventory_test.py` — `__main__` argv parsing | `--company` takes its value with no validation: `sys.argv[sys.argv.index("--company") + 1]` raises `IndexError` when the flag is last with no value, and silently accepts the next flag as the company name (`--company --send` targets a company called `--send`) | Nothing — fix alongside #28, which copies this parsing into `post_voucher.py` | PENDING |
+| PENDING:009 | `spikes/p0-02-tally/` — both sandbox companies | No reset or cleanup mechanism between verification runs. `Coastal Services Ltd` has accumulated 4 `SVC-INV-0001` duplicates (two per run of `no_inventory_test.py --send`), the same problem `docs/context.md` already flags for `Coastal Test Traders`. Untracked leftovers make it hard to trust what a duplicate-prevention test is measuring against | Nothing — but worsens with every verification run | PENDING |
 
 ## Resolved
 
