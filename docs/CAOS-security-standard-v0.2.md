@@ -1,5 +1,5 @@
 # Security Standard — Practice Automation Platform
-### v0.2
+### v0.2.1
 
 ## Changelog
 
@@ -7,6 +7,7 @@
 |---|---|---|
 | v0.1 | 2026-08-16 | Initial standard: authentication/session rules, role-based authorization enforcement, secrets handling, encryption, audit-trail immutability, input validation, dependency scanning, and GSP-call rate limiting. |
 | v0.2 | 2026-08-22 | §3 amended to add Zoho Books OAuth client credentials and per-client refresh tokens to the secrets-storage requirement, and to note that Zoho's rotation model differs fundamentally from Tally/GSP's fixed schedule. |
+| v0.2.1 | 2026-09-17 | §4 amended to add external-TLS-certificate tracking, with the WhiteBooks GSP certificate's **11 Nov 2026** expiry recorded as the first concrete instance. Raised by the P0-04 reference review — the supplied certificate expires inside CAOS's likely build/launch window. |
 
 ## 1. Authentication & session handling
 
@@ -43,6 +44,8 @@ Storage follows CG4 (Coding Guidelines) — centralized settings, never committe
 ## 4. Encryption
 
 - **In transit:** TLS everywhere — the PWA to the API, the API to Tally, the API to Zoho Books, the API to the GSP, the API to Dropbox. No plaintext HTTP anywhere in the request path, including internal service-to-service calls if the deployment architecture ends up with more than one service.
+- **External TLS certificates have expiry dates, and they are an availability risk, not just a security one.** An expired or rotated vendor certificate breaks the integration outright — the GST API even has dedicated error codes for it (`RTN_FIL_28` / `RTN_FIL_29`, certificate expired / not valid). Track each external certificate's expiry and **do not pin a certificate on the assumption it stays valid**; prefer standard CA trust-chain validation so a vendor's routine rotation is a non-event.
+  - **WhiteBooks GSP (`*.whitebooks.in`, GoDaddy Secure CA G2) — valid 23 Oct 2025 to 11 Nov 2026.** Recorded here rather than in an ops runbook because no ops-tracking document exists yet; move it when one does. The certificate is at `docs/spikes/p0-04-whitebooks-gsp/reference/whitebooks.crt`. **This expiry falls inside CAOS's likely build/launch window**, so whoever owns deployment should confirm WhiteBooks' rotation before Sprint 7's GSP work rather than discover it as a failed reconciliation run.
 - **At rest:** the database is encrypted at rest (standard for AWS RDS/managed Postgres — this is a configuration checkbox, not custom engineering, but it needs to be explicitly verified during deployment setup, not assumed).
 - Client documents that transit through the platform (per ADR 0004's thin-layer principle) are not stored at rest by the platform itself beyond what's needed for active processing — they live in Dropbox as the system of record.
 

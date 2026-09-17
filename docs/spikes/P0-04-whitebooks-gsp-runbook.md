@@ -1,8 +1,71 @@
 # P0-04 Spike — WhiteBooks GSP Runbook
 
-**Status:** requests drafted, **nothing validated yet**
+**Status:** requests drafted, **no live call made yet** — but the central
+question is now answered from WhiteBooks' own documentation rather than by
+a live test. See "Confirmed from first-party documentation" below.
 **Blocks:** Sprint 7's Reconciliation Agent (RC-01)
 **Companion file:** `gsp_requests.py` — run it to print every request as curl
+**Source documents:** `p0-04-whitebooks-gsp/reference/` holds the five
+documents WhiteBooks supplied; `p0-04-whitebooks-gsp/whitebooks-api-reference.md`
+distills what CAOS's design needs. **Read that distilled file's warning about
+the stale GSTR-2/GSTR-3 filing document before using any of these as a build
+reference** — `Return-Filing-through-API_v1_1.docx` describes the suspended
+2017 return regime and is kept as a historical artifact only.
+
+## Confirmed from first-party documentation (2026-09-17)
+
+**The OTP-to-client finding below is no longer an inference.** WhiteBooks'
+own ASP integration document (`reference/whitebooks-gst-api-documentation.docx`),
+describing the `/authentication/otprequest` call, states:
+
+> OTP will be sent to registered email and mobile number of your Client
+> from GST Portal.
+
+That is first-party and WhiteBooks-specific, and it supersedes the
+generic GSP-ecosystem sources this spike previously relied on. It also
+shows *why* the behaviour is not GSP-specific: WhiteBooks is a thin
+pass-through to `devapi.gst.gov.in` (every endpoint in the released-API
+list resolves to that domain), so the GST Portal — not the GSP — is the
+party sending the OTP. **Changing GSP would not change this.**
+
+**One mechanic materially narrows the burden, and it is good news.** The
+`TXN` token from `authtoken` lasts 6 hours, and `/authentication/refreshtoken`
+sustains a session **without a new OTP**. A fresh client-delivered OTP is
+needed only once the *portal-side* "Enable API Access" window lapses. So
+the recurring cost is tied to that window (options up to 30 days), not to
+session expiry — this is a roughly monthly per-client interaction, not a
+daily or per-sync one, which is the pessimistic reading the open question
+previously had to allow for.
+
+**What is still not first-party:** the portal-side consent duration
+itself. That step happens on gst.gov.in and is outside WhiteBooks'
+documentation entirely; the ~30-day figure comes from independent GSP
+sources (Vayana, IndiaFilings/LEDGERS) describing the same GSTN-wide
+mechanism. Treat the mechanism as established and the exact duration as
+well-attested but not vendor-confirmed.
+
+See `p0-04-whitebooks-gsp/whitebooks-api-reference.md` for the quotes,
+the auth-flow parameters, and the documented error codes that matter here
+— notably `RET13509` (OTP expired/incorrect), which makes OTP failure a
+**documented, expected** state to handle in the client-communication flow
+rather than an exception, and `AUTH151` (not authorised for this return
+period), which is the error a lapsed consent window will most likely
+surface as.
+
+## Minor finding — practice onboarding is not self-serve, contrary to marketing
+
+WhiteBooks' marketing page advertises a free sandbox with no contact-form
+gate. Their own ASP onboarding document contradicts that: step 2 of
+account setup is *"Enable Account - Call the customer support ask them to
+enable the account"*, and enabling the **sandbox** needs a second support
+call after credentials are created.
+
+**Low stakes, and worth being explicit about why:** this is a *one-time,
+practice-level* cost, not a recurring per-client one, so it is a different
+order of problem from the finding below. It matters only so that a future
+onboarding estimate for a new customer firm does not assume pure API
+self-service. It also explains why this spike has no sandbox account yet
+— the blocker was never just "sign up".
 
 ## Finding that needs attention before Sprint 7
 
