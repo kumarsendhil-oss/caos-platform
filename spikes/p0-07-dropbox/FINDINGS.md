@@ -178,6 +178,8 @@ working paper — will wake itself up. Sprint 3 needs either a write-back locati
 outside the watched folder or an explicit ignore-list keyed on `rev`/`content_hash`.
 This is the single most actionable finding here and ADR 0003 does not mention it.
 
+> **Resolved in [ADR 0003 Amendment 1](../../docs/audit-platform-ADR-0003-amendment-1-webhook-loop-and-deletes.md)** (Accepted, 2026-09-17): processed output is written **outside** the watched App folder, with a `rev`/`content_hash` ignore-list documented as the fallback rather than the default. The amendment also picks up finding #4 — the intake component maintains its own path→ID mapping, since `deleted` entries supply no `id` to correlate against.
+
 **#7 — Short-lived tokens make this spike's setup materially harder than P0-02
 or P0-06.** Dropbox now defaults generated access tokens to ~4 hours, and
 scope changes do not apply to already-issued tokens, so the correct order is
