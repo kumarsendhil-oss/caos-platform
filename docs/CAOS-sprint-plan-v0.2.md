@@ -6,6 +6,7 @@
 | Version | Date | Summary |
 |---|---|---|
 | v0.1 | 2026-08-16 | Initial plan: Phase 0 baseline + 12 sprints, sequencing the Feature Backlog's 102 features against the module dependency order established across the ADRs. |
+| v0.2.2 | 2026-09-17 | **P0-01 marked not executable and deferred to PM-05 (Sprint 11).** The item assumes existing task-sheet data to measure; the practice is not tracking timesheets at all, so the premise is false rather than the data merely being unavailable — a different situation from P0-05, which is genuinely blocked pending real invoices that do exist. The first real measured time-per-task baseline will come from PM-05 once it has been built and run for a while. **No interim tracking process or rough time study is being introduced before Sprint 1**, deliberately: a hurried baseline measured by a different method than the eventual one is not comparable to it, so it would not serve the before/after purpose the baseline exists for. **Sprint 1 is not affected** — P0-01 gated no build work, unlike the IaC item resolved by ADR 0014 which did block provisioning. One consequence flagged, not resolved: PM-05's own description in this plan and in the PRD says it *extends the practice's existing task-sheet habit*, which the same finding undercuts. |
 | v0.2.1 | 2026-09-17 | Added **P0-07 (Dropbox webhook live verification)** to Phase 0. ADR 0003 is Accepted, but its Context records the webhook model as "verified against their own API documentation" — doc-verified only, with no live spike scheduled before Sprint 3 builds the Document Intake Agent against it. That is the same risk category that has already produced two corrections on this project: **P0-06 finding #6**, where Zoho's own published example contradicted its live API, and **P0-04**, where WhiteBooks' marketing claimed a gate-free self-serve sandbox their own onboarding doc contradicts. Cheap now, expensive under Sprint 3 build pressure. ADR 0003's status is unchanged — this adds verification, not doubt. |
 | v0.2 | 2026-08-22 | Added P0-06 (Zoho Books sandbox spike) to Phase 0. Expanded Sprint 1-2 (Foundation) deliverables to build both the Tally and Zoho adapters behind the new Books Connector interface, per ADR 0011, plus the Admin — Connections screen's Zoho OAuth status. **Flagged: the Sprint 1-2 timeline needs explicit reconfirmation once P0-06 reports back** — see the note at the end of Sprint 1-2 below. Sprint 4-5's critical end-to-end test now runs against both adapters, not just Tally. |
 
@@ -19,7 +20,7 @@ Per ADR 0011, both the Tally and Zoho adapters must exist before the Bookkeeping
 
 Not a build sprint — a measurement and validation phase before any application code is written.
 
-- Use existing task-sheet data to measure real time-per-task (P0-01)
+- ~~Use existing task-sheet data to measure real time-per-task (P0-01)~~ — **Not executable — no existing task-sheet data exists to measure** (finding during Phase 0 review, 2026-09-17). The item's premise is false rather than blocked: the practice is not currently tracking timesheets at all, so there is no dataset to measure, and no amount of waiting produces one. **Deferred to PM-05 (Time-per-task tracking, Sprint 11)**, which will produce the first real measured baseline once time-tracking exists as a platform feature and has run long enough to have said something. Deliberately **not** replaced with an interim tracking process or a rough time study before Sprint 1. **This was never a hard gate on Sprint 1** — unlike the IaC/ADR-0007 item below, which genuinely blocked provisioning, P0-01 is a baseline measurement for later before/after comparison and gates no build work
 - Confirm Tally Cloud access method with the provider — port 9000 reachability (P0-02)
 - Map shared inbox (work@xyz.com) routing logic to clients/staff (P0-03)
 - WhiteBooks GSP sandbox spike — validate GSTR-2B fetch + GSTR-1/3B filing endpoints (P0-04)
@@ -144,7 +145,7 @@ Not a build sprint — a measurement and validation phase before any application
 
 **Deliverables:**
 - Staff workload view, capacity indicator, deadline calendar (PM-02 to PM-04)
-- Time-per-task tracking, extending the practice's existing task-sheet habit (PM-05)
+- Time-per-task tracking (PM-05) — **now also carries P0-01's deferred baseline measurement** (see Phase 0 above). **Flagged for scoping review:** this deliverable and the PRD both describe PM-05 as *extending the practice's existing task-sheet habit*, and the P0-01 finding is that no such habit exists in a measurable form. PM-05 is therefore likely introducing time tracking rather than extending it, which is a different design and adoption problem. Not rescoped here — flagged so Sprint 11 planning starts from the real premise
 - Outstanding invoice visibility on the dashboard (PM-06)
 - Admin — Assignment Rules screen wired to the real routing rule table (TE-02)
 - Admin — Connections screen wired to real Tally, Zoho, and GSP connection health (TC-05, TC-08, ZB-05)
