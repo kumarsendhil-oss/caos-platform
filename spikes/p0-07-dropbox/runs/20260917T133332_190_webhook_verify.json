@@ -1,0 +1,26 @@
+{
+  "timestamp_utc": "20260917T133332",
+  "direction": "inbound",
+  "label": "webhook_verify",
+  "request": {
+    "method": "GET",
+    "path": "/?challenge=-jeeGRumai36Mgmh_7qNHzgMXaudKYBDxhhjb2rFVlc",
+    "headers": {
+      "Host": "uncrushed-reword-monologue.ngrok-free.dev",
+      "User-Agent": "DropboxWebhooks/1.0",
+      "Accept": "*/*",
+      "Accept-Encoding": "gzip,deflate",
+      "X-Forwarded-For": "162.125.47.73",
+      "X-Forwarded-Host": "uncrushed-reword-monologue.ngrok-free.dev",
+      "X-Forwarded-Proto": "https"
+    },
+    "raw_body": "-jeeGRumai36Mgmh_7qNHzgMXaudKYBDxhhjb2rFVlc"
+  },
+  "verification": {
+    "signature_valid": null
+  },
+  "response": {
+    "status_code": 200,
+    "elapsed_ms": 0.39076805114746094
+  }
+}

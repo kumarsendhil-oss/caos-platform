@@ -1,0 +1,26 @@
+{
+  "timestamp_utc": "20260917T132300",
+  "direction": "inbound",
+  "label": "webhook_verify",
+  "request": {
+    "method": "GET",
+    "path": "/?challenge=selftest123",
+    "headers": {
+      "Host": "uncrushed-reword-monologue.ngrok-free.dev",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Microsoft Windows 10.0.22631; en-IN) PowerShell/7.6.6",
+      "Accept-Encoding": "gzip, deflate, br",
+      "Ngrok-Skip-Browser-Warning": "1",
+      "X-Forwarded-For": "2405:201:e01d:87f:9b4:1d38:52c8:a645",
+      "X-Forwarded-Host": "uncrushed-reword-monologue.ngrok-free.dev",
+      "X-Forwarded-Proto": "https"
+    },
+    "raw_body": "selftest123"
+  },
+  "verification": {
+    "signature_valid": null
+  },
+  "response": {
+    "status_code": 200,
+    "elapsed_ms": 0.6875991821289062
+  }
+}

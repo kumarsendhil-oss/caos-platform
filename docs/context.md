@@ -9,6 +9,23 @@ Phase 0 books-connector spikes, verifying the multi-backend design (ADR 0001, AD
 - **P0-02 Tally** (`spikes/p0-02-tally/`) — against a real TallyPrime instance. Findings #1–#33; still the deeper of the two. Everything below the P0-06 entry in Active work concerns this.
 - **P0-06 Zoho Books** (`spikes/p0-06-zoho/`) — against a real "Integra Agro" trial org (India DC). **Core mechanics now validated**, findings #1–#13: OAuth2 authorization + refresh, Bills read/write/read-back on both the reverse-charge and forward-charge paths, the native duplicate guard, rate limits, and Journals. Moved from not-started to substantially validated on 2026-09-16.
 
+### Phase 0 status at a glance
+
+Added 2026-09-17 because the Phase 0 items were only trackable by reading the sprint plan and three separate spike directories. Statuses here, detail below and in each spike's own `FINDINGS.md`.
+
+| Item | Status |
+|---|---|
+| **P0-01** task-sheet timing data | **Not started** — no artifacts anywhere |
+| **P0-02** Tally (port 9000 / XML) | **Substantially validated**, live — findings #1–#33, `spikes/p0-02-tally/` |
+| **P0-03** shared-inbox routing map | **Not started** — no artifacts anywhere |
+| **P0-04** WhiteBooks GSP | **Partly answered from vendor documentation, no live call.** #51 closed on first-party docs; still needs a sandbox account (which needs a support call — see the runbook's minor finding) |
+| **P0-05** PaddleOCR accuracy (20–50 invoices) | **Not started** — required by ADR 0008 before it is "proven in practice" |
+| **P0-06** Zoho Books | **Core mechanics validated**, live — findings #1–#13, `spikes/p0-06-zoho/` |
+| **P0-07** Dropbox webhooks | **Not started — scaffolded only** (2026-09-17, `spikes/p0-07-dropbox/`). Added because ADR 0003 is doc-verified only and Sprint 3 builds against it. Needs a Dropbox dev app and a publicly reachable URL (a tunnel) — the one Phase 0 spike that cannot run purely outbound |
+| IaC tooling decision | **Resolved** 2026-09-17 — ADR 0014 |
+
+**Three of the eight have no work behind them at all** (P0-01, P0-03, P0-05), and that has been true for the whole of this project's spike work — the two deep spikes are the two with live backends attached. Worth knowing before Phase 0 is called done.
+
 **The open architectural question that came out of P0-06, and it is the one thing here that needs a decision rather than more evidence:** finding #9 — Zoho *validates* the CGST/SGST-vs-IGST choice against `source_of_supply`/`destination_of_supply` rather than deriving it, rejecting a wrong-direction tax in **either** direction with code 3032. So tax *selection* is the caller's job on both backends — `TallyAdapter` must make the same intra/inter decision to pick its ledger lines. That argues the decision belongs **above** the per-backend adapter boundary, not duplicated inside each adapter, which is a real input to ADR 0011's `BooksConnector` / `DraftEntry` design. **Needs deciding before Sprint 1–2**, alongside issue #10 and **issue #50** (the three unreconciled state representations, promoted from `PENDING:018` on 2026-09-16 — #9 makes that row materially worse: the same bug surfaces as a *posting rejection* on Zoho and as *wrong tax in the books* on Tally).
 
 ## Active work

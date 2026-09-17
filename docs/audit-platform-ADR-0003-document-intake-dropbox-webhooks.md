@@ -12,6 +12,14 @@
 
 Accepted
 
+> **⚠ Doc-verified only — live verification pending via P0-07.**
+>
+> This is a flag, **not a reversal**: the decision stands, and nothing below is known to be wrong. The Context section records that Dropbox's webhook model "was verified against their own API documentation" — which is real verification, but on this project it has twice proved insufficient on its own. **P0-06 finding #6** found Zoho's own published example contradicting its live API, and **P0-04** found WhiteBooks' marketing contradicting their own onboarding documentation.
+>
+> Three specifics here are taken from documentation and have never been observed: the **webhook → `/files/list_folder/continue` cursor pattern** (the notification carries no file detail, so the whole intake design rests on this loop), the **10-second response window** (which drives the queue/worker requirement in Consequences — an architectural commitment, not a tuning parameter), and **"App folder" scope behaviour** (chosen deliberately over Full Dropbox, but what a cursor reports under it is unobserved).
+>
+> **P0-07** (`spikes/p0-07-dropbox/`) exists to check all three against a real Dropbox app, before Sprint 3 builds the Document Intake Agent against them as given. Scaffolded 2026-09-17; **not yet run** — it needs a Dropbox dev app and a publicly reachable URL. If it finds a gap, the correction belongs in an amendment, in the shape of ADR 0011 Amendment 1.
+
 ## Context
 
 Client documents arrive by email, are (currently manually) filed into Dropbox, and need to trigger downstream processing (OCR, classification, bookkeeping). Dropbox’s webhook model was verified against their own API documentation.
