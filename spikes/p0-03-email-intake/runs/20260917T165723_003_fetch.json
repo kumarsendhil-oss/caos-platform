@@ -1,0 +1,45 @@
+{
+  "timestamp_utc": "20260917T165723",
+  "protocol": "IMAP4_SSL",
+  "label": "fetch",
+  "request": {
+    "command": "UID FETCH",
+    "account": "work.caos@gmail.com",
+    "host": "imap.gmail.com",
+    "mailbox": "INBOX",
+    "args": {
+      "uid": "8"
+    }
+  },
+  "response": {
+    "status": "OK",
+    "result": {
+      "uid": "8",
+      "message_id": "<CAPo-PXis8tV-F36P8rS2_twf7hKXSt7KBbZX5wFd5RSqW9aQXQ@mail.gmail.com>",
+      "date": "2026-09-17T15:46:22+05:30",
+      "from_display_name": "Integra Agro",
+      "from_address": "integraagro.tn@gmail.com",
+      "from_domain": "gmail.com",
+      "reply_to": null,
+      "return_path": "integraagro.tn@gmail.com",
+      "subject": "EB bill",
+      "looks_like_reply": false,
+      "looks_like_forward": false,
+      "in_reply_to": null,
+      "has_references": false,
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "filename": "06204017127_92026_Invoice-1.PDF",
+          "content_type": "application/pdf",
+          "kind": "pdf",
+          "size_bytes": 81313,
+          "inline": false
+        }
+      ],
+      "fetch_ms": 2597.6
+    },
+    "elapsed_ms": 2597.55,
+    "error": null
+  }
+}

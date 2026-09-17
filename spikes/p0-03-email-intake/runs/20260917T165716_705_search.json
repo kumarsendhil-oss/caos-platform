@@ -1,0 +1,22 @@
+{
+  "timestamp_utc": "20260917T165716",
+  "protocol": "IMAP4_SSL",
+  "label": "search",
+  "request": {
+    "command": "UID SEARCH",
+    "account": "work.caos@gmail.com",
+    "host": "imap.gmail.com",
+    "mailbox": "INBOX",
+    "args": {
+      "criterion": "ALL"
+    }
+  },
+  "response": {
+    "status": "OK",
+    "result": {
+      "matched": 8
+    },
+    "elapsed_ms": 370.78,
+    "error": null
+  }
+}
