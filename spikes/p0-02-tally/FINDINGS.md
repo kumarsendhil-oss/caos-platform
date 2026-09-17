@@ -1815,7 +1815,7 @@ need a second set of tax masters for sales.
 2. **Tax was supplied, not derived.** Same limitation as #8. Whether
    Tally computes an outward-supply split from ledger or item GST
    configuration is untested.
-3. **PENDING:018 is untouched.** The test party carries no `PARTYGSTIN`
+3. **PENDING:018 is untouched** (promoted to issue #50 on 2026-09-16). The test party carries no `PARTYGSTIN`
    and no `STATENAME`. Sales is an *outward* supply, where intra- vs
    inter-state turns on place of supply — precisely the unreconciled
    state-code problem. Tally accepted the voucher without either field,

@@ -1,0 +1,32 @@
+{
+  "timestamp_utc": "20260916T182439",
+  "label": "post_bill",
+  "request": {
+    "method": "POST",
+    "url": "https://www.zohoapis.in/books/v3/bills",
+    "params": {
+      "organization_id": "60088150280"
+    },
+    "body": {
+      "vendor_id": "4136804000000040001",
+      "bill_number": "P0-06-TEST-001",
+      "is_reverse_charge_applied": true,
+      "line_items": [
+        {
+          "name": "P0-06 spike test line item",
+          "rate": 10000.0,
+          "quantity": 1,
+          "account_id": "4136804000000011001",
+          "reverse_charge_tax_id": "4136804000000034297"
+        }
+      ]
+    }
+  },
+  "response": {
+    "status_code": 400,
+    "body": {
+      "code": 13011,
+      "message": "A bill with this number has already been created for this vendor. Please check and try again."
+    }
+  }
+}

@@ -1,0 +1,7 @@
+# Live credentials — must never be committed (Security Standard §3).
+# The repo-root .gitignore covers `.env` but NOT `tokens.json`, which holds
+# this org's long-lived refresh token. Kept here so the rule travels with
+# the spike directory.
+.env
+tokens.json
+__pycache__/

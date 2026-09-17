@@ -1,0 +1,18 @@
+{
+  "timestamp_utc": "20260916T182437",
+  "label": "refresh_token",
+  "request": {
+    "method": "POST",
+    "url": "https://accounts.zoho.in/oauth/v2/token",
+    "params": null,
+    "body": {
+      "grant_type": "refresh_token"
+    }
+  },
+  "response": {
+    "status_code": 200,
+    "body": {
+      "has_access_token": true
+    }
+  }
+}
