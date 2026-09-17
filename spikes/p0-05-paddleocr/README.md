@@ -52,11 +52,17 @@ python make_synthetic_invoices.py
 # 2. Extract — works against ANY folder of invoices
 python run_extraction.py --input samples/ --out out/
 
-# 3. Score against ground truth
+# 3. Score against ground truth — REDACTED by default
 python score_accuracy.py --results out/ --ground-truth samples/ground_truth.json
 
-# Optional: machine-readable report
+# Machine-readable report (also redacted — this is the committable artifact)
 python score_accuracy.py --results out/ --ground-truth samples/ground_truth.json --json report.json
+
+# Full values, for local debugging only. NEVER commit this output.
+python score_accuracy.py --results real-results/ --ground-truth gt.json --unredacted
+
+# Prove the masking works, before any real document is processed
+python test_redaction.py
 ```
 
 ## The ground-truth format
@@ -116,9 +122,33 @@ The self-hosting rationale in ADR 0008 is only worth anything if the documents s
 1. Real invoices go in **`real-samples/`** — gitignored, local only, never pushed.
 2. Extraction output goes in **`real-results/`** — also gitignored by default.
 3. The ground truth for real invoices (`real-samples/ground_truth.json`) is itself sensitive: it contains transcribed GSTINs, vendor names and amounts. Gitignored with the rest.
-4. **What may reasonably be committed as evidence is the *score report*** — `score_accuracy.py --json`'s aggregate counts and rates. But note that its `misses` arrays quote expected and extracted **values**, which for real invoices means real GSTINs and vendor names. Those must be redacted, or the report generated in a summary-only form, before anything is committed.
+4. **What gets committed as evidence is the redacted score report** — and redaction is now enforced by the tool rather than left to discipline. See *Redacted by default* below.
 
-**This is a recommendation, not a decision already taken.** Point 4 in particular is a judgement about what level of redacted evidence is acceptable, and it is the practice's call, not the harness author's — the same posture as every other "flag it, don't decide it unilaterally" item in this project. Confirm the handling before the first real document is processed, not after.
+**Decided (2026-09-17): committed evidence is redacted or summary-only, never raw identifiers.** This applies the rule the project already uses for tokens and secrets — never in git history, even a private one — to client data, which deserves it at least as much. Points 1–3 above remain recommendations to confirm once documents are in hand.
+
+### Redacted by default
+
+`score_accuracy.py` masks values unless you explicitly opt out. The safe mode is the default and the dangerous one needs a flag, because the failure mode is asymmetric: forgetting to redact a report you then commit is unrecoverable once it is in git history, while forgetting `--unredacted` during local debugging costs you one re-run.
+
+| | Default | `--unredacted` |
+|---|---|---|
+| Per-field accuracy rates | full | full |
+| Pass/fail per field per document | full | full |
+| GSTIN | `33***********ZX` | raw |
+| Vendor name | `Sun...(32 chars)` | raw |
+| Invoice number | `SO*********17` | raw |
+| Invoice date | `2026-**-**` | raw |
+| Amounts | `<amount redacted>` | raw |
+| Committable? | **yes** | **never** |
+
+**The accuracy signal is fully intact under redaction.** What is removed is the ability to reconstruct a client's invoice — not the ability to see which document failed which field.
+
+Diagnostic value is preserved by describing the *error* rather than the values:
+
+- A GSTIN or invoice-number miss reports how many characters differ, at which positions, and whether they are known OCR confusables (`0`/`O`, `1`/`I`, `5`/`S`, `8`/`B`). That directly answers FINDINGS.md's question about whether GSTIN errors are systematic — fixable with a checksum-validated correction pass — or scattered.
+- An amount miss reports the delta and direction, not the two figures. Deltas at or below 1.00 are exact, because that is the diagnostic range (0.01 rounding versus 0.05 drift). Larger deltas are bucketed, and the delta is deliberately **not** also reported as a percentage of the expected value: publishing both recovers the original exactly — 66960.00 at 900% is 7440.00. Either alone is harmless; together they are the invoice.
+
+`test_redaction.py` asserts these properties mechanically against the synthetic fixtures: that the redacted JSON contains none of a list of known values, that something was actually masked, that `--unredacted` genuinely differs (a flag that changes nothing is worse than no flag), and that the per-field and per-document signal survives masking intact.
 
 `.gitignore` already covers `real-samples/` and `real-results/`, with the rule kept in this directory so it travels with the data rather than depending on a file three levels up — the gap that caused P0-06 finding #13.
 

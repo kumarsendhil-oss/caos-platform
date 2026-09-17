@@ -1,5 +1,36 @@
 {
   "tolerance": "0.01",
+  "redacted": true,
+  "redaction_note": "Values masked; misses describe the error, not the data. Safe to commit.",
+  "per_document": {
+    "synthetic_001_classic.png": {
+      "gstin": true,
+      "vendor_name": true,
+      "invoice_number": true,
+      "invoice_date": true,
+      "subtotal": true,
+      "tax_total": true,
+      "grand_total": true
+    },
+    "synthetic_002_boxed.png": {
+      "gstin": true,
+      "vendor_name": true,
+      "invoice_number": true,
+      "invoice_date": true,
+      "subtotal": true,
+      "tax_total": true,
+      "grand_total": true
+    },
+    "synthetic_003_compact.png": {
+      "gstin": true,
+      "vendor_name": true,
+      "invoice_number": true,
+      "invoice_date": true,
+      "subtotal": true,
+      "tax_total": true,
+      "grand_total": true
+    }
+  },
   "fields": {
     "gstin": {
       "correct": 3,
