@@ -1,0 +1,20 @@
+{
+  "timestamp_utc": "20260917T151800",
+  "protocol": "IMAP4_SSL",
+  "label": "select",
+  "request": {
+    "command": "SELECT",
+    "account": "work.caos@gmail.com",
+    "host": "imap.gmail.com",
+    "mailbox": "INBOX",
+    "args": null
+  },
+  "response": {
+    "status": "OK",
+    "result": {
+      "message_count": 3
+    },
+    "elapsed_ms": 393.62,
+    "error": null
+  }
+}

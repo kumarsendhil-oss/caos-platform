@@ -1,0 +1,45 @@
+{
+  "timestamp_utc": "20260917T154706",
+  "protocol": "IMAP4_SSL",
+  "label": "fetch",
+  "request": {
+    "command": "FETCH",
+    "account": "work.caos@gmail.com",
+    "host": "imap.gmail.com",
+    "mailbox": "INBOX",
+    "args": {
+      "uid": "4"
+    }
+  },
+  "response": {
+    "status": "OK",
+    "result": {
+      "uid": "4",
+      "message_id": "<CAKym4priE-k5E9Vgm+dqeZtY7MLiEfNUtWWMNAQPgmvLpLEeBQ@mail.gmail.com>",
+      "date": "2026-09-17T15:39:51+05:30",
+      "from_display_name": "Sendhil kumar",
+      "from_address": "kumar.sendhil@gmail.com",
+      "from_domain": "gmail.com",
+      "reply_to": null,
+      "return_path": "kumar.sendhil@gmail.com",
+      "subject": "Phone bill",
+      "looks_like_reply": false,
+      "looks_like_forward": false,
+      "in_reply_to": null,
+      "has_references": false,
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "filename": "9032783280_STNR27018390414.pdf",
+          "content_type": "application/pdf",
+          "kind": "pdf",
+          "size_bytes": 699876,
+          "inline": false
+        }
+      ],
+      "fetch_ms": 2115.4
+    },
+    "elapsed_ms": 2115.42,
+    "error": null
+  }
+}

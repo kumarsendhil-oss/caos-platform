@@ -1,0 +1,37 @@
+{
+  "timestamp_utc": "20260917T151802",
+  "protocol": "IMAP4_SSL",
+  "label": "fetch",
+  "request": {
+    "command": "FETCH",
+    "account": "work.caos@gmail.com",
+    "host": "imap.gmail.com",
+    "mailbox": "INBOX",
+    "args": {
+      "uid": "3"
+    }
+  },
+  "response": {
+    "status": "OK",
+    "result": {
+      "uid": "3",
+      "message_id": "<UmiNOirJknkx30rQVW8ljw@notifications.google.com>",
+      "date": "2026-09-17T09:44:55+00:00",
+      "from_display_name": "Google",
+      "from_address": "no-reply@accounts.google.com",
+      "from_domain": "accounts.google.com",
+      "reply_to": null,
+      "return_path": "3l7araggtcra34-7u51eqss4a398.w44w1u.s42c470.sq48w2qy1.s42@gaia.bounces.google.com",
+      "subject": "Security alert",
+      "looks_like_reply": false,
+      "looks_like_forward": false,
+      "in_reply_to": null,
+      "has_references": false,
+      "attachment_count": 0,
+      "attachments": [],
+      "fetch_ms": 429.2
+    },
+    "elapsed_ms": 429.25,
+    "error": null
+  }
+}
