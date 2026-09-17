@@ -1,0 +1,18 @@
+{
+  "timestamp_utc": "20260917T165508",
+  "protocol": "IMAP4_SSL",
+  "label": "connect",
+  "request": {
+    "command": "IMAP4_SSL",
+    "account": "work.caos@gmail.com",
+    "host": "imap.gmail.com",
+    "mailbox": null,
+    "args": null
+  },
+  "response": {
+    "status": "OK",
+    "result": null,
+    "elapsed_ms": 663.08,
+    "error": null
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "timestamp_utc": "20260917T165717",
+  "protocol": "IMAP4_SSL",
+  "label": "fetch",
+  "request": {
+    "command": "UID FETCH",
+    "account": "work.caos@gmail.com",
+    "host": "imap.gmail.com",
+    "mailbox": "INBOX",
+    "args": {
+      "uid": "6"
+    }
+  },
+  "response": {
+    "status": "OK",
+    "result": {
+      "uid": "6",
+      "message_id": "<CAKym4pqb+KZyQHkzTi1rQxMecYcNrf9XqWnHNgDDdWVb1rtcxw@mail.gmail.com>",
+      "date": "2026-09-17T15:42:13+05:30",
+      "from_display_name": "Sendhil kumar",
+      "from_address": "kumar.sendhil@gmail.com",
+      "from_domain": "gmail.com",
+      "reply_to": null,
+      "return_path": "kumar.sendhil@gmail.com",
+      "subject": "Pur hase bill",
+      "looks_like_reply": false,
+      "looks_like_forward": false,
+      "in_reply_to": null,
+      "has_references": false,
+      "attachment_count": 0,
+      "attachments": [],
+      "fetch_ms": 467.0
+    },
+    "elapsed_ms": 467.03,
+    "error": null
+  }
+}

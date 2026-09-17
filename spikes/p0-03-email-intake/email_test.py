@@ -204,12 +204,17 @@ def _search(client: imaplib.IMAP4_SSL, ctx: dict[str, str], unseen: bool) -> lis
              status=status, result={"message_count": total}, elapsed_ms=select_ms)
     print(f"  [select]  {ctx['mailbox']}: {total} messages, {select_ms:.0f}ms")
 
+    # UID SEARCH, not SEARCH. Plain SEARCH returns message *sequence numbers*,
+    # which are positional and renumber whenever a message is expunged — so
+    # they are actively wrong as a stable identifier. This originally used
+    # SEARCH and labelled the results "uid"; corrected after uid_stability.py
+    # made the distinction concrete. See FINDINGS.md finding #8.
     criterion = "(UNSEEN)" if unseen else "ALL"
     started = time.monotonic()
-    status, data = client.search(None, criterion)
+    status, data = client.uid("SEARCH", None, criterion)
     search_ms = (time.monotonic() - started) * 1000
     uids = data[0].split() if status == "OK" and data and data[0] else []
-    log_imap("search", "SEARCH", ctx["user"], ctx["host"], mailbox=ctx["mailbox"],
+    log_imap("search", "UID SEARCH", ctx["user"], ctx["host"], mailbox=ctx["mailbox"],
              args={"criterion": criterion}, status=status,
              result={"matched": len(uids)}, elapsed_ms=search_ms)
     print(f"  [search]  {criterion}: {len(uids)} matched, {search_ms:.0f}ms")
@@ -233,11 +238,11 @@ def _fetch_messages(
     for raw_uid in uids:
         uid = raw_uid.decode()
         started = time.monotonic()
-        status, data = client.fetch(raw_uid, "(RFC822)")
+        status, data = client.uid("FETCH", raw_uid, "(RFC822)")
         fetch_ms = (time.monotonic() - started) * 1000
         total_ms += fetch_ms
         if status != "OK" or not data or not isinstance(data[0], tuple):
-            log_imap("fetch", "FETCH", ctx["user"], ctx["host"], mailbox=ctx["mailbox"],
+            log_imap("fetch", "UID FETCH", ctx["user"], ctx["host"], mailbox=ctx["mailbox"],
                      args={"uid": uid}, status=status, error="no payload",
                      elapsed_ms=fetch_ms)
             print(f"   ! uid {uid}: fetch returned no payload")
@@ -245,7 +250,7 @@ def _fetch_messages(
         summary = _summarise(email.message_from_bytes(data[0][1]), uid, save)
         summary["fetch_ms"] = round(fetch_ms, 1)
         summaries.append(summary)
-        log_imap("fetch", "FETCH", ctx["user"], ctx["host"], mailbox=ctx["mailbox"],
+        log_imap("fetch", "UID FETCH", ctx["user"], ctx["host"], mailbox=ctx["mailbox"],
                  args={"uid": uid}, status=status, result=summary, elapsed_ms=fetch_ms)
     return summaries, total_ms
 

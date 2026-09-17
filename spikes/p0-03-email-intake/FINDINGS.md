@@ -4,7 +4,7 @@ Validates the mechanics EI-01 to EI-06 (PRD §5.4) rest on: shared-inbox monitor
 
 **Status: run live on 2026-09-17** against `work.caos@gmail.com` over IMAP, 8 messages (5 purpose-built test messages + 3 incidental Google account notices). 19 evidence records in `runs/`. Same format as `spikes/p0-02-tally/FINDINGS.md`, `spikes/p0-06-zoho/FINDINGS.md` and `spikes/p0-07-dropbox/FINDINGS.md`.
 
-**Two of the five open questions are answered, two are partly answered, one is essentially untouched.** The headline is finding #1: a forwarded message does not carry the original sender in *any* header, which breaks the obvious reading of EI-02.
+**Three of the five open questions are answered, two are partly answered.** The headline is finding #1: a forwarded message does not carry the original sender in *any* header, which breaks the obvious reading of EI-02. Open question 5 (UID/Message-ID stability) was resolved on 2026-09-17 — see the dedup-key recommendation — and resolving it surfaced finding #8, a real bug in this spike's own first implementation.
 
 Unlike P0-02/06/07, **no ADR governs this area yet.** There is no email equivalent of ADR 0011's `BooksConnector`. That is the gap these findings should inform — and informing it is the goal, not resolving it here. A spike that proposes an architecture from one provider and one inbox would be doing exactly what ADR 0011 Amendment 2 had to correct: generalising from a single backend's behaviour.
 
@@ -16,7 +16,9 @@ Unlike P0-02/06/07, **no ADR governs this area yet.** There is no email equivale
 - [x] Test messages sent to the inbox (PDF, image, no-attachment, second sender, forward)
 - [x] First successful `--poll` against the real inbox
 - [x] Timing recorded for a poll cycle
+- [x] UIDVALIDITY / UID / Message-ID stability tested across 4 fresh sessions (open question 5)
 - [ ] IMAP IDLE tested (open question 1 — needs a long-running connection test)
+- [ ] UID behaviour across an actual expunge (nothing has been deleted from the test mailbox)
 - [ ] A second provider tested (open question 4 — portability is argued, not demonstrated)
 
 ## Answers to the open questions
@@ -106,9 +108,61 @@ Gmail-proprietary headers *are* on the wire — `X-Gm-Features`, `X-Gm-Gg`, `X-G
 
 **What this does and does not establish.** It establishes that the *code* has no Gmail dependency, which is a real result. It does **not** establish portability, because only one provider was tested. Specifically untested and still open: whether Gmail's `SEARCH` semantics diverge from literal IMAP search on non-trivial criteria (only `ALL` and `UNSEEN` were used), `UIDVALIDITY` stability, `\Recent`/`\Seen` handling, and whether labels-as-folders behave unlike real folders. An Exchange or Zoho Mail run is what would close this.
 
-### 5. UID-based incremental polling (CG7's shape) — **NOT ANSWERED.**
+### 5. UID-based incremental polling (CG7's shape) — **ANSWERED, with an explicit limit on the evidence.**
 
-Untouched by this run. UIDs 1-8 were observed within single sessions; `UIDVALIDITY` was never read, never stored, and never compared across sessions, so nothing here says whether UID-based deduplication is safe. A monitoring agent that re-processes a message is a CG7-shaped duplicate-prevention bug, and this remains the open question most likely to bite silently.
+Tested 2026-09-17 with `uid_stability.py` across **four genuinely separate IMAP sessions** (full connect / login / read / logout each time), snapshots in `uid_snapshots/`.
+
+```
+UIDVALIDITY across 4 sessions: [1]        UIDNEXT: 9 (all four)
+UID per message:               identical everywhere
+Message-ID set:                identical across all four sessions
+Message-ID present:            8/8       malformed: none      duplicated: none
+```
+
+Every message, with both identifiers, from the final session:
+
+```
+uid 1  <cnY007FWaT2E9gznAlhpHQ@notifications.google.com>        Security alert
+uid 2  <hjQqhbpf8uMD732GonoYsg@notifications.google.com>        2-Step Verification turned on
+uid 3  <UmiNOirJknkx30rQVW8ljw@notifications.google.com>        Security alert
+uid 4  <CAKym4priE-k5E9Vgm+dqeZtY7MLiEfNUtWWMNAQPgmvLpLEeBQ@mail.gmail.com>   Phone bill
+uid 5  <CAKym4ppK48X167k-gWy5DJ7SufDgz-DE9iSo07oiBVPE8nErcg@mail.gmail.com>   Invoice copy
+uid 6  <CAKym4pqb+KZyQHkzTi1rQxMecYcNrf9XqWnHNgDDdWVb1rtcxw@mail.gmail.com>   Pur hase bill
+uid 7  <CAKym4pqKpa8SkHNifwifj6shFDRcqHVsQTryqPu8POr3crDm0g@mail.gmail.com>   Fwd: HDFC Bank...
+uid 8  <CAPo-PXis8tV-F36P8rS2_twf7hKXSt7KBbZX5wFd5RSqW9aQXQ@mail.gmail.com>   EB bill
+```
+
+**What is confirmed:** UIDs are stable across reconnects, `UIDVALIDITY` did not change, and Message-ID is present, well-formed and unique on all 8 messages. Both identifiers are usable.
+
+**What is NOT confirmed, and must not be rounded up.** The four sessions span **88 seconds**, on **one mailbox** that has never had a message expunged, and whose `UIDVALIDITY` is **1** — the value Gmail assigns a mailbox that has never been invalidated. Observing no change over 88 seconds says essentially nothing about whether `UIDVALIDITY` can change over months; RFC 3501 permits it, and a server is entitled to change it after a mailbox is deleted and recreated, or after some kinds of server-side migration. **"It never changed during the test" is not "it cannot change", and the agent must implement the RFC-required detection regardless of what this test observed.**
+
+Also untested: whether UIDs survive an actual expunge (nothing was deleted), and behaviour on any provider other than Gmail.
+
+### Dedup-key recommendation
+
+For whoever designs the email-intake dedup table. A recommendation, not an implementation.
+
+**Store both. Key on `(uidvalidity, uid)`; carry `message_id` as an independent recovery path.**
+
+| | `(UIDVALIDITY, UID)` | `Message-ID` |
+|---|---|---|
+| Assigned by | the IMAP server | the *sending* mail system |
+| Cheap to obtain | yes — `UID SEARCH` alone, no body fetch | needs a header fetch per message |
+| Stable across reconnects | confirmed here | confirmed here |
+| Survives a UIDVALIDITY change | **no, by definition** | yes |
+| Guaranteed present | yes | **no** — self-reported, may be absent or malformed |
+| Guaranteed unique | yes, within the epoch | **no** — a sender can reuse one |
+
+Neither is sufficient alone, and they fail in *different* directions, which is exactly why both are worth storing:
+
+1. **`(uidvalidity, uid)` is the working key.** It comes back from `UID SEARCH` without fetching anything, so the agent can decide "already processed?" before paying for a body fetch — which matters, given finding #4's measured fetch costs.
+2. **Read and compare `UIDVALIDITY` on every session.** This is not optional hygiene; RFC 3501 requires it. On a mismatch, every stored UID for that mailbox is meaningless and must be discarded, not reused.
+3. **`message_id` is the recovery path.** After a UIDVALIDITY change, re-map already-processed messages by Message-ID and rebuild the UID index, rather than re-processing the mailbox and re-filing every document a second time.
+4. **Do not make `message_id` the primary key.** It is self-reported. A malformed or missing one must not be able to block ingestion, and a duplicated one must not silently suppress a genuine second document.
+5. **A message with no usable Message-ID during a recovery is a Task, not a guess.** Per CG8 — re-filing a client document twice and dropping one are both wrong, and a human should choose.
+6. **Never use message sequence numbers.** See finding #8.
+
+A practical consequence for the table's shape: the natural unique constraint is on `(mailbox, uidvalidity, uid)`, with a non-unique index on `message_id` for the recovery lookup — unique on `message_id` would be wrong, because uniqueness is precisely what Message-ID does not guarantee.
 
 ## Method notes, carried over from the other spikes
 
@@ -153,6 +207,16 @@ Practical consequence: **`BODY.PEEK[HEADER]` triage before full fetch is worth d
 
 **#6 — Gmail-specific headers are present in the data but absent from the code path.** `X-Gm-Features`, `X-Gm-Gg`, `X-Gm-Message-State`, `X-Google-DKIM-Signature`. The spike reads none of them and uses only RFC 3501 commands. This supports the portability argument without demonstrating it — see open question 4.
 
+**#8 — This spike's own first implementation used message sequence numbers and called them UIDs.** Found while answering open question 5, and worth recording rather than quietly fixing, because it is the exact bug the question exists to prevent.
+
+`imaplib`'s `search()` and `fetch()` operate on **message sequence numbers**, not UIDs. Sequence numbers are *positional*: they are 1..N over the current mailbox contents and **renumber when a message is expunged**. The original `email_test.py` called `client.search(...)`, labelled the results `uid`, and wrote them into every run record under that name — so the earlier reporting of "uid 4 = phone bill" was a sequence number that happened to coincide.
+
+It coincided because **nothing has ever been expunged from this mailbox**, so sequence numbers and UIDs are currently identical (`1..8` for both). That coincidence is what makes the bug dangerous: it is invisible until the first deletion, at which point stored identifiers silently point at the wrong messages, and an intake agent re-files documents against the wrong records.
+
+Corrected to `uid('SEARCH', ...)` and `uid('FETCH', ...)`; run records now log the command as `UID SEARCH`/`UID FETCH` so the distinction is visible in the evidence. `uid_stability.py` deliberately records **both** so the equality is observable rather than assumed.
+
+The general lesson is P0-02 finding #2's, in a new place: **the failure was silent and the output looked correct.** A mailbox with no deletions cannot distinguish the right identifier from the wrong one.
+
 **#7 — `readonly=True` behaved as intended.** Messages remained unread after two full poll cycles that fetched every message. An agent can observe a shared inbox without changing what staff see in it.
 
 ## What is still blocked, and on whom
@@ -160,5 +224,5 @@ Practical consequence: **`BODY.PEEK[HEADER]` triage before full fetch is worth d
 The remaining questions need *time and a second environment*, not another inbox:
 
 1. **A second provider** (Exchange/M365 or Zoho Mail) to turn the portability argument into a demonstration. This should happen before an email-connector ADR is written.
-2. **A long-running session** to test IMAP IDLE, provider throttling, and `UIDVALIDITY` stability across reconnects.
+2. **A long-running session** to test IMAP IDLE and provider throttling. `UIDVALIDITY` stability across reconnects is now tested, but only over an 88-second window — a longer observation would strengthen it, though no amount of observation replaces implementing the RFC-required check.
 3. **Message shapes absent from this sample** — inline images, encoded filenames, `.eml` attachments, multi-attachment messages, and a `Re:` reply chain. Cheap to produce: a few more test sends.
