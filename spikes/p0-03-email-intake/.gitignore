@@ -1,0 +1,19 @@
+# Live credentials — must never be committed (Security Standard §3).
+# The repo-root .gitignore covers `.env`, but the rule is kept here too so it
+# travels with the spike directory rather than depending on a file three
+# levels up — which is exactly how P0-06 finding #13 happened (tokens.json was
+# unprotected because nothing local matched it).
+#
+# IMAP_APP_PASSWORD is a full-mailbox-access credential. It is not scoped, it
+# is not short-lived, and it cannot be narrowed the way an OAuth scope can —
+# which makes keeping it out of git more important here, not less.
+.env
+
+# Saved attachments from test messages. Regenerable by re-running, and the
+# whole point of the test account is that nothing here should matter — but
+# an attachment is file content from an inbox, and file content from an
+# inbox is the one thing in this spike that could later be a real document
+# if anyone ever points this at a real mailbox.
+attachments/
+
+__pycache__/
