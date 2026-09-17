@@ -24,7 +24,7 @@ Not a build sprint — a measurement and validation phase before any application
 - WhiteBooks GSP sandbox spike — validate GSTR-2B fetch + GSTR-1/3B filing endpoints (P0-04)
 - PaddleOCR accuracy validation against 20–50 real sample invoices (P0-05)
 - **Zoho Books sandbox spike — validate the OAuth2 authorization flow, Bill/Journal-posting API shape, and current published rate limits before Sprint 1 begins (P0-06, per ADR 0011)**
-- IaC tooling decision made (Terraform, per the still-open ADR item) — this needs resolving before Sprint 1 begins, since Sprint 1 provisions infrastructure
+- ~~IaC tooling decision made (Terraform, per the still-open ADR item)~~ — **RESOLVED 2026-09-17 by ADR 0014** (`audit-platform-ADR-0014-iac-scope-terraform-without-fargate.md`): adopt lightweight **Terraform** scoped to what ADR 0007 already specified (one EC2 or small non-Fargate ECS, Postgres, security groups, DNS), and **not** Fargate — 0007's rejection of Fargate stands, reaffirmed rather than revisited. What had blocked this was 0007's "Fargate/Terraform-level complexity" phrase bundling two separable things, against 0009's "adopt IaC from the first deployment". **Sprint 1 provisioning is unblocked**; the remaining work is writing the `terraform/` module, ideally before the first practice's deployment rather than retrofitting it later
 
 ## Sprint 1–2 (Weeks 1–4) — Foundation
 
