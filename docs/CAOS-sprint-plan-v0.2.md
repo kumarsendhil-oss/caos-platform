@@ -6,6 +6,7 @@
 | Version | Date | Summary |
 |---|---|---|
 | v0.1 | 2026-08-16 | Initial plan: Phase 0 baseline + 12 sprints, sequencing the Feature Backlog's 102 features against the module dependency order established across the ADRs. |
+| v0.2.1 | 2026-09-17 | Added **P0-07 (Dropbox webhook live verification)** to Phase 0. ADR 0003 is Accepted, but its Context records the webhook model as "verified against their own API documentation" — doc-verified only, with no live spike scheduled before Sprint 3 builds the Document Intake Agent against it. That is the same risk category that has already produced two corrections on this project: **P0-06 finding #6**, where Zoho's own published example contradicted its live API, and **P0-04**, where WhiteBooks' marketing claimed a gate-free self-serve sandbox their own onboarding doc contradicts. Cheap now, expensive under Sprint 3 build pressure. ADR 0003's status is unchanged — this adds verification, not doubt. |
 | v0.2 | 2026-08-22 | Added P0-06 (Zoho Books sandbox spike) to Phase 0. Expanded Sprint 1-2 (Foundation) deliverables to build both the Tally and Zoho adapters behind the new Books Connector interface, per ADR 0011, plus the Admin — Connections screen's Zoho OAuth status. **Flagged: the Sprint 1-2 timeline needs explicit reconfirmation once P0-06 reports back** — see the note at the end of Sprint 1-2 below. Sprint 4-5's critical end-to-end test now runs against both adapters, not just Tally. |
 
 ## Sequencing logic
@@ -24,6 +25,7 @@ Not a build sprint — a measurement and validation phase before any application
 - WhiteBooks GSP sandbox spike — validate GSTR-2B fetch + GSTR-1/3B filing endpoints (P0-04)
 - PaddleOCR accuracy validation against 20–50 real sample invoices (P0-05)
 - **Zoho Books sandbox spike — validate the OAuth2 authorization flow, Bill/Journal-posting API shape, and current published rate limits before Sprint 1 begins (P0-06, per ADR 0011)**
+- Dropbox webhook live verification — confirm the webhook-fires → `list_folder/continue` cursor pattern, the actual 10-second response window, and "App folder" scope behavior against a real Dropbox dev app, before Sprint 3 builds against these as given (P0-07)
 - ~~IaC tooling decision made (Terraform, per the still-open ADR item)~~ — **RESOLVED 2026-09-17 by ADR 0014** (`audit-platform-ADR-0014-iac-scope-terraform-without-fargate.md`): adopt lightweight **Terraform** scoped to what ADR 0007 already specified (one EC2 or small non-Fargate ECS, Postgres, security groups, DNS), and **not** Fargate — 0007's rejection of Fargate stands, reaffirmed rather than revisited. What had blocked this was 0007's "Fargate/Terraform-level complexity" phrase bundling two separable things, against 0009's "adopt IaC from the first deployment". **Sprint 1 provisioning is unblocked**; the remaining work is writing the `terraform/` module, ideally before the first practice's deployment rather than retrofitting it later
 
 ## Sprint 1–2 (Weeks 1–4) — Foundation

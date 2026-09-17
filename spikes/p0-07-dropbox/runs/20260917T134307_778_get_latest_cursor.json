@@ -1,0 +1,39 @@
+{
+  "timestamp_utc": "20260917T134307",
+  "direction": "outbound",
+  "label": "get_latest_cursor",
+  "request": {
+    "method": "POST",
+    "url": "https://api.dropboxapi.com/2/files/list_folder/get_latest_cursor",
+    "params": null,
+    "body": {
+      "path": "",
+      "recursive": true,
+      "include_deleted": false
+    }
+  },
+  "response": {
+    "status_code": 200,
+    "headers": {
+      "Date": "Thu, 17 Sep 2026 08:13:07 GMT",
+      "Server": "envoy",
+      "X-Content-Type-Options": "nosniff",
+      "Cache-Control": "no-cache",
+      "Pragma": "no-cache",
+      "Content-Disposition": "attachment",
+      "Content-Security-Policy": "sandbox",
+      "X-Frame-Options": "sameorigin",
+      "X-Webkit-Csp": "sandbox",
+      "X-Content-Security-Policy": "sandbox",
+      "Content-Type": "application/json",
+      "Content-Encoding": "gzip",
+      "Vary": "Accept-Encoding",
+      "X-Dropbox-Response-Origin": "far_remote",
+      "X-Dropbox-Request-Id": "585fc588e51f4263ad8c8c606aaba113",
+      "Transfer-Encoding": "chunked"
+    },
+    "body": {
+      "cursor": "AAZ9S95CC1Bi3A6vIEXxnTxjju2Sj0U4yRwtIwJmXt4euHaTISgcYJY2C7c-e-MY6izV_gAoPC0c2sBkqW2HkEADWMigbsPisoAFJvLuXeGVjdV-GiRT0zDvIShNRiwYJmgxozkGpPnQN876jwfFvwtOYNRY8WDH1ui8WWumwjTrif2pO9XdzMLCO2jwMYvf3A0"
+    }
+  }
+}
