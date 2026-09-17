@@ -1,0 +1,56 @@
+{
+  "timestamp_utc": "20260916T183145",
+  "label": "post_bill_fc_inter_wrong_tax",
+  "request": {
+    "method": "POST",
+    "url": "https://www.zohoapis.in/books/v3/bills",
+    "params": {
+      "organization_id": "60088150280"
+    },
+    "body": {
+      "vendor_id": "4136804000000045001",
+      "bill_number": "P0-06-FC-INTER-20260916-183129",
+      "source_of_supply": "TN",
+      "destination_of_supply": "KA",
+      "line_items": [
+        {
+          "name": "P0-06 forward-charge test line item",
+          "rate": 10000.0,
+          "quantity": 1,
+          "account_id": "4136804000000011001",
+          "tax_id": "4136804000000034297"
+        }
+      ]
+    }
+  },
+  "response": {
+    "status_code": 400,
+    "headers": {
+      "Server": "ZGS",
+      "Date": "Wed, 16 Sep 2026 13:01:45 GMT",
+      "Content-Type": "application/json;charset=UTF-8",
+      "Transfer-Encoding": "chunked",
+      "Connection": "keep-alive",
+      "X-Content-Type-Options": "nosniff",
+      "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0",
+      "Pragma": "no-cache",
+      "Expires": "Thu, 01 Jan 1970 00:00:00 GMT",
+      "X-Frame-Options": "DENY",
+      "X-Rate-Limit-Limit": "1000",
+      "X-Rate-Limit-Reset": "19695",
+      "X-Rate-Limit-Remaining": "946",
+      "Content-Disposition": "attachment;",
+      "Allow": "OPTIONS, DELETE, POST, GET, PUT",
+      "BUILD_VERSION": "Sep_15_2026_8402",
+      "CLIENT_BUILD_VERSION": "Sep_15_2026_8402",
+      "SERVER_BUILD_VERSION": "Sep_12_2026_2_19354/",
+      "vary": "accept-encoding",
+      "Content-Encoding": "gzip",
+      "Strict-Transport-Security": "max-age=64072000; includeSubDomains; preload"
+    },
+    "body": {
+      "code": 3032,
+      "message": "IGST has to be applied as this is an interstate transaction"
+    }
+  }
+}
