@@ -1,0 +1,20 @@
+# Real client invoices — NEVER commit. See README.md § DPDP handling.
+# These are real client financial documents under the DPDP Act, not the
+# fictitious spike data P0-06's runs/ captured. The whole reason ADR 0008
+# self-hosts OCR is to keep this class of document off third-party
+# infrastructure; committing it to a git remote would defeat that at the
+# first step. The rule is kept here, in the spike directory, so it travels
+# with the data rather than depending on a file three levels up — the same
+# reasoning as P0-07's .gitignore, and the gap that caused P0-06 finding #13.
+real-samples/
+real-results/
+
+# The spike's own virtualenv. PaddlePaddle + PaddleX pull ~2GB of wheels;
+# this is regenerable from requirements.txt and must never be committed.
+.venv/
+
+# Downloaded PP-StructureV3 model weights (~1GB), fetched on first run.
+models/
+.paddlex/
+
+__pycache__/

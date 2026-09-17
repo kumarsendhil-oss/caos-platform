@@ -1,0 +1,109 @@
+{
+  "source_file": "synthetic_003_compact.png",
+  "engine": "PP-StructureV3",
+  "elapsed_ms": 46906.0,
+  "pages": 1,
+  "tables_detected": 1,
+  "fields": {
+    "gstin": "29AACCV7891K1ZB",
+    "vendor_name": "Vayu Technologies",
+    "invoice_number": "VT/INV/2026/331",
+    "invoice_date": "2026-05-19",
+    "subtotal": "79450.00",
+    "tax_total": "14301.00",
+    "grand_total": "93751.00"
+  },
+  "line_items": [
+    {
+      "description": "Annual Support Retainer",
+      "quantity": "1",
+      "unit_price": "60000.00",
+      "amount": "60000.00"
+    },
+    {
+      "description": "Onsite Visit (per day)",
+      "quantity": "3",
+      "unit_price": "4500.00",
+      "amount": "13500.00"
+    },
+    {
+      "description": "Spare Parts Kit",
+      "quantity": "2",
+      "unit_price": "2750.00",
+      "amount": "5500.00"
+    },
+    {
+      "description": "Courier Charges",
+      "quantity": "1",
+      "unit_price": "450.00",
+      "amount": "450.00"
+    }
+  ],
+  "table_rows_raw": [
+    [
+      [
+        "Description",
+        "Qty",
+        "Rate",
+        "Amount"
+      ],
+      [
+        "Annual Support Retainer",
+        "1",
+        "60,000.00",
+        "60,000.00"
+      ],
+      [
+        "Onsite Visit (per day)",
+        "3",
+        "4,500.00",
+        "13,500.00"
+      ],
+      [
+        "Spare Parts Kit",
+        "2",
+        "2,750.00",
+        "5,500.00"
+      ],
+      [
+        "Courier Charges",
+        "1",
+        "450.00",
+        "450.00"
+      ]
+    ]
+  ],
+  "raw_text_lines": [
+    "Vayu Technologies",
+    "GSTIN: 29AACCV7891K1ZB",
+    "TAX INVOICE",
+    "Invoice No: VT/INV/2026/331",
+    "Invoice Date: 2026-05-19",
+    "Qty",
+    "Rate",
+    "Amount",
+    "Description",
+    "1",
+    "60,000.00",
+    "60,000.00",
+    "Annual Support Retainer",
+    "Onsite Visit (per day)",
+    "3",
+    "13,500.00",
+    "4,500.00",
+    "2",
+    "Spare Parts Kit",
+    "2,750.00",
+    "5,500.00",
+    "Courier Charges",
+    "450.00",
+    "1",
+    "450.00",
+    "79,450.00",
+    "Subtotal",
+    "14,301.00",
+    "IGST 18%",
+    "Total",
+    "93,751.00"
+  ]
+}

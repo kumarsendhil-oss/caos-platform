@@ -1,0 +1,82 @@
+{
+  "tolerance": "0.01",
+  "fields": {
+    "gstin": {
+      "correct": 3,
+      "total": 3,
+      "rate": 1.0,
+      "misses": []
+    },
+    "vendor_name": {
+      "correct": 3,
+      "total": 3,
+      "rate": 1.0,
+      "misses": []
+    },
+    "invoice_number": {
+      "correct": 3,
+      "total": 3,
+      "rate": 1.0,
+      "misses": []
+    },
+    "invoice_date": {
+      "correct": 3,
+      "total": 3,
+      "rate": 1.0,
+      "misses": []
+    },
+    "subtotal": {
+      "correct": 3,
+      "total": 3,
+      "rate": 1.0,
+      "misses": []
+    },
+    "tax_total": {
+      "correct": 3,
+      "total": 3,
+      "rate": 1.0,
+      "misses": []
+    },
+    "grand_total": {
+      "correct": 3,
+      "total": 3,
+      "rate": 1.0,
+      "misses": []
+    }
+  },
+  "vendor_name_exact": {
+    "correct": 3,
+    "total": 3,
+    "rate": 1.0
+  },
+  "line_items": [
+    {
+      "expected_count": 3,
+      "extracted_count": 3,
+      "count_correct": true,
+      "compared": 3,
+      "description_correct": 3,
+      "amount_correct": 3,
+      "document": "synthetic_001_classic.png"
+    },
+    {
+      "expected_count": 2,
+      "extracted_count": 0,
+      "count_correct": false,
+      "compared": 0,
+      "description_correct": 0,
+      "amount_correct": 0,
+      "document": "synthetic_002_boxed.png"
+    },
+    {
+      "expected_count": 4,
+      "extracted_count": 4,
+      "count_correct": true,
+      "compared": 4,
+      "description_correct": 4,
+      "amount_correct": 4,
+      "document": "synthetic_003_compact.png"
+    }
+  ],
+  "missing_results": []
+}
