@@ -1,6 +1,6 @@
 # P0-03 — Shared Inbox Intake over IMAP
 
-**Status:** scaffolded 2026-09-17. **No live call has been made** — needs an app password and test messages in the inbox (see *What is needed to actually run this*).
+**Status:** run live 2026-09-17 against `work.caos@gmail.com` — 8 messages, 19 evidence records in `runs/`. See `FINDINGS.md`; the headline is that a forwarded message carries the original sender in no header at all.
 
 Tests the mechanics EI-01 to EI-06 (PRD §5.4) depend on: monitoring a shared inbox, reading sender information well enough to map it to a client, and extracting and classifying attachments.
 

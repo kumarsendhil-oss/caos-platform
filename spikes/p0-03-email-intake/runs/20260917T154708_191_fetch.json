@@ -1,0 +1,45 @@
+{
+  "timestamp_utc": "20260917T154708",
+  "protocol": "IMAP4_SSL",
+  "label": "fetch",
+  "request": {
+    "command": "FETCH",
+    "account": "work.caos@gmail.com",
+    "host": "imap.gmail.com",
+    "mailbox": "INBOX",
+    "args": {
+      "uid": "7"
+    }
+  },
+  "response": {
+    "status": "OK",
+    "result": {
+      "uid": "7",
+      "message_id": "<CAKym4pqKpa8SkHNifwifj6shFDRcqHVsQTryqPu8POr3crDm0g@mail.gmail.com>",
+      "date": "2026-09-17T15:43:13+05:30",
+      "from_display_name": "Sendhil kumar",
+      "from_address": "kumar.sendhil@gmail.com",
+      "from_domain": "gmail.com",
+      "reply_to": null,
+      "return_path": "kumar.sendhil@gmail.com",
+      "subject": "Fwd: HDFC Bank Combined Email Statement for May-2026",
+      "looks_like_reply": false,
+      "looks_like_forward": true,
+      "in_reply_to": "<632613283705ffe9e7-740e-4f4c-b188-443d29897b93@intensemail.no-ip.org>",
+      "has_references": true,
+      "attachment_count": 1,
+      "attachments": [
+        {
+          "filename": "Sendhil_Kumar_Natarajan_31052026_122146941.pdf",
+          "content_type": "application/pdf",
+          "kind": "pdf",
+          "size_bytes": 47257,
+          "inline": false
+        }
+      ],
+      "fetch_ms": 575.3
+    },
+    "elapsed_ms": 575.28,
+    "error": null
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "timestamp_utc": "20260917T154703",
+  "protocol": "IMAP4_SSL",
+  "label": "fetch",
+  "request": {
+    "command": "FETCH",
+    "account": "work.caos@gmail.com",
+    "host": "imap.gmail.com",
+    "mailbox": "INBOX",
+    "args": {
+      "uid": "2"
+    }
+  },
+  "response": {
+    "status": "OK",
+    "result": {
+      "uid": "2",
+      "message_id": "<hjQqhbpf8uMD732GonoYsg@notifications.google.com>",
+      "date": "2026-09-17T09:44:02+00:00",
+      "from_display_name": "Google",
+      "from_address": "no-reply@accounts.google.com",
+      "from_domain": "accounts.google.com",
+      "reply_to": null,
+      "return_path": "3y7araggtcdojk-nalhu688kqjpo.ckkcha.8kiskng.86koci6eh.8ki@gaia.bounces.google.com",
+      "subject": "2-Step Verification turned on",
+      "looks_like_reply": false,
+      "looks_like_forward": false,
+      "in_reply_to": null,
+      "has_references": false,
+      "attachment_count": 0,
+      "attachments": [],
+      "fetch_ms": 519.4
+    },
+    "elapsed_ms": 519.38,
+    "error": null
+  }
+}
