@@ -1,0 +1,31 @@
+{
+  "timestamp_utc": "20260917T155251",
+  "protocol": "IMAP4_SSL",
+  "label": "fetch_attachment",
+  "request": {
+    "command": "FETCH",
+    "account": "work.caos@gmail.com",
+    "host": "imap.gmail.com",
+    "mailbox": "INBOX",
+    "args": {
+      "uid": "8"
+    }
+  },
+  "response": {
+    "status": "OK",
+    "result": {
+      "subject": "EB bill",
+      "from_address": "integraagro.tn@gmail.com",
+      "written": [
+        {
+          "uid": "8",
+          "filename": "uid8_06204017127_92026_Invoice-1.PDF",
+          "kind": "pdf",
+          "size_bytes": 81313
+        }
+      ]
+    },
+    "elapsed_ms": 456.35,
+    "error": null
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "timestamp_utc": "20260917T155250",
+  "protocol": "IMAP4_SSL",
+  "label": "fetch_attachment",
+  "request": {
+    "command": "FETCH",
+    "account": "work.caos@gmail.com",
+    "host": "imap.gmail.com",
+    "mailbox": "INBOX",
+    "args": {
+      "uid": "4"
+    }
+  },
+  "response": {
+    "status": "OK",
+    "result": {
+      "subject": "Phone bill",
+      "from_address": "kumar.sendhil@gmail.com",
+      "written": [
+        {
+          "uid": "4",
+          "filename": "uid4_9032783280_STNR27018390414.pdf",
+          "kind": "pdf",
+          "size_bytes": 699876
+        }
+      ]
+    },
+    "elapsed_ms": 2048.93,
+    "error": null
+  }
+}
