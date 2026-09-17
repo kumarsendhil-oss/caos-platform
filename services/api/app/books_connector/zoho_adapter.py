@@ -60,7 +60,21 @@ class ZohoAdapter(BooksConnector):
         # called. Per ADR 0011 Amendment 1, resolve entry.tax_rate to this
         # organization's tax_id by direct rate match (cached per org), and
         # send entry.supplier_state / entry.place_of_supply as source and
-        # destination of supply — Zoho computes the split server-side.
+        # destination of supply.
+        #
+        # CORRECTED per P0-06 finding #9 — the previous note here said
+        # "Zoho computes the split server-side", which the live spike
+        # disproved. Zoho *decomposes* a tax group into components (#8),
+        # but it does NOT decide intra- vs inter-state: it VALIDATES the
+        # caller's choice against the two supply states and rejects a
+        # wrong-direction tax symmetrically with code 3032. So the tax
+        # group/IGST choice must already be correct when it arrives here
+        # — it comes from the shared determination above the
+        # BooksConnector boundary (ADR 0011 Amendment 2), not from here.
+        #
+        # entry.place_of_supply / entry.supplier_state are two-digit
+        # numeric codes; Zoho wants the two-letter alpha form on the wire
+        # (#8), so translate at the edge, immediately before the call.
         # When the org has no tax rate matching entry.tax_rate, raise a
         # Task Engine exception rather than guessing, per BK-03's
         # missing-ledger pattern. See docs/STUB_ISSUES.md.
