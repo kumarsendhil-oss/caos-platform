@@ -12,13 +12,17 @@
 
 Accepted
 
-> **⚠ Doc-verified only — live verification pending via P0-07.**
+> **✅ Live-verified by P0-07 on 2026-09-17. Amended by Amendment 1.**
 >
-> This is a flag, **not a reversal**: the decision stands, and nothing below is known to be wrong. The Context section records that Dropbox's webhook model "was verified against their own API documentation" — which is real verification, but on this project it has twice proved insufficient on its own. **P0-06 finding #6** found Zoho's own published example contradicting its live API, and **P0-04** found WhiteBooks' marketing contradicting their own onboarding documentation.
+> This block previously flagged the decision as doc-verified only. **P0-07** (`spikes/p0-07-dropbox/`) has now run against a real App-folder-scoped Dropbox app, and all three specifics it listed as unobserved are confirmed:
 >
-> Three specifics here are taken from documentation and have never been observed: the **webhook → `/files/list_folder/continue` cursor pattern** (the notification carries no file detail, so the whole intake design rests on this loop), the **10-second response window** (which drives the queue/worker requirement in Consequences — an architectural commitment, not a tuning parameter), and **"App folder" scope behaviour** (chosen deliberately over Full Dropbox, but what a cursor reports under it is unobserved).
+> - **The webhook → `/files/list_folder/continue` cursor pattern works as documented.** The notification carries no file detail whatsoever, and `continue` returns exactly the delta. The cursor genuinely advances — a second notification returned only its own change, not a re-listing.
+> - **The 10-second response window is real, and acknowledgement is effectively free** — measured at 0.378–1.067 ms across three notifications, 0.004%–0.011% of the window. The queue/worker requirement in Consequences stands: the limit constrains inline *work*, not acknowledgement.
+> - **"App folder" scope returns app-relative paths** (`/p0-07-test.txt`); the `/Apps/<name>/` prefix never appears.
 >
-> **P0-07** (`spikes/p0-07-dropbox/`) exists to check all three against a real Dropbox app, before Sprint 3 builds the Document Intake Agent against them as given. Scaffolded 2026-09-17; **not yet run** — it needs a Dropbox dev app and a publicly reachable URL. If it finds a gap, the correction belongs in an amendment, in the shape of ADR 0011 Amendment 1.
+> The spike also surfaced two gaps this ADR does not cover — Dropbox notifies on the app's **own** writes, and `deleted` entries carry no `id` or `rev`. Both are resolved in **[Amendment 1](audit-platform-ADR-0003-amendment-1-webhook-loop-and-deletes.md)**, which refines implementation-level design without reopening the decision.
+>
+> Two questions remain unverified and are tracked in Amendment 1's Open section: **retry/back-off behaviour on a slow or failed response** (the more consequential — if Dropbox does not retry, webhook-only intake needs a reconciling sweep as a backstop), and **move-out-of-folder semantics**.
 
 ## Context
 
