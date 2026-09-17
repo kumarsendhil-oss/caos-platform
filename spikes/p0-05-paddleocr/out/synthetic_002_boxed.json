@@ -1,0 +1,65 @@
+{
+  "source_file": "synthetic_002_boxed.png",
+  "engine": "PP-StructureV3",
+  "elapsed_ms": 48766.0,
+  "pages": 1,
+  "tables_detected": 1,
+  "fields": {
+    "gstin": "27AAGCM1234P1Z5",
+    "vendor_name": "Meridian Logistics Services",
+    "invoice_number": "ML-8842",
+    "invoice_date": "2026-05-02",
+    "subtotal": "21000.00",
+    "tax_total": "3780.00",
+    "grand_total": "24780.00"
+  },
+  "line_items": [],
+  "table_rows_raw": [
+    [
+      [
+        "Meridian Logistics Services GSTIN: 27AAGCM1234P1Z5"
+      ],
+      [
+        "TAX INVOICE Invoice No: ML-8842 Invoice Date: 2026-05-02"
+      ],
+      [
+        "Description Freight Chennai to Pune Loading and Handling",
+        "",
+        ""
+      ],
+      [
+        "Qty 1 2",
+        "Rate 18,500.00 1,250.00",
+        "Amount"
+      ],
+      [
+        "Subtotal IGST 18% Total"
+      ]
+    ]
+  ],
+  "raw_text_lines": [
+    "Meridian Logistics Services",
+    "GSTIN: 27AAGCM1234P1Z5",
+    "TAX INVOICE",
+    "Invoice No: ML-8842",
+    "Invoice Date: 2026-05-02",
+    "Qty",
+    "Rate",
+    "Description",
+    "Amount",
+    "18,500.00",
+    "1",
+    "Freight Chennai to Pune",
+    "18,500.00",
+    "2",
+    "1,250.00",
+    "2,500.00",
+    "Loading and Handling",
+    "Subtotal",
+    "21,000.00",
+    "IGST 18%",
+    "3,780.00",
+    "Total",
+    "24,780.00"
+  ]
+}

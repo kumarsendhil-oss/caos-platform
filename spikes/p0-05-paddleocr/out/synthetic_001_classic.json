@@ -1,0 +1,93 @@
+{
+  "source_file": "synthetic_001_classic.png",
+  "engine": "PP-StructureV3",
+  "elapsed_ms": 59172.0,
+  "pages": 1,
+  "tables_detected": 1,
+  "fields": {
+    "gstin": "33AABCU9603R1ZX",
+    "vendor_name": "Sundaram Office Supplies Pvt Ltd",
+    "invoice_number": "SOS/2026/0417",
+    "invoice_date": "2026-04-17",
+    "subtotal": "7440.00",
+    "tax_total": "1339.20",
+    "grand_total": "8779.20"
+  },
+  "line_items": [
+    {
+      "description": "A4 Copier Paper 75gsm Ream",
+      "quantity": "20",
+      "unit_price": "240.00",
+      "amount": "4800.00"
+    },
+    {
+      "description": "Whiteboard Marker Black",
+      "quantity": "24",
+      "unit_price": "35.00",
+      "amount": "840.00"
+    },
+    {
+      "description": "Box File Foolscap",
+      "quantity": "15",
+      "unit_price": "120.00",
+      "amount": "1800.00"
+    }
+  ],
+  "table_rows_raw": [
+    [
+      [
+        "Description",
+        "Qty",
+        "Rate",
+        "Amount"
+      ],
+      [
+        "A4 Copier Paper 75gsm Ream",
+        "20",
+        "240.00",
+        "4,800.00"
+      ],
+      [
+        "Whiteboard Marker Black",
+        "24",
+        "35.00",
+        "840.00"
+      ],
+      [
+        "Box File Foolscap",
+        "15",
+        "120.00",
+        "1,800.00"
+      ]
+    ]
+  ],
+  "raw_text_lines": [
+    "Sundaram Office Supplies Pvt Ltd",
+    "GSTIN:33AABCU9603R1ZX",
+    "TAX INVOICE",
+    "Invoice No: SOS/2026/0417",
+    "Invoice Date: 2026-04-17",
+    "Qty",
+    "Rate",
+    "Amount",
+    "Description",
+    "20",
+    "240.00",
+    "4,800.00",
+    "A4 Copier Paper 75gsm Ream",
+    "24",
+    "35.00",
+    "840.00",
+    "Whiteboard Marker Black",
+    "1,800.00",
+    "Box File Foolscap",
+    "15",
+    "120.00",
+    "7,440.00",
+    "Subtotal",
+    "IGST 18%",
+    "1,339.20",
+    "8,779.20",
+    "Total"
+  ]
+}

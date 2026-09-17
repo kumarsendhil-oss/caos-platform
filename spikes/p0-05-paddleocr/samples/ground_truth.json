@@ -1,0 +1,93 @@
+{
+  "schema_version": "1",
+  "note": "Synthetic harness fixtures. Generated alongside the images, so these values are correct by construction — this file measures the pipeline, not PP-StructureV3's accuracy.",
+  "documents": {
+    "synthetic_001_classic.png": {
+      "gstin": "33AABCU9603R1ZX",
+      "vendor_name": "Sundaram Office Supplies Pvt Ltd",
+      "invoice_number": "SOS/2026/0417",
+      "invoice_date": "2026-04-17",
+      "subtotal": "7440.00",
+      "tax_total": "1339.20",
+      "grand_total": "8779.20",
+      "line_items": [
+        {
+          "description": "A4 Copier Paper 75gsm Ream",
+          "quantity": "20",
+          "unit_price": "240.00",
+          "amount": "4800.00"
+        },
+        {
+          "description": "Whiteboard Marker Black",
+          "quantity": "24",
+          "unit_price": "35.00",
+          "amount": "840.00"
+        },
+        {
+          "description": "Box File Foolscap",
+          "quantity": "15",
+          "unit_price": "120.00",
+          "amount": "1800.00"
+        }
+      ]
+    },
+    "synthetic_002_boxed.png": {
+      "gstin": "27AAGCM1234P1Z5",
+      "vendor_name": "Meridian Logistics Services",
+      "invoice_number": "ML-8842",
+      "invoice_date": "2026-05-02",
+      "subtotal": "21000.00",
+      "tax_total": "3780.00",
+      "grand_total": "24780.00",
+      "line_items": [
+        {
+          "description": "Freight Chennai to Pune",
+          "quantity": "1",
+          "unit_price": "18500.00",
+          "amount": "18500.00"
+        },
+        {
+          "description": "Loading and Handling",
+          "quantity": "2",
+          "unit_price": "1250.00",
+          "amount": "2500.00"
+        }
+      ]
+    },
+    "synthetic_003_compact.png": {
+      "gstin": "29AACCV7891K1ZB",
+      "vendor_name": "Vayu Technologies",
+      "invoice_number": "VT/INV/2026/331",
+      "invoice_date": "2026-05-19",
+      "subtotal": "79450.00",
+      "tax_total": "14301.00",
+      "grand_total": "93751.00",
+      "line_items": [
+        {
+          "description": "Annual Support Retainer",
+          "quantity": "1",
+          "unit_price": "60000.00",
+          "amount": "60000.00"
+        },
+        {
+          "description": "Onsite Visit (per day)",
+          "quantity": "3",
+          "unit_price": "4500.00",
+          "amount": "13500.00"
+        },
+        {
+          "description": "Spare Parts Kit",
+          "quantity": "2",
+          "unit_price": "2750.00",
+          "amount": "5500.00"
+        },
+        {
+          "description": "Courier Charges",
+          "quantity": "1",
+          "unit_price": "450.00",
+          "amount": "450.00"
+        }
+      ]
+    }
+  }
+}

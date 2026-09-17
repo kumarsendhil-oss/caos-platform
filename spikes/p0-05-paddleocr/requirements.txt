@@ -1,0 +1,22 @@
+# P0-05 harness dependencies.
+#
+# Python 3.12 — NOT 3.14. PaddlePaddle 3.0.0 publishes no cp314 wheel, so
+# the spike has its own venv rather than reusing services/api's.
+#
+# CPU-only by deliberate decision, per ADR 0008 ("Run CPU-only initially …
+# GPU is a scale-up option, not a day-one cost"). `paddlepaddle` is the CPU
+# distribution; installing `paddlepaddle-gpu` instead would silently depart
+# from the ADR, so verify with:
+#     python -c "import paddle; print(paddle.is_compiled_with_cuda())"  # -> False
+#
+# paddlex[ocr] is required and is NOT pulled in by `paddleocr` alone —
+# PPStructureV3() raises DependencyError at construction without it.
+
+paddlepaddle==3.0.0
+paddleocr==3.7.0
+paddlex[ocr]==3.7.2
+
+# Synthetic fixture generation only (make_synthetic_invoices.py).
+# Pillow also arrives as a paddlex dependency; pinned here because the
+# harness uses it directly rather than incidentally.
+Pillow>=11.0
