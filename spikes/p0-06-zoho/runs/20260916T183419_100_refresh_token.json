@@ -1,0 +1,32 @@
+{
+  "timestamp_utc": "20260916T183419",
+  "label": "refresh_token",
+  "request": {
+    "method": "POST",
+    "url": "https://accounts.zoho.in/oauth/v2/token",
+    "params": null,
+    "body": {
+      "grant_type": "refresh_token"
+    }
+  },
+  "response": {
+    "status_code": 200,
+    "headers": {
+      "Server": "ZGS",
+      "Date": "Wed, 16 Sep 2026 13:04:17 GMT",
+      "Content-Type": "application/json;charset=UTF-8",
+      "Content-Length": "203",
+      "Connection": "keep-alive",
+      "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff",
+      "Content-Security-Policy": "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.zohocdn.com https://*.zoho.com https://*.zoho.eu https://*.zoho.com.cn https://*.zoho.com.au https://*.zoho.jp https://*.zoho.uk https://*.zoho.sa https://*.zohocloud.ca; report-uri https://logsapi.zoho.in/csplog?service=accounts;",
+      "Pragma": "no-cache",
+      "X-Frame-Options": "SAMEORIGIN",
+      "Content-Language": "en-US",
+      "Strict-Transport-Security": "max-age=64072000; includeSubDomains; preload"
+    },
+    "body": {
+      "has_access_token": true
+    }
+  }
+}

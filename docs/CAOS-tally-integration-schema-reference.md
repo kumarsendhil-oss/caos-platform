@@ -529,7 +529,7 @@ omitted-`OBJVIEW` result — established on *Purchase* variants only —
 remains untested for Sales; tax was supplied, not derived (as in #8);
 and the test party carried no `PARTYGSTIN` or `STATENAME`, so this says
 **nothing** about outward-supply place-of-supply determination
-(`PENDING:018` is untouched by it).
+(issue #50, formerly `PENDING:018`, is untouched by it).
 
 ## 4.4 Inventory-bearing voucher **[Tally]** — #21, verified live
 

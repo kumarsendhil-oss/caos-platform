@@ -1,0 +1,37 @@
+{
+  "timestamp_utc": "20260916T183811",
+  "label": "rate_probe_conc_804_http429",
+  "request": {
+    "method": "GET",
+    "url": "https://www.zohoapis.in/books/v3/organizations",
+    "params": {
+      "organization_id": "60088150280"
+    },
+    "body": null
+  },
+  "response": {
+    "status_code": 429,
+    "headers": {
+      "Server": "ZGS",
+      "Date": "Wed, 16 Sep 2026 13:08:11 GMT",
+      "Content-Type": "application/json;charset=UTF-8",
+      "Transfer-Encoding": "chunked",
+      "Connection": "keep-alive",
+      "X-Content-Type-Options": "nosniff",
+      "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0",
+      "Pragma": "no-cache",
+      "Expires": "Thu, 01 Jan 1970 00:00:00 GMT",
+      "X-Frame-Options": "DENY",
+      "SERVER_BUILD_VERSION": "Sep_12_2026_2_19354/",
+      "Content-Disposition": "attachment;",
+      "Retry-After": "3600",
+      "vary": "accept-encoding",
+      "Content-Encoding": "gzip",
+      "Strict-Transport-Security": "max-age=64072000; includeSubDomains; preload"
+    },
+    "body": {
+      "code": 43,
+      "message": "For security reasons you have been blocked for some time as you have exceeded the maximum number of requests per minute."
+    }
+  }
+}

@@ -19,7 +19,7 @@ than inheriting a Purchase-only result.
 SCOPE LIMIT, so a pass is not over-read: tax amounts are supplied, not
 derived (as in #8), and the party ledger carries no GSTIN and no
 STATENAME. This tests the *structural* Sales shape only. It says nothing
-about outward-supply GST determination, which is PENDING:018's
+about outward-supply GST determination, which is issue #50's (formerly PENDING:018)
 unreconciled-state-code problem and stays exactly as open afterwards.
 
 Masters note: CGST and SGST already exist in this company (one tax

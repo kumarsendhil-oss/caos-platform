@@ -1,0 +1,53 @@
+{
+  "timestamp_utc": "20260916T183330",
+  "label": "list_journals",
+  "request": {
+    "method": "GET",
+    "url": "https://www.zohoapis.in/books/v3/journals",
+    "params": {
+      "organization_id": "60088150280"
+    },
+    "body": null
+  },
+  "response": {
+    "status_code": 200,
+    "headers": {
+      "Server": "ZGS",
+      "Date": "Wed, 16 Sep 2026 13:03:30 GMT",
+      "Content-Type": "application/json;charset=UTF-8",
+      "Transfer-Encoding": "chunked",
+      "Connection": "keep-alive",
+      "X-Content-Type-Options": "nosniff",
+      "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0, post-check=0, pre-check=0",
+      "Pragma": "no-cache",
+      "Expires": "Thu, 01 Jan 1970 00:00:00 GMT",
+      "X-Frame-Options": "DENY",
+      "X-Rate-Limit-Limit": "1000",
+      "X-Rate-Limit-Reset": "19589",
+      "X-Rate-Limit-Remaining": "939",
+      "Content-Disposition": "attachment;",
+      "Allow": "OPTIONS, DELETE, POST, GET",
+      "BUILD_VERSION": "Sep_15_2026_8402",
+      "CLIENT_BUILD_VERSION": "Sep_15_2026_8402",
+      "SERVER_BUILD_VERSION": "Sep_12_2026_2_19354/",
+      "vary": "accept-encoding",
+      "Content-Encoding": "gzip",
+      "Strict-Transport-Security": "max-age=64072000; includeSubDomains; preload"
+    },
+    "body": {
+      "code": 0,
+      "message": "success",
+      "journals": [],
+      "page_context": {
+        "page": 1,
+        "per_page": 200,
+        "has_more_page": false,
+        "report_name": "Manual Journals",
+        "applied_filter": "JournalDate.All",
+        "custom_fields": [],
+        "sort_column": "journal_date",
+        "sort_order": "D"
+      }
+    }
+  }
+}
