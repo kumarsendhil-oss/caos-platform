@@ -34,9 +34,18 @@ class DraftEntry:
 
     Per ADR 0011 Amendment 1, this carries tax *determinants* rather than
     computed tax amounts. Each adapter derives what its own backend needs:
-    TallyAdapter computes the CGST/SGST/IGST split from tax_rate plus the
-    two state codes and selects the tax ledger names; ZohoAdapter resolves
-    tax_rate to a per-organization tax_id. Deriving at the edge keeps the
+    TallyAdapter computes the CGST/SGST/IGST amounts from tax_rate and
+    selects the tax ledger names; ZohoAdapter resolves tax_rate to a
+    per-organization tax_id.
+
+    Per ADR 0011 Amendment 2, what neither adapter does is decide *which*
+    jurisdiction applies. The intra- vs inter-state determination is made
+    ONCE, above this interface, by a shared function — never per-adapter.
+    P0-06 finding #9 is the reason: Zoho validates that choice and rejects
+    a wrong one loudly (code 3032), while Tally does not validate at all
+    and posts a wrong-but-plausible split silently. Two copies of one
+    decision, where only one copy's mistakes are ever reported, drift in
+    the direction of the silent backend. Deriving at the edge keeps the
     shared shape backend-neutral and avoids the lossy amounts-to-rate
     round-trip (two rate configurations can yield the same rupee amount).
 
@@ -53,8 +62,18 @@ class DraftEntry:
     invoice_date: str  # ISO 8601 date
     taxable_amount: Decimal  # pre-tax line total
     tax_rate: Decimal  # percent, e.g. Decimal("18") for 18%
-    place_of_supply: str  # state code, e.g. "TN"
-    supplier_state: str  # state code, for intra- vs inter-state determination
+    # Two-digit statutory GST state code, e.g. "33" (Tamil Nadu) — NOT the
+    # two-letter alpha form and NOT the full state name. Per ADR 0011
+    # Amendment 2 the numeric code is canonical throughout the platform,
+    # because it is the only one of the three representations backed by a
+    # fixed, government-assigned vocabulary. Each adapter translates to its
+    # own backend's spelling at the edge: ZohoAdapter to alpha, TallyAdapter
+    # to the full STATENAME.
+    place_of_supply: str
+    # Same encoding. Note this should agree with vendor_gstin[:2], which is
+    # the same fact by another route — a mismatch is an extraction problem
+    # worth a Task, not a field to silently prefer one way or the other.
+    supplier_state: str
     ledger_name: str
 
 
@@ -94,9 +113,15 @@ class BooksConnector(ABC):
         caller has already verified no matching entry exists.
 
         Per ADR 0011 Amendment 1, DraftEntry carries tax determinants, not
-        computed amounts: deriving the backend's tax representation from
-        tax_rate, place_of_supply and supplier_state is this method's
+        computed amounts: deriving the backend's tax *representation* from
+        tax_rate and the supplied jurisdiction is this method's
         responsibility, not the caller's.
+
+        Per ADR 0011 Amendment 2, the intra- vs inter-state *determination*
+        is NOT this method's responsibility. It is made once above this
+        interface and handed down. Do not re-derive it here by comparing
+        place_of_supply to supplier_state — that is the duplication the
+        amendment exists to prevent.
         """
 
     @abstractmethod

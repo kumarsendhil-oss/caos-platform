@@ -53,11 +53,19 @@ class TallyAdapter(BooksConnector):
         # STUB(#2): XML voucher import. CG7's duplicate-check has
         # already run by the time this is called — do not re-check here.
         # Per ADR 0011 Amendment 1 this method owns the tax derivation:
-        # compute the CGST/SGST/IGST split from entry.tax_rate against
-        # entry.taxable_amount, decide intra- vs inter-state by comparing
-        # entry.place_of_supply to entry.supplier_state, and select the
-        # matching tax ledger names. Decimal throughout (CG5) — rounding
-        # on odd rates is the likely bug site, so unit-test it directly.
+        # compute the CGST/SGST/IGST amounts from entry.tax_rate against
+        # entry.taxable_amount and select the matching tax ledger names.
+        # Decimal throughout (CG5) — rounding on odd rates is the likely
+        # bug site, so unit-test it directly.
+        #
+        # Per ADR 0011 Amendment 2, do NOT decide intra- vs inter-state
+        # here by comparing entry.place_of_supply to entry.supplier_state.
+        # That determination is made once above the BooksConnector
+        # boundary and handed down; duplicating it here is exactly what
+        # the amendment forbids, and Tally is the backend where getting it
+        # wrong is silent (P0-02 finding #2). The state fields on
+        # DraftEntry are two-digit numeric codes — translate to Tally's
+        # full STATENAME at the edge, immediately before XML generation.
         # See docs/STUB_ISSUES.md.
         raise NotImplementedError("STUB(#2) — TallyAdapter.post_entry")
 

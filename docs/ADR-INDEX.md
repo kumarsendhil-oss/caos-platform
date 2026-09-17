@@ -19,6 +19,7 @@ from the original consolidated *Internal Development Readiness Package* PDF
 | 0010 | Base Product with Per-Practice Customization and Upstream Promotion | Accepted | `audit-platform-ADR-0010-base-product-per-practice-customization.md` |
 | 0011 | Multi-Backend Bookkeeping Connector (Tally + Zoho Books) | Accepted | `audit-platform-ADR-0011-addendum.md` |
 | 0011-A1 | Amendment 1: Tax Modelling in `DraftEntry` | Accepted | `audit-platform-ADR-0011-amendment-1-tax-modelling.md` |
+| 0011-A2 | Amendment 2: Canonical State Representation and Shared Tax-Jurisdiction Determination | Accepted | `audit-platform-ADR-0011-amendment-2-state-representation.md` |
 | 0012 | Cost-Optimized Agent LLM Usage | Accepted (pending re-metering) | `audit-platform-ADR-0012-cost-optimization.md` |
 | — | Open items carried from ADRs 0001–0010 | — | `audit-platform-ADR-0001-0010-open-items.md` |
 
@@ -27,6 +28,7 @@ from the original consolidated *Internal Development Readiness Package* PDF
 - **0007 is still Proposed**, not Accepted. It needs confirmation from whoever actually builds the platform, since team familiarity with Python vs. Node weighs as heavily as the analysis in it. Tracked as an item on the Dev Readiness Checklist.
 - **0001 is amended by 0011.** Its technical content stands, but it now describes the *Tally adapter* specifically rather than the whole bookkeeping integration.
 - **0011 Amendment 1 changes `DraftEntry`'s shape.** It must land before either adapter's `post_entry` is implemented (issues #2 and #5) — free now, a migration later.
+- **0011 Amendment 2 settles how state is represented, and corrects one consequence of Amendment 1.** The two-digit statutory numeric code (`33`) is canonical; each adapter translates at its own edge; and the intra- vs inter-state determination moves *out* of the adapters into one shared function above them. Amendment 1's core decision stands — only its "`TallyAdapter` decides intra/inter" addition is superseded, because P0-06 finding #9 showed Zoho validates that choice rather than making it. Resolves issue #50. Same timing argument as A1: free now, expensive after either adapter is written.
 - The **open-items file** lists what was undecided when the original set was written. Check each against 0011/0012 and the Dev Readiness Checklist before assuming it's still open.
 
 ## Gaps worth knowing about
