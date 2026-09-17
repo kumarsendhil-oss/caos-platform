@@ -1,0 +1,16 @@
+# Live credentials — must never be committed (Security Standard §3).
+# The repo-root .gitignore covers `.env`, but this rule is kept here too so it
+# travels with the spike directory rather than depending on a file three levels
+# up — which is exactly how P0-06 finding #13 happened (tokens.json was
+# unprotected because nothing local matched it).
+.env
+
+# Dropbox app key/secret and the generated access token all live in .env.
+# Nothing else in this spike should ever hold a credential; if that changes,
+# add it here in the same commit that introduces it.
+
+# Spike runtime state, not evidence: regenerable with `--cursor`, and it
+# encodes the app folder's change position rather than anything worth keeping.
+cursor.json
+
+__pycache__/
