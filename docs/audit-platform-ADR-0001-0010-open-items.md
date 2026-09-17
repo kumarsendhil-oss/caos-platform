@@ -14,7 +14,7 @@ Readiness Checklist before treating any as still open.
 
 - DPDP Act specific obligations for the platform’s own metadata layer — needs legal/compliance input.
 - PaddleOCR accuracy validation against a representative sample of real practice documents (20-50 invoices across vendor formats) — needed before ADR 0008 can be considered fully proven in practice, not just sound in theory.
-- Infrastructure-as-code tooling choice (Terraform vs. alternatives) for repeatable per-practice deployment, per ADR 0009.
+- ~~Infrastructure-as-code tooling choice (Terraform vs. alternatives) for repeatable per-practice deployment, per ADR 0009.~~ **CLOSED 2026-09-17 — ADR 0014:** lightweight Terraform, scoped to ADR 0007's existing infrastructure; Fargate remains rejected.
 
 ER Diagram — Practice Automation Platform Prepared for Venture Assist / Srivatsan & Associates | Draft v0.1
 

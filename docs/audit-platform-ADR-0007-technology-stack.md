@@ -10,7 +10,20 @@
 
 ## Status
 
-Proposed (revised)
+Accepted (revised)
+
+**Accepted 2026-09-17.** The open question was never the analysis — it was
+whether the team that actually builds this is comfortable in Python rather
+than Node. Confirmed: they are. The formal status now matches a choice the
+codebase has already implemented — `services/api/app/` is FastAPI with async
+SQLAlchemy and Alembic, and `app/books_connector/` is built on it. This
+records reality rather than authorising a change.
+
+Note that acceptance covers the stack, not every aside in the Decision
+table. The hosting row's parenthetical rejection of "Fargate/Terraform-level
+complexity" bundles two separable things; **ADR 0014** unbundles them,
+reaffirming the Fargate rejection and adopting Terraform at the scope this
+ADR already specified.
 
 ## Context
 
