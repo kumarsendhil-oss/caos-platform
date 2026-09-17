@@ -1,0 +1,31 @@
+{
+  "timestamp_utc": "20260917T155250",
+  "protocol": "IMAP4_SSL",
+  "label": "fetch_attachment",
+  "request": {
+    "command": "FETCH",
+    "account": "work.caos@gmail.com",
+    "host": "imap.gmail.com",
+    "mailbox": "INBOX",
+    "args": {
+      "uid": "5"
+    }
+  },
+  "response": {
+    "status": "OK",
+    "result": {
+      "subject": "Invoice copy",
+      "from_address": "kumar.sendhil@gmail.com",
+      "written": [
+        {
+          "uid": "5",
+          "filename": "uid5_images.jpeg",
+          "kind": "image",
+          "size_bytes": 31096
+        }
+      ]
+    },
+    "elapsed_ms": 543.03,
+    "error": null
+  }
+}
