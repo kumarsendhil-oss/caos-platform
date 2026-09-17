@@ -1,6 +1,6 @@
 # P0-07 — Dropbox Webhook Live Verification
 
-**Status:** scaffolding only. **No live call has been made, and no Dropbox app exists yet.**
+**Status:** run live on 2026-09-17 against app ID `8506691` — see `FINDINGS.md`.
 
 Verifies the three claims ADR 0003 makes from Dropbox's documentation alone. ADR 0003 is **Accepted** and stays Accepted — this spike is not a challenge to it, it is the live check its Context section never got.
 
@@ -43,7 +43,7 @@ Dropbox also requires **HTTPS** for webhook URIs and performs a one-time GET cha
    - "Scoped access"
    - **"App folder" — NOT "Full Dropbox".** ADR 0003 decided this, and testing under the wrong scope would validate a design the platform is not going to ship. It also keeps the blast radius at one folder.
    - Name it something obviously disposable (e.g. `caos-p0-07-spike`).
-3. **Permissions tab** → enable at minimum `files.metadata.read` and `files.content.read`, then **Submit**. Scope changes do not apply to already-issued tokens — regenerate the token after changing them, or you get confusing 401/`missing_scope` errors.
+3. **Permissions tab** → enable at minimum `files.metadata.read`, `files.content.read`, and `files.content.write` (needed only if you trigger changes via the API rather than the web UI), then **Submit**. Scope changes do not apply to already-issued tokens — regenerate the token after changing them, or you get confusing 401/`missing_scope` errors.
 4. **Settings tab** → "Generated access token" → Generate. Copy it.
 5. `cp .env.example .env` and fill in the app key, app secret, and token.
 6. **Start the tunnel** (e.g. `ngrok http 8080`) and copy the HTTPS URL.

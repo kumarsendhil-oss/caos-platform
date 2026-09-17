@@ -1,0 +1,34 @@
+{
+  "timestamp_utc": "20260917T134329",
+  "direction": "outbound",
+  "label": "list_folder_continue",
+  "request": {
+    "method": "POST",
+    "url": "https://api.dropboxapi.com/2/files/list_folder/continue",
+    "params": null,
+    "body": {
+      "cursor": "AAZ9S95CC1Bi3A6vIEXxnTxjju2Sj0U4yRwtIwJmXt4euHaTISgcYJY2C7c-e-MY6izV_gAoPC0c2sBkqW2HkEADWMigbsPisoAFJvLuXeGVjdV-GiRT0zDvIShNRiwYJmgxozkGpPnQN876jwfFvwtOYNRY8WDH1ui8WWumwjTrif2pO9XdzMLCO2jwMYvf3A0"
+    }
+  },
+  "response": {
+    "status_code": 401,
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Content-Type-Options": "nosniff",
+      "Cache-Control": "no-cache",
+      "Www-Authenticate": "Bearer realm=\"Dropbox-API\"",
+      "X-Dropbox-Request-Url": "/2/files/list_folder/continue",
+      "Content-Length": "81",
+      "Date": "Thu, 17 Sep 2026 08:13:29 GMT",
+      "Server": "envoy",
+      "X-Dropbox-Response-Origin": "remote",
+      "X-Dropbox-Request-Id": "cb7bcfdeb87145daa56bc8416aaba129"
+    },
+    "body": {
+      "error": {
+        ".tag": "expired_access_token"
+      },
+      "error_summary": "expired_access_token/"
+    }
+  }
+}

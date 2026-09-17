@@ -14,3 +14,12 @@
 cursor.json
 
 __pycache__/
+
+# Tunnel and receiver console output from a live run. Regenerable, machine- and
+# session-specific (the ngrok log carries that session's public URL), and the
+# real evidence is the structured records in runs/ — not these.
+ngrok.log
+ngrok.err
+serve.log
+serve.err
+serve.old.log

@@ -1,0 +1,36 @@
+{
+  "timestamp_utc": "20260917T132306",
+  "direction": "outbound",
+  "label": "get_latest_cursor",
+  "request": {
+    "method": "POST",
+    "url": "https://api.dropboxapi.com/2/files/list_folder/get_latest_cursor",
+    "params": null,
+    "body": {
+      "path": "",
+      "recursive": true,
+      "include_deleted": false
+    }
+  },
+  "response": {
+    "status_code": 401,
+    "headers": {
+      "X-Content-Type-Options": "nosniff",
+      "Cache-Control": "no-cache",
+      "Www-Authenticate": "Bearer realm=\"Dropbox-API\"",
+      "Content-Type": "application/json",
+      "X-Dropbox-Request-Url": "/2/files/list_folder/get_latest_cursor",
+      "Content-Length": "81",
+      "Date": "Thu, 17 Sep 2026 07:53:05 GMT",
+      "Server": "envoy",
+      "X-Dropbox-Response-Origin": "remote",
+      "X-Dropbox-Request-Id": "532a169504ea40a7a5fa3e186aab9c62"
+    },
+    "body": {
+      "error": {
+        ".tag": "expired_access_token"
+      },
+      "error_summary": "expired_access_token/"
+    }
+  }
+}

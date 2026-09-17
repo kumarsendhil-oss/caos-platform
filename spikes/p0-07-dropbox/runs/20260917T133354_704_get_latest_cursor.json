@@ -1,0 +1,34 @@
+{
+  "timestamp_utc": "20260917T133354",
+  "direction": "outbound",
+  "label": "get_latest_cursor",
+  "request": {
+    "method": "POST",
+    "url": "https://api.dropboxapi.com/2/files/list_folder/get_latest_cursor",
+    "params": null,
+    "body": {
+      "path": "",
+      "recursive": true,
+      "include_deleted": false
+    }
+  },
+  "response": {
+    "status_code": 400,
+    "headers": {
+      "X-Content-Type-Options": "nosniff",
+      "Cache-Control": "no-cache",
+      "Content-Type": "text/plain; charset=utf-8",
+      "X-Dropbox-Request-Url": "/2/files/list_folder/get_latest_cursor",
+      "Date": "Thu, 17 Sep 2026 08:03:54 GMT",
+      "Server": "envoy",
+      "Content-Encoding": "gzip",
+      "Vary": "Accept-Encoding",
+      "X-Dropbox-Response-Origin": "remote",
+      "X-Dropbox-Request-Id": "1dfa7d487ddc45578807511f6aab9eea",
+      "Transfer-Encoding": "chunked"
+    },
+    "body": {
+      "_raw": "Error in call to API function \"files/list_folder/get_latest_cursor\": Your app (ID: 8506691) is not permitted to access this endpoint because it does not have the required scope 'files.metadata.read'. The owner of the app can enable the scope for the app using the Permissions tab on the App Console."
+    }
+  }
+}

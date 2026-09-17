@@ -1,0 +1,29 @@
+{
+  "timestamp_utc": "20260917T134405",
+  "direction": "inbound",
+  "label": "webhook_notify",
+  "request": {
+    "method": "POST",
+    "path": "/",
+    "headers": {
+      "Host": "uncrushed-reword-monologue.ngrok-free.dev",
+      "User-Agent": "DropboxWebhooks/1.0",
+      "Content-Length": "109",
+      "Accept": "*/*",
+      "Accept-Encoding": "gzip,deflate",
+      "Content-Type": "application/json",
+      "X-Dropbox-Signature": "901f76f6b22f3c1e06a3f0c3ca7da026872c1396409aad4e83953f7b26a46f30",
+      "X-Forwarded-For": "34.225.110.50",
+      "X-Forwarded-Host": "uncrushed-reword-monologue.ngrok-free.dev",
+      "X-Forwarded-Proto": "https"
+    },
+    "raw_body": "{\"delta\": {\"users\": [2437473139]}, \"list_folder\": {\"accounts\": [\"dbid:AAA8TTodwsdEPsIboXYCmA-o2EihjvfnW8U\"]}}"
+  },
+  "verification": {
+    "signature_valid": true
+  },
+  "response": {
+    "status_code": 200,
+    "elapsed_ms": 0.40149688720703125
+  }
+}

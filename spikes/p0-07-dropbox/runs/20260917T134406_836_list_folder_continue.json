@@ -1,0 +1,54 @@
+{
+  "timestamp_utc": "20260917T134406",
+  "direction": "outbound",
+  "label": "list_folder_continue",
+  "request": {
+    "method": "POST",
+    "url": "https://api.dropboxapi.com/2/files/list_folder/continue",
+    "params": null,
+    "body": {
+      "cursor": "AAZ9S95CC1Bi3A6vIEXxnTxjju2Sj0U4yRwtIwJmXt4euHaTISgcYJY2C7c-e-MY6izV_gAoPC0c2sBkqW2HkEADWMigbsPisoAFJvLuXeGVjdV-GiRT0zDvIShNRiwYJmgxozkGpPnQN876jwfFvwtOYNRY8WDH1ui8WWumwjTrif2pO9XdzMLCO2jwMYvf3A0"
+    }
+  },
+  "response": {
+    "status_code": 200,
+    "headers": {
+      "Date": "Thu, 17 Sep 2026 08:14:06 GMT",
+      "Server": "envoy",
+      "X-Content-Type-Options": "nosniff",
+      "Cache-Control": "no-cache",
+      "Pragma": "no-cache",
+      "Content-Disposition": "attachment",
+      "Content-Security-Policy": "sandbox",
+      "X-Frame-Options": "sameorigin",
+      "X-Webkit-Csp": "sandbox",
+      "X-Content-Security-Policy": "sandbox",
+      "Content-Type": "application/json",
+      "Content-Encoding": "gzip",
+      "Vary": "Accept-Encoding",
+      "X-Dropbox-Response-Origin": "far_remote",
+      "X-Dropbox-Request-Id": "61f5573ed3fc49fab2bb1f876aaba14e",
+      "Transfer-Encoding": "chunked"
+    },
+    "body": {
+      "cursor": "AAY8z5JdpZKYSMDMCjE6sKkisaLabpY-aiozSmnbOnV_02496jeh9FFlt-AZkjyJm0F2vU75IZSrtZqHE-q-z9z1lLZY-9mz-XPrDA-yDbVKbIGfPq7OuUf3A9Z_jpCik7RSc_MiQrq_-P0XUTJ9fgGIaLq5rvhTc5rUL6zPFLb5uxh3qlaNm9M4Axnm0Nq--qY",
+      "entries": [
+        {
+          ".tag": "file",
+          "client_modified": "2026-09-17T08:14:03Z",
+          "content_hash": "dcfbd0a27381b821aadbf2f6cf046d8c112d0fd9a98621ff634bbc8d549f9e85",
+          "id": "id:HmlHGAcb3c8AAAAAAAAABQ",
+          "is_downloadable": true,
+          "name": "p0-07-test.txt",
+          "path_display": "/p0-07-test.txt",
+          "path_lower": "/p0-07-test.txt",
+          "property_groups": [],
+          "rev": "0165ba95df84d02000000038740bda3",
+          "server_modified": "2026-09-17T08:14:04Z",
+          "size": 35
+        }
+      ],
+      "has_more": false
+    }
+  }
+}
