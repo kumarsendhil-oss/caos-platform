@@ -4,14 +4,19 @@ Updated by `/wrapup` at the end of each build session. Read this first in any ne
 
 ## Current focus
 
-Phase 0 books-connector spikes, verifying the multi-backend design (ADR 0001, ADR 0011) against both real backends before Sprint 1 starts. **Two spikes, both live, no longer one:**
+Phase 0 spikes, verifying the design against the real systems before Sprint 1 starts — originally the two books backends (ADR 0001, ADR 0011), now broader. **Five spike directories, four with live findings:**
 
-- **P0-02 Tally** (`spikes/p0-02-tally/`) — against a real TallyPrime instance. Findings #1–#33; still the deeper of the two. Everything below the P0-06 entry in Active work concerns this.
-- **P0-06 Zoho Books** (`spikes/p0-06-zoho/`) — against a real "Integra Agro" trial org (India DC). **Core mechanics now validated**, findings #1–#13: OAuth2 authorization + refresh, Bills read/write/read-back on both the reverse-charge and forward-charge paths, the native duplicate guard, rate limits, and Journals. Moved from not-started to substantially validated on 2026-09-16.
+- **P0-02 Tally** (`spikes/p0-02-tally/`) — against a real TallyPrime instance. Findings #1–#33; still the deepest of the five. Everything below the 2026-09-17/18 block in Active work concerns this.
+- **P0-03 email intake** (`spikes/p0-03-email-intake/`) — against a real shared inbox over IMAP. Findings #1–#8.
+- **P0-05 PaddleOCR** (`spikes/p0-05-paddleocr/`) — accuracy harness, proven on synthetic fixtures and smoke-tested on real non-client documents. The accuracy validation itself is still blocked on real invoices.
+- **P0-06 Zoho Books** (`spikes/p0-06-zoho/`) — against a real "Integra Agro" trial org (India DC). **Core mechanics validated**, findings #1–#13: OAuth2 authorization + refresh, Bills read/write/read-back on both the reverse-charge and forward-charge paths, the native duplicate guard, rate limits, and Journals. Moved from not-started to substantially validated on 2026-09-16.
+- **P0-07 Dropbox webhooks** (`spikes/p0-07-dropbox/`) — against a real app folder. Findings #1–#7, 12 evidence records.
+
+**P0-01 has no spike directory and never will** — it was deferred to PM-05 rather than executed, per the table below. P0-04 is documentation-only so far, under `docs/spikes/p0-04-whitebooks-gsp/`.
 
 ### Phase 0 status at a glance
 
-Added 2026-09-17 because the Phase 0 items were only trackable by reading the sprint plan and three separate spike directories. Statuses here, detail below and in each spike's own `FINDINGS.md`.
+Added 2026-09-17 because the Phase 0 items were only trackable by reading the sprint plan and five separate spike directories. Statuses here, detail below and in each spike's own `FINDINGS.md`.
 
 | Item | Status |
 |---|---|
@@ -26,9 +31,51 @@ Added 2026-09-17 because the Phase 0 items were only trackable by reading the sp
 
 **Phase 0 is now substantially worked through.** P0-02, P0-03, P0-06 and P0-07 have live findings behind them; the IaC question is resolved by ADR 0014. **P0-01 is not among what remains** — it is not executable as scoped and is deferred to PM-05 (Sprint 11), which is a scoping correction rather than an open task. What genuinely remains is **P0-04** (needs a WhiteBooks sandbox account) and **P0-05's accuracy validation** (needs 20–50 real client invoices) — both blocked on things only the practice can supply, neither blocked on engineering effort.
 
-**The open architectural question that came out of P0-06, and it is the one thing here that needs a decision rather than more evidence:** finding #9 — Zoho *validates* the CGST/SGST-vs-IGST choice against `source_of_supply`/`destination_of_supply` rather than deriving it, rejecting a wrong-direction tax in **either** direction with code 3032. So tax *selection* is the caller's job on both backends — `TallyAdapter` must make the same intra/inter decision to pick its ledger lines. That argues the decision belongs **above** the per-backend adapter boundary, not duplicated inside each adapter, which is a real input to ADR 0011's `BooksConnector` / `DraftEntry` design. **Needs deciding before Sprint 1–2**, alongside issue #10 and **issue #50** (the three unreconciled state representations, promoted from `PENDING:018` on 2026-09-16 — #9 makes that row materially worse: the same bug surfaces as a *posting rejection* on Zoho and as *wrong tax in the books* on Tally).
+**The architectural question that came out of P0-06 — DECIDED 2026-09-17, no longer open:** finding #9 — Zoho *validates* the CGST/SGST-vs-IGST choice against `source_of_supply`/`destination_of_supply` rather than deriving it, rejecting a wrong-direction tax in **either** direction with code 3032. So tax *selection* is the caller's job on both backends — `TallyAdapter` must make the same intra/inter decision to pick its ledger lines. That argued the decision belongs **above** the per-backend adapter boundary, and **ADR 0011 Amendment 2 settled it that way**: the two-digit statutory numeric state code is canonical, each adapter translates at its own edge, and the intra/inter determination is one shared function above both adapters. **Issue #50 is closed.** See Known blockers for the full reasoning. **What is left of this is implementation, not decision** — `determine_tax_jurisdiction()` and the CBIC lookup table land in Sprint 1–2 with issues #2/#5. The one genuinely open item in this area is **issue #10** (whether `VOUCHER` retains the tax determinants a posted split was derived from) — decided in principle, not implemented, and best landed with or before issue #2.
 
 ## Active work
+
+**Feature Documentation v0.5 — "Why This Matters — In Numbers" reframed (2026-09-18, docs only) — MERGED as PR #68**
+- The section claimed its time-savings figures used "the practice's own numbers as the baseline, not generic industry estimates." P0-01's finding is that the practice does not track time-per-task at all, so they are discovery-conversation estimates. Customer-facing document, so the framing is corrected rather than left overstating its own rigor — ZB-03 / BK-08 / ADR 0002's inline warning precedent.
+- **The numbers themselves are unchanged** — a framing correction, not a claim the estimates are wrong. The replaced sentence now says the figures will be replaced with measured numbers once CAOS's own time-per-task tracking (Sprint 11) has run.
+- Version-history row added, `v0_4.docx` to `v0_5.docx`. Every other part of the archive byte-identical, verified part-by-part. Wording note: the draft said "Practice Visibility, Sprint 11"; Sprint 11 is *Practice Management + Admin Completion* and the deliverable is *Time-per-task tracking (PM-05)*, so the doc names neither a module that does not exist.
+
+**P0-01 marked not executable, deferred to PM-05 (2026-09-17, docs only) — MERGED as PR #67**
+- Sprint plan **v0.2.2**. The item assumed existing task-sheet data to measure; the practice is not tracking timesheets at all, so the **premise is false rather than the data merely being unavailable** — a different situation from P0-05, which is blocked pending real invoices that do exist.
+- **Deliberately not replaced** with an interim tracking process or rough time study: a hurried baseline measured by a different method than the eventual one is not comparable to it, so it would not serve the before/after purpose the baseline exists for.
+- **Sprint 1 unaffected** — P0-01 gated no build work, unlike the IaC item. One consequence flagged, not resolved: PM-05's description in both the sprint plan and the PRD says it *extends the practice's existing task-sheet habit*, which this same finding undercuts — PM-05 is likely *introducing* time tracking, a different design and adoption problem. Left for Sprint 11 planning.
+
+**P0-03 email intake — findings #1-#8 (2026-09-17) — MERGED as PR #63, #66**
+- Live against a real shared inbox over **IMAP, deliberately not the Gmail API**, per ADR 0009/0010's per-deployment provider model.
+- **#1 is the consequential one: a forwarded message identifies the forwarder, not the original sender, and no header recovers it.** `From`/`Reply-To`/`Return-Path` all name the forwarder. Staff forwarding a client invoice into the shared inbox is a routine path, so keying EI-02 on `From` alone would file the document against the staff member. Detection is a heuristic; the honest fallback is a Task (CG8).
+- **#2: two distinct senders shared one domain**, so domain-level mapping would collapse them — common for a practice serving small businesses on consumer mail. EI-02 must key on the full address.
+- **#8, found while answering the UID question and worth recording rather than quietly fixing:** this spike's own first implementation used **message sequence numbers and called them UIDs**. `imaplib`'s `search()`/`fetch()` are positional and renumber on expunge. It coincided only because nothing has ever been expunged from this mailbox — invisible until the first deletion, at which point stored identifiers silently point at the wrong messages. Same class as P0-02 finding #2: **the failure was silent and the output looked correct.** Corrected to `uid('SEARCH'/'FETCH')`; `uid_stability.py` records both so the equality is observable rather than assumed.
+- Dedup key settled on **`(uidvalidity, uid)`** with Message-ID as recovery path. Also #3 (connection overhead dominates a small poll — a long-lived connection is the design, not an optimisation), #4 (`BODY.PEEK[HEADER]` triage before full fetch is worth designing in), #5 (zero attachments is a normal case, never the same outcome as extraction failure), #7 (`readonly=True` leaves mail unread).
+- **Still open:** a second provider before any email-connector ADR, IMAP IDLE over a long-running session, and message shapes absent from this sample.
+
+**P0-05 PaddleOCR harness + real-document smoke test (2026-09-17) — MERGED as PR #61, #62, #64**
+- Extraction and per-field scoring work end to end, proven on synthetic fixtures. **Redaction is on by default** for committed reports, with `--unredacted` for local debugging (PR #62) — the reports quote document text, so the default matters.
+- Three-document robustness smoke test on **real but non-client** documents gave the first real throughput figure: **~243 s/document on CPU**, now in the performance doc section 3 (PR #65). Failure modes are concrete rather than hypothetical.
+- **The accuracy validation itself is still not done** and is the practice's to unblock — it needs the 20-50 real client invoices ADR 0008 asks for. Harness built is not P0-05 answered; the status table says partial for this reason.
+
+**P0-07 Dropbox webhooks + ADR 0003 Amendment 1 (2026-09-17) — MERGED as PR #59, #60**
+- Live against a real app folder, 12 evidence records. **ADR 0003's three doc-only claims all confirmed:** the cursor pattern and that the cursor advances; the 10-second ack window (measured 0.378-1.067 ms); app-relative paths.
+- **Finding #6 surfaced two gaps the ADR did not cover** — Dropbox notifies on the **app's own writes** (a self-trigger loop if the intake agent writes back into the watched folder), and **deleted entries carry no id/rev**, so a deletion cannot be correlated to what was deleted. Both resolved in **ADR 0003 Amendment 1** rather than left as findings.
+- **Still unverified:** retry/back-off behaviour on a slow or failed response.
+
+**ADR 0011 Amendment 2 — tax-selection boundary decided, issue #50 closed (2026-09-17) — MERGED as PR #56**
+- The **two-digit statutory numeric** state code (`33`) is canonical — the only one of the three representations with a fixed government-assigned vocabulary, and already implicit in `vendor_gstin[:2]`. Each adapter translates at its own edge (alpha for Zoho, `STATENAME` for Tally).
+- The intra/inter determination is **one shared function above both adapters**, superseding Amendment 1's per-adapter assignment. Finding #9 is why: Zoho validates that choice loudly (3032) and Tally does not validate at all, so two independent copies would drift toward the silent backend.
+- Settles issue #10's provisional column type for these fields too: numeric. **What remains is Sprint 1-2 implementation, not decision.**
+
+**ADR 0007 accepted; ADR 0014 resolves the IaC question (2026-09-17, docs only) — MERGED as PR #57**
+- **ADR 0007 accepted.** The blocker was never the analysis but whether the team is comfortable in Python rather than Node; confirmed. The codebase had already implemented the choice, so this records reality rather than authorising a change.
+- **ADR 0014:** the ADR 0009-vs-0007 tension was not a real disagreement — **0007 was rejecting Fargate, not IaC**, and its "Fargate/Terraform-level complexity" phrase bundled two separable things. Decision: lightweight Terraform scoped to what 0007 already specified, and **Fargate stays rejected**. The risk is consistency *across* repeated per-practice deployments (ADR 0009/0010), not scale within any one of them. **Sprint 1 provisioning unblocked**; writing the `terraform/` module is the remaining work, ideally before the first deployment rather than retrofitted.
+
+**P0-04 WhiteBooks — issue #51 closed on first-party documentation (2026-09-17, docs only) — MERGED as PR #58**
+- `docs/spikes/p0-04-whitebooks-gsp/whitebooks-api-reference.md`, distilled from the five documents WhiteBooks supplied. **The core claim is no longer an inference:** their own ASP docs state the OTP goes to the *client's* registered email and mobile from the GST Portal. **So ADR 0002's "scriptable, automated step" claim does not hold**, and the warning already inline in ADR 0002 stands confirmed rather than merely raised.
+- Not GSP-specific — WhiteBooks is a thin pass-through, so changing GSP would not change it. **The burden is smaller than the pessimistic reading allowed:** `TXN` lasts 6 hours and `refreshtoken` sustains a session without a new OTP, so an OTP is needed roughly monthly per client, not per sync or per day.
+- **Residual, deliberately not overstated:** the portal-side window duration is outside WhiteBooks' docs, and **no live call has been made** — a sandbox account still needs a support call, itself a new minor finding (their marketing claims gate-free self-serve signup; their ASP doc requires two support calls).
 
 **Reset-guard fix + P0-04 escalation — finding #33, issue #51 (2026-09-16, build session) — MERGED as PR #52**
 - Two independent pieces, neither blocking the other.
@@ -289,10 +336,16 @@ Resetting `Coastal Test Traders` to a clean state before further duplicate-preve
 
 ## Reference
 
-- All 29 findings: `spikes/p0-02-tally/FINDINGS.md` (a count that goes stale silently — check the file, not this line)
+- Findings, one file per spike — **counts go stale silently, check the file, not this line:**
+  - P0-02 Tally, findings #1–#33: `spikes/p0-02-tally/FINDINGS.md` (the deepest of the five)
+  - P0-03 email intake, findings #1–#8: `spikes/p0-03-email-intake/FINDINGS.md`
+  - P0-05 PaddleOCR: `spikes/p0-05-paddleocr/` (harness and score reports rather than a numbered findings list)
+  - P0-06 Zoho Books, findings #1–#13: `spikes/p0-06-zoho/FINDINGS.md`
+  - P0-07 Dropbox, findings #1–#7: `spikes/p0-07-dropbox/FINDINGS.md`
+  - P0-04 WhiteBooks is documentation-only so far: `docs/spikes/p0-04-whitebooks-gsp/`
 - Tally schema reference, organised by area: `docs/CAOS-tally-integration-schema-reference.md`
 - Coding/testing/security/logging/performance standards: `docs/`
 - Build/wrap-up workflow: `.claude/commands/build.md`, `.claude/commands/wrapup.md`, `docs/CAOS-prompt-conventions.md`
 
 ---
-*Last updated: 2026-09-16 by `/wrapup` (`PENDING:009` — sandbox reset resolved as a **validated script**, `reset_sandbox.py`; findings #28–#29, plus the two-company keep-list audit). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*
+*Last updated: 2026-09-18 by `/wrapup` (drift audit against actual merged PR state: issue #50 corrected in Current focus, spike-count framing, the 2026-09-17/18 session history appended, stale reference counts). Previous substantive update 2026-09-16 (`PENDING:009` — sandbox reset resolved as a **validated script**, `reset_sandbox.py`; findings #28–#29, plus the two-company keep-list audit). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*
