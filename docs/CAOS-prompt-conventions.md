@@ -150,3 +150,37 @@ the `v0.2.1` its changelog already recorded, follows §8.
 Reordering existing changelog rows is likewise an erratum: it changes no
 content. The 2026-09-19 reordering of the Sprint Plan and Performance & Scaling
 changelogs added no rows to either, per this rule applied to itself.
+
+## 9. One place states a version; everything else points
+
+**Exactly one place per document states its version. Every other reference
+points at that place rather than copying it.**
+
+For a document with a `## Changelog`, that place is its changelog (§7), and its
+title header restates it — enforced mechanically by
+`scripts/check_doc_versions.py`, so the header cannot drift from the changelog
+without CI failing. For an artifact with no in-repo changelog — the Feature
+Backlog and Dev Readiness Checklist spreadsheets, the customer-facing `.docx`,
+the wireframes — the PRD's §3 table *is* that one place, and correctly carries
+a version there.
+
+Applications on record:
+
+- **`docs/README.md` carries no version numbers at all.** It says what each
+  file is; versions live in each file's changelog.
+- **`docs/README.md` points at `ADR-INDEX.md` rather than listing ADRs**, so
+  ADR status has one home rather than two.
+- **§7 and §8 of this document are the single home for changelog convention**,
+  rather than each document describing its own.
+- **PRD §3 points for the ten documents that have changelogs**, keeping a
+  version only for the five artifacts that have no other record.
+
+**Why there is no version manifest.** One was queued from PR #70 onward and is
+deliberately not being built. A manifest stores a copy of what these documents
+already state, and a stored copy goes stale with nothing to catch it — PRD §3
+*is* that table, and it went stale the same day PR #71 rebuilt it, the Coding
+Guidelines row still reading v0.2 after PR #73 took the file to v0.2.1. Neither
+of the two people looking at it noticed across two subsequent PRs. A manifest
+verified by a check is redundant with the check; a manifest not verified by one
+is worse than nothing, because it reads as authoritative. The check is the
+whole fix.

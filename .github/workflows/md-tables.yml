@@ -13,14 +13,14 @@ on:
     branches: [main]
     paths:
       - "docs/**"
-      - "scripts/check_md_tables.py"
+      - "scripts/check_*.py"
       - ".github/workflows/md-tables.yml"
       - ".ruff.toml"
   push:
     branches: [main]
     paths:
       - "docs/**"
-      - "scripts/check_md_tables.py"
+      - "scripts/check_*.py"
       - ".github/workflows/md-tables.yml"
       - ".ruff.toml"
 
@@ -39,6 +39,14 @@ jobs:
       # is not engaged.
       - name: Check markdown tables
         run: python scripts/check_md_tables.py docs/
+
+      # Each document's changelog is the single source of truth for its
+      # version (prompt-conventions section 9). This replaces the version
+      # manifest that was queued from PR #70: a manifest stores a copy, and a
+      # stored copy goes stale -- PRD section 3 is that table and it went
+      # stale the day PR #71 rebuilt it.
+      - name: Check document versions
+        run: python scripts/check_doc_versions.py docs/
 
       # CG1 -- zero warnings, same rule set and same pinned ruff version
       # as services/api/pyproject.toml's dev extra. Pinned, not floating:
