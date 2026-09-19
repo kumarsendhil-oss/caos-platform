@@ -119,7 +119,7 @@ This is a design-time reference, not the final machine-readable artifact. Per CG
 |---|---|---|---|---|---|
 | POST | `/clients/{id}/validation/run` | Senior+ | `{period}` | 202 (async) | VC-01–VC-04 |
 | GET | `/validation/checks` | Any staff | `?client_id=&result=` | `ValidationCheck[]` | VC-05 |
-| GET | `/clients/{id}/filing-readiness` | Any staff | `?period=` | `{status: "cleared"|"blocked", blocking_checks: []}` | VC-06 |
+| GET | `/clients/{id}/filing-readiness` | Any staff | `?period=` | `{status: "cleared"\|"blocked", blocking_checks: []}` | VC-06 |
 
 ## 12. TDS/TCS (TDS)
 
