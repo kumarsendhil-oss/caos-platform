@@ -72,3 +72,12 @@ Until either is true, it stays a lightweight `STUB_ISSUES` line — not every di
 ## 5. Why this stays a flat doc, not `.claude/rules/`
 
 `.claude/rules/*.md` path-scoped files auto-load based on which files Claude Code is touching — a good fit for file-type-specific guidance. This document is phase-based, not path-based: it governs how a request gets phrased and how output gets prepared, regardless of which files are touched. `/build` and `/wrapup` already reference the relevant part of it at exactly the right moment (mode selection, PR prep), which does the job path-scoping would do, without forcing phase-based content into a shape built for file-glob-based content. Revisit only if a specific piece of this genuinely is file-type-scoped and would benefit from auto-loading — that's a candidate for extraction into `.claude/rules/`, not a reason to move the whole document.
+
+## 6. Prompt convention - fenced code block
+
+When producing a prompt for me to paste into Claude Code, always emit it
+in a fenced code block, one block per request, following
+docs/CAOS-prompt-conventions.md §1: anchor to the governing ADR/finding,
+name the files in scope, state the mode (investigate / plan-first /
+direct edit), and state the phase constraint. Never use blockquotes or
+prose for these — they can't be copied with one click.
