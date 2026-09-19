@@ -1,5 +1,5 @@
 # Coding Guidelines — Practice Automation Platform
-### Backend (Python / FastAPI) | v0.2
+### Backend (Python / FastAPI) | v0.2.1
 
 ## Changelog
 
@@ -7,23 +7,70 @@
 |---|---|---|
 | v0.1 | 2026-08-16 | Initial set: CG1–CG11, covering linting, typing, secrets, financial precision, external-API resilience, duplicate prevention, the Task Engine contract, testing, and the base/customization boundary from ADR 0010. |
 | v0.2 | 2026-08-22 | CG7 generalized from "Tally-specific" to "any books-system write," per ADR 0011 — the duplicate-prevention check and code example no longer name Tally exclusively, so the guideline applies correctly to a Zoho-only reading as well. |
+| v0.2.1 | 2026-09-19 | **CG1 amended to cover `scripts/` alongside `services/api/`.** This **records a change already made in PR #72 rather than mandating a new one**: that PR added `scripts/check_md_tables.py` and a root `.ruff.toml` governing it, which left CG1 — stating ruff was the sole linter *for `services/api/`* — misreporting what the repo actually does. That is the same defect class the 2026-09-19 documentation-currency audit exists to fix, so it is corrected here rather than left as drift. CG1 now states both configurations, that they share one rule set with **one deliberate difference** (`services/api/` ignores `B008` for FastAPI's `Depends()` idiom, which does not arise in `scripts/`), that the two files nest their keys differently because a `pyproject.toml` section and a standalone `.ruff.toml` require it, and that **ruff is pinned identically in both at `0.6.9`**. It also records that a new top-level Python directory inherits the root config rather than going unlinted by default — the reasoning for adding `.ruff.toml` at all. **CG1 is now the only rule reaching outside `services/api/`**, stated explicitly so the document's "Backend (Python / FastAPI)" subtitle stays honest; whether CG2–CG11 should also apply to `scripts/` is a scoping question tracked as `PENDING:023`, not settled here. |
 
 Rules are numbered CG1–CG11. All are non-negotiable unless a rule explicitly says otherwise. Frontend (React/TypeScript) conventions are a separate document, not covered here.
 
 ## CG1 — Linting & formatting: ruff, zero warnings before commit
 
-`ruff` is the sole linter and formatter for `services/api/`.
+`ruff` is the sole linter and formatter for **all Python in this repo**, under
+two configurations. This is the only CG rule that reaches outside
+`services/api/`; CG2–CG11 are backend rules and are scoped to it.
+
+**`services/api/`** — configured in its own `pyproject.toml`:
 
 ```toml
-# pyproject.toml
+# services/api/pyproject.toml
 [tool.ruff]
 line-length = 100
 target-version = "py311"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["B008"]
 ```
 
-CI gate: `ruff check . --no-fix` must exit 0 before merge.
+**Repo-level Python outside it** — today `scripts/` — configured in the root
+`.ruff.toml`:
+
+```toml
+# .ruff.toml
+line-length = 100
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+```
+
+**Same rule set, one deliberate difference.** `services/api/` additionally
+ignores `B008`, because FastAPI's `Depends()`-in-a-default-argument is the
+framework's own dependency-injection idiom rather than the mutable-default bug
+that rule exists to catch. That idiom does not arise in `scripts/`, so the
+ignore is correctly absent there — do not add it to bring the files into
+line.
+
+The two files also nest their keys differently: a `pyproject.toml` needs the
+`[tool.ruff]` / `[tool.ruff.lint]` prefix, a standalone `.ruff.toml` uses
+top-level keys and `[lint]`. Both express the same settings. Aligning one to
+the other's shape breaks it.
+
+**Pin the version, identically in both.** `ruff==0.6.9` as of PR #72 —
+declared in `services/api/pyproject.toml`'s `dev` extra and installed as
+`pip install ruff==0.6.9` in the workflow. A linter that floats to latest
+turns an unrelated PR red months later with no visible cause.
+
+**A new top-level Python directory inherits the root `.ruff.toml` rather than
+going unlinted by default.** That is why the root config exists at all: a new
+directory left outside any ruff scope becomes an unlinted dumping ground
+silently, and the cheapest moment to prevent it is before the directory has
+contents. New Python *under* `services/` follows that service's own config
+instead.
+
+CI gates — both must exit 0 before merge:
+
+| Scope | Command | Workflow |
+|---|---|---|
+| `services/api/` | `ruff check . --no-fix` (from that directory) | `ci.yml` |
+| `scripts/` | `ruff check scripts/ --no-fix` | `md-tables.yml` |
 
 ## CG2 — Type hints required on every function signature
 
