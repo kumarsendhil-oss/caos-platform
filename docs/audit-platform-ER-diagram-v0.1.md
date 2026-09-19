@@ -1,5 +1,5 @@
 # ER Diagram — Practice Automation Platform
-### Prepared for Venture Assist / Srivatsan & Associates | Draft v0.1 (reconstructed)
+### Prepared for Venture Assist / Srivatsan & Associates | v0.2.1
 
 ## Changelog
 

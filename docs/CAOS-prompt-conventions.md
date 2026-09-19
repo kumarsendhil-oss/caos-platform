@@ -81,3 +81,72 @@ docs/CAOS-prompt-conventions.md §1: anchor to the governing ADR/finding,
 name the files in scope, state the mode (investigate / plan-first /
 direct edit), and state the phase constraint. Never use blockquotes or
 prose for these — they can't be copied with one click.
+
+## 7. Changelog order: ascending, newest last
+
+Every changelog table in `docs/` runs **oldest row first, newest row appended
+last**. This documents the convention eight of the ten changelogs in `docs/`
+already followed rather than imposing a new one — only the Sprint Plan and
+Performance & Scaling deviated, and both were corrected on 2026-09-19.
+
+**The primary reason is that ascending fails safe.** A new entry lands where an
+append puts it, at the end. Descending needs a top-insert every single time,
+and a top-insert is a positioning decision that can be got wrong — which is
+exactly how the Sprint Plan's changelog became mixed rather than merely
+reversed: `v0.1` first, then `v0.2.3, v0.2.2, v0.2.1, v0.2`. Neither "read the
+first row" nor "read the last row" gave the newest version.
+
+Two secondary reasons: a changelog is a chronological record, so ascending is
+the order the events actually happened; and eight of ten files already did it,
+so this is two files changing rather than eight.
+
+**Why this is worth having as a rule rather than left to taste.** It is the
+defect that opened the 2026-09-19 documentation-currency audit. `context.md`
+cited the Sprint Plan at v0.2.2 and a reader citing the same file reported
+v0.2, and **both were correct** — one had read the changelog, the other the
+title header, and the header was stale. Chasing that down then surfaced a
+second, subtler case: Performance & Scaling's rows were not merely reversed but
+genuinely unsorted (`v0.1` 2026-08-16, `v0.1 (rev)` 2026-09-17, `v0.1
+(extracted)` 2026-08-22), so a naive "read the last row" returned
+2026-08-22 and missed the 2026-09-17 revision entirely. A misread that a
+convention would have prevented is the argument for the convention.
+
+When rows share a date, order them by version — `v0.2.1` before `v0.2.2`, not
+whichever sorted first.
+
+A new document inherits this rule. Do not copy the ordering of whichever
+neighbouring document it was modelled on; check here.
+
+## 8. Errata vs. versioned changes
+
+**An encoding or rendering fix that changes no content takes no version bump
+and no changelog row, but must be disclosed in the commit body. Anything that
+changes what a reader understands takes both.**
+
+The worked example is PR #72's fix to `CAOS-api-spec-v0.2.md`: a pipe inside an
+inline code span, `` `{status: "cleared"|"blocked"}` ``, was splitting a
+markdown table cell and had rendered that row as a broken 7-column row since
+2026-08-22. The fix escaped one character to `\|`. No content changed — the
+literal was always intended to read `"cleared"|"blocked"` — so it took no bump
+and no row, and was disclosed in the commit body instead. A bump would have
+restaled the PRD's §3 roadmap row the day after PR #71 rebuilt it, cascading
+across three files for no gain to any reader.
+
+**A title header that misstates the version its own changelog already records
+is an erratum, not a new version.** Correcting a wrong statement of an existing
+fact does not create a new one. The document was already at that version; the
+header was simply wrong about it.
+
+This last point had diverged in practice before it was written down, and a
+reader finding both precedents should know this section governs: **PR #70**
+synced the PRD's header to the version its changelog already showed and added
+no row, which is what §8 now requires; **PR #71** synced the Sprint Plan's
+header and additionally invented `v0.2.3` for the sync itself. PR #71's extra
+version is left in place — rewriting history to match a rule written afterwards
+is worse than the inconsistency — but it is not the pattern to copy. The ER
+diagram header, corrected on 2026-09-19 from `Draft v0.1 (reconstructed)` to
+the `v0.2.1` its changelog already recorded, follows §8.
+
+Reordering existing changelog rows is likewise an erratum: it changes no
+content. The 2026-09-19 reordering of the Sprint Plan and Performance & Scaling
+changelogs added no rows to either, per this rule applied to itself.
