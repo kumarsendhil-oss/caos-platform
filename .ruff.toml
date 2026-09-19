@@ -1,0 +1,16 @@
+# Ruff settings for top-level repo scripts (scripts/).
+#
+# Mirrors services/api/pyproject.toml's [tool.ruff] so that a script here
+# is held to the same standard as application code. CG1 currently names
+# services/api/ as ruff's scope; extending it to scripts/ without saying
+# so in the guideline would leave CG1 misreporting what the repo does, so
+# a CG1 amendment is queued separately.
+#
+# services/api/ keeps its own pyproject.toml config and is unaffected by
+# this file.
+
+line-length = 100
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
