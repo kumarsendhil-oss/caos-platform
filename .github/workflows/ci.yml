@@ -1,8 +1,31 @@
 name: CI
 
+# Triggers on pull_request only -- the `push: branches: [main]` trigger
+# was removed 2026-09-21.
+#
+# THIS REMOVAL DEPENDS ON main's BRANCH PROTECTION. If that protection is
+# loosened, restore the push trigger here. As read from classic
+# branch-protection config on 2026-09-21:
+#
+#   - `enforce_admins: true`, `allow_force_pushes: false`, and two
+#     required status checks -- so no commit reaches main except through
+#     a PR. Admins included; there is no direct-push path to exempt.
+#   - `required_status_checks.strict: true` -- so a branch must be up to
+#     date with main before it can merge, which makes the merge commit's
+#     tree byte-identical to the PR head's tree. Verified on the last
+#     merge at the time: `git rev-parse ae4b34d^{tree} ae4b34d^2^{tree}`
+#     returned 286415a0... for both.
+#
+# Together those mean a push-to-main run re-tested a tree that had
+# already passed on the PR minutes earlier. Drop EITHER property --
+# allow direct pushes, or turn off `strict` -- and that stops holding:
+# main could then carry a tree no PR run ever saw, and with no push
+# trigger nothing here would catch it. Restore the trigger at the same
+# time you loosen the rule, not afterwards.
+#
+# Scope note: only classic branch protection was read, not repository
+# rulesets (`gh api repos/:owner/:repo/rulesets`). See PENDING:022.
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
 
