@@ -494,9 +494,17 @@ assuming it is what caught this.
 **`ONBOARDING.md` discarded by the user.** It had been sitting untracked since
 2026-09-21; it is gone and was never committed.
 
-**Remaining pre-sprint item: the Sprint 1-2 capacity re-confirmation.**
+~~**Remaining pre-sprint item: the Sprint 1-2 capacity re-confirmation.**
 `PENDING:027`'s transition-capture work depends on it. This is the open item
-standing between here and Sprint 1 starting.
+standing between here and Sprint 1 starting.~~ — **RESOLVED 2026-09-21 by the
+Sprint 1–2 reconfirmation** (landing in the PR from branch
+`docs/sprint-1-2-reconfirmation`). **Also wrong when written:** the
+`PENDING:027` attribution. That row is the **PM-05 / Sprint 11 scoping** item
+(PRD §5.14 and the sprint plan's Sprint 11), not the Sprint 1–2 timeline, and
+the claimed dependency ran backwards — a Foundation extension shifts Sprint 11,
+not the reverse. Because `PENDING:027` was genuinely open, the sentence read as
+though the Sprint 1–2 item were tracked when **it had no row and no issue at
+all.**
 
 ## Session — 2026-09-21 (README reference check; PR #83 catch-up)
 
@@ -700,6 +708,68 @@ branch is far worse than the inconsistency, and `main` has
   legal contact. **Nothing on record says it has been sent**, and it should not
   be recorded as sent until something does.
 
+## Session — 2026-09-21 (Sprint 1–2 reconfirmation)
+
+Landing in the PR from branch `docs/sprint-1-2-reconfirmation`.
+
+**The Sprint 1–2 timeline is reconfirmed. Foundation becomes a three-iteration
+phase, Weeks 1–6; the plan total goes from ~27 to ~29 weeks.** Sprint plan
+**v0.2.5** — its changelog row carries the full reasoning and the evidence, and
+is the place to read it rather than here (conventions §9). PRD **v0.2.6**: §3's
+Sprint Plan row now points at that changelog instead of repeating a week count
+that had already gone stale once.
+
+The four decisions, in one line each:
+- **D1 — capacity: one developer, working with Claude Code.** Recorded in the
+  plan for the first time. Its absence is why this took an investigation rather
+  than a reading: a duration with no resourcing behind it is not an estimate.
+- **D2 — Foundation to three iterations.** No deliverable moved out; the Zoho
+  adapter stays, per ADR 0011's both-adapters-before-Sprint-4–5 rule.
+  **Sprint numbers are unchanged and only dates shift (+2 weeks from Sprint 3
+  onward)** — four ADRs and the already-shared `CAOS_Feature_Documentation_
+  v0_6.docx` cite sprints by number, and none states a week number, so
+  re-dating falsifies nothing where renumbering would have falsified all of
+  them.
+- **D3 — a checkpoint at the end of Week 4**, the project's first measured
+  velocity. Everything before it is judgement.
+- **D4 — sandbox-first exit criteria.** Foundation exits on sandbox and test
+  configurations; real-system verification becomes a named gate before Sprint
+  4–5's end-to-end test, against a test company or separate organization and
+  **never live client books**.
+
+**Why it went unacted-on for five days: the flag's only pointer was `GO-03` in
+the Dev Readiness Checklist, which is delivered separately and not in this
+repo** — so the one place it was "tracked" was a spreadsheet nobody can open
+from a session, which is the same gap `docs/README.md` already records about
+checklist IDs generally.
+
+### What stands between here and Sprint 1
+
+**One pre-Week-1 action: `PENDING:037` — confirm a durable Zoho test
+organization.** P0-06 ran on 2026-09-16 against an "Integra Agro" **trial** org
+and its own Open questions flag the Premium Trial expiry as unchecked. If it
+has lapsed, the Zoho half of Foundation is waiting on a commercial step with a
+lead time, not an engineering one — which is exactly the shape of thing that
+turns six weeks into seven for reasons unrelated to the work. **Check before
+Week 1, not during.**
+
+Everything else is open but does **not** block Sprint 1:
+- **`PENDING:031`** — the employee-PII counsel question is drafted and pending
+  with the practice; nothing on record says it has been sent.
+- **`PENDING:032`** and **ADR 0015 Amendment 1** (Proposed) — both await the
+  proprietor's two answers on the `blocked_reason` vocabulary.
+- **`PENDING:035`** — blocked × escalated; a gate on *implementing* the blocked
+  status, not on starting Sprint 1.
+- **`PENDING:036`** — real-system verification; gates Sprint 4–5, not Sprint 1.
+- **`PENDING:027`** — PM-05 / Sprint 11 scoping.
+- **`PENDING:033`** — no mechanical check that this file is current.
+- **`PENDING:034`** — the hand-maintained `md-tables.yml` paths filter.
+
+**Correction to this session's own earlier note: the merge-method deviation was
+two PRs, not a new practice.** PR #85 (ADR 0015 Amendment 1) merged as a proper
+merge commit, `1732d90`, so `--merge` is back on track after #83 and #84 were
+squashed. The note recorded above stands as written.
+
 ## Reference
 
 - Findings, one file per spike — **counts go stale silently, check the file, not this line:**
@@ -714,4 +784,4 @@ branch is far worse than the inconsistency, and `main` has
 - Build/wrap-up workflow: `.claude/commands/build.md`, `.claude/commands/wrapup.md`, `docs/CAOS-prompt-conventions.md`
 
 ---
-*Last updated: 2026-09-21 by `/wrapup` (**ADR 0015 Amendment 1 proposed** — blocked state and `blocked_reason`, Status Proposed pending two questions to the practice; `PENDING:032` updated and still Open; new `PENDING:035` for the blocked × escalated implementation gate; the earlier "no ADR is Proposed" claim struck in place; the #83/#84 squash-merge deviation recorded as a one-off). Earlier the same day, also by `/wrapup`: (`scripts/check_readme_refs.py` — README references must resolve to git-tracked files, wired into the existing docs-lint job with the required context string unchanged; `PENDING:034` for the hand-maintained paths filter; catch-up for PR #83, which was merged without `/wrapup`; PR #82 confirmed merged). Earlier the same day, also by `/wrapup`: (ADRs 0015 and 0016 Accepted; feature doc v0.6 shared with the practice, with two items raised in the document awaiting their response; `PENDING:032` re-prioritised; `ONBOARDING.md` discarded; Sprint 1-2 capacity re-confirmation noted as the remaining pre-sprint item). Earlier the same day, also by `/wrapup`: first run of the revised command — ADRs 0015/0016 written, P0-08 scoped and deferred, feature doc v0.6, PRs #77-#80, the CI trigger removal, and the `/wrapup` change itself. Previous update 2026-09-18 by `/wrapup` (drift audit against actual merged PR state). Previous substantive update 2026-09-16 (`PENDING:009` — sandbox reset resolved as a **validated script**, `reset_sandbox.py`; findings #28–#29, plus the two-company keep-list audit). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*
+*Last updated: 2026-09-21 by `/wrapup` (**Sprint 1–2 timeline reconfirmed** — Foundation to three iterations, Weeks 1–6, total ~27 → ~29 weeks, sprint numbers unchanged; one-developer capacity assumption recorded; Week 4 checkpoint; sandbox-first exit criteria; `PENDING:036`/`PENDING:037` added, with 037 the one pre-Week-1 action; the stale "remaining pre-sprint item" note struck and its wrong `PENDING:027` attribution corrected; sprint plan v0.2.5, PRD v0.2.6). Earlier the same day, also by `/wrapup`: (**ADR 0015 Amendment 1 proposed** — blocked state and `blocked_reason`, Status Proposed pending two questions to the practice; `PENDING:032` updated and still Open; new `PENDING:035` for the blocked × escalated implementation gate; the earlier "no ADR is Proposed" claim struck in place; the #83/#84 squash-merge deviation recorded as a one-off). Earlier the same day, also by `/wrapup`: (`scripts/check_readme_refs.py` — README references must resolve to git-tracked files, wired into the existing docs-lint job with the required context string unchanged; `PENDING:034` for the hand-maintained paths filter; catch-up for PR #83, which was merged without `/wrapup`; PR #82 confirmed merged). Earlier the same day, also by `/wrapup`: (ADRs 0015 and 0016 Accepted; feature doc v0.6 shared with the practice, with two items raised in the document awaiting their response; `PENDING:032` re-prioritised; `ONBOARDING.md` discarded; Sprint 1-2 capacity re-confirmation noted as the remaining pre-sprint item). Earlier the same day, also by `/wrapup`: first run of the revised command — ADRs 0015/0016 written, P0-08 scoped and deferred, feature doc v0.6, PRs #77-#80, the CI trigger removal, and the `/wrapup` change itself. Previous update 2026-09-18 by `/wrapup` (drift audit against actual merged PR state). Previous substantive update 2026-09-16 (`PENDING:009` — sandbox reset resolved as a **validated script**, `reset_sandbox.py`; findings #28–#29, plus the two-company keep-list audit). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*
