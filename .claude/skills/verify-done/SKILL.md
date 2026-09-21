@@ -69,6 +69,12 @@ reads the same as a skipped check.
    every file touched. A file that was in scope and ended up unchanged belongs
    in step 4, not here.
 
+   **A zero delta does not mean untouched.** An in-place single-line
+   replacement leaves the line count unchanged, so a file can be genuinely
+   edited and still show `0`. List it as edited, with the zero. "Untouched" is
+   established only by a file's **absence from `git diff main..HEAD
+   --name-only`** — never by its line count.
+
    **A file created during the change has no baseline.** Report its line count
    and put `new` in the delta column — do not write `+92`, which implies a
    measured before-count of zero rather than a file that did not exist. The
@@ -108,8 +114,8 @@ reads the same as a skipped check.
 
 ## What this skill does not do
 
-It does not run `ruff` or `pytest` — those are `/wrapup`'s job (its step 1 is
-the full CI-gate list) and belong to a build session, not a docs or config
+It does not run `ruff` or `pytest` — those are `/wrapup`'s job (its
+"Verify the branch and CI gates" step carries the full CI-gate list) and belong to a build session, not a docs or config
 change. Don't duplicate them here.
 
 It does not commit, push, or open a PR.

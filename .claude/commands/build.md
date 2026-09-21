@@ -25,4 +25,4 @@ Before writing any code:
 5. **External integrations.** If this touches Tally, Zoho Books, GSP, or any other external system, flag explicitly that it needs live/sandbox verification — a passing unit test (which mocks these per CG10/Testing Strategy §2) is not sufficient on its own. If the change is meant to be adapter-generic, confirm it was actually exercised against both adapters, not just described as generic.
 6. **New gaps.** If you discover something out of scope (a missing mapping, an undocumented constraint), say so explicitly rather than leaving it as an inline comment. It gets picked up in `/wrapup`.
 
-Do not commit or open a PR from this command — that's handled by `/wrapup`.
+Do not commit, open a PR, or merge from this command — all of that is handled by `/wrapup`, which is the single end-of-session path to main.

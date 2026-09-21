@@ -1,6 +1,6 @@
 # CAOS — Project Context (living status doc)
 
-Updated by `/wrapup` at the end of each build session. Read this first in any new session — Claude Code or otherwise — before re-deriving status from scratch or asking the human to re-explain it.
+Updated by `/wrapup` at the end of **every** session — not only build sessions, and not optionally: its context.md step is unconditional and the update merges in the same PR as the work it describes. Read this first in any new session — Claude Code or otherwise — before re-deriving status from scratch or asking the human to re-explain it.
 
 ## Current focus
 
@@ -335,6 +335,78 @@ A Day Book read against `Coastal Test Traders` returned **6 vouchers**, not the 
 
 Resetting `Coastal Test Traders` to a clean state before further duplicate-prevention testing still stands — leftover vouchers make it hard to trust what a duplicate test measures against. `PENDING:009` is now resolved, so the reset is **scripted and validated** — `reset_sandbox.py`, see the sandbox-state section above; what remains is remembering to run it before a test whose result depends on a known starting state. Note the keep-list caveat there: every voucher in this company is currently cited by a finding, so a reset is not free.
 
+## Session history — 2026-09-19 to 2026-09-21 (docs, ADRs and tooling)
+
+Everything in this block is **merged** unless a line says otherwise. The final
+item is landing in the PR that carries this update.
+
+**ADRs 0015 and 0016 — engagement/task model and attendance/payroll (PR #77).**
+Both **Proposed**, neither Accepted. 0015 redesigns the engagement and task
+model out of customer-review feedback rather than a spike finding — the first
+ADR here with that provenance — adding `TIME_ENTRY`, `TASK.work_class` and
+`TASK.engagement_id`. Its Decision 7 concludes **ADR 0013 must be superseded,
+not amended**: the customer dropped Frappe HR, attendance is captured natively
+and exported to RazorpayX Payroll, and performance measurement is quantitative
+only, so 0013's integration target inverts and one of its three pillars is
+deleted. **0016 is that supersession**, and it also corrects 0013's
+"Supabase/Postgres/Railway" stack reference, which contradicted 0007's revision
+away from Railway to AWS ap-south-1, 0009 and 0014. 0013's own file is left as
+written; only its index row and status line change. Highest-numbered ADR on
+record is now **0016**.
+
+**P0-08 RazorpayX payroll spike — scoped, not run.** Scoped as a consequence of
+0016 and deferred; no sandbox credentials, nothing executed.
+
+**Feature Documentation v0.6 (PR #78).** Task-management section added, v0.5 to
+v0.6. Tracked as `PENDING:032`.
+
+**Documentation-currency work (PRs #70-#76, completing into this window).**
+Changelog order settled as ascending, newest last (conventions §7); the
+erratum-vs-versioned-change rule written down (§8); version consistency
+enforced by `scripts/check_doc_versions.py` rather than by a manifest (§9) —
+the manifest queued from PR #70 was deliberately never built, on the argument
+that a stored copy goes stale and a manifest verified by a check is redundant
+with the check.
+
+**CI duplicate-run removal (PR #79).** Every push and PR was producing two
+workflow runs; the `push: branches: [main]` trigger was removed from **both**
+`ci.yml` and `md-tables.yml`. The evidence: `main` is protected with
+`enforce_admins: true`, `allow_force_pushes: false` and
+`required_status_checks.strict: true`, so every commit arrives via PR and
+`strict` makes the merge commit's tree byte-identical to the PR head's — the
+post-merge run re-tested a tree that had just passed. **Re-verified 2026-09-21
+across three merges** (#74, #78, #80), including the two where the branch was
+brought up to date by merging `main` *into* it: trees matched in all three
+cases. Each workflow carries a comment naming `enforce_admins` and `strict`, so
+loosening either prompts restoring the trigger. `PENDING:022` remains **Open** —
+its own `paths-ignore` prescription for `ci.yml` is unapplied, and needs a
+skip-shim for the two required contexts.
+
+**Claude Code tooling, slice 1 (PR #80).** Corrected a standing instruction in
+`CLAUDE.md` that told readers the hooks run under `"shell": "powershell"` — they
+run under `bash`, and the PowerShell configuration is known to **fail open** (15
+of 15 matched runs recorded exit 1 rather than the exit 2 that blocks). Added
+`/verify-done` and `/stub` skills, a `post_edit_docs.py` PostToolUse hook running
+`check_md_tables.py` on docs edits, and a read-only `investigator` subagent with
+no Bash — because the `tools` allowlist cannot scope Bash to read-only commands,
+so "read-only git" is not expressible and the honest configuration is no shell.
+`/verify-done` carries `disable-model-invocation: true`; its gate was exercised
+and held, which is how four instructions telling the model to run it were found
+unfollowable and corrected.
+
+**`/wrapup` becomes the single end-of-session path to main — landing in this PR.**
+It now updates `context.md`, commits it **on the working branch** so the status
+update merges alongside the work it describes, opens the PR with the body passed
+via `--body-file`, and merges after a second explicit confirmation. Its
+`context.md` step is **unconditional** — it runs even in an investigate-only
+session, which is the gap that let this file fall three days behind. Merge uses
+`gh pr checks <n> --watch` then `gh pr merge <n> --merge --delete-branch`;
+auto-merge is disabled on this repo (`allow_auto_merge: false`), so `--auto`
+would fail, and branch protection rather than `--auto` is what holds a merge.
+New `PENDING:033` tracks the absence of a mechanical staleness check for this
+file — the convention is now enforced by `/wrapup` being the only path, but
+nothing yet verifies it.
+
 ## Reference
 
 - Findings, one file per spike — **counts go stale silently, check the file, not this line:**
@@ -349,4 +421,4 @@ Resetting `Coastal Test Traders` to a clean state before further duplicate-preve
 - Build/wrap-up workflow: `.claude/commands/build.md`, `.claude/commands/wrapup.md`, `docs/CAOS-prompt-conventions.md`
 
 ---
-*Last updated: 2026-09-18 by `/wrapup` (drift audit against actual merged PR state: issue #50 corrected in Current focus, spike-count framing, the 2026-09-17/18 session history appended, stale reference counts). Previous substantive update 2026-09-16 (`PENDING:009` — sandbox reset resolved as a **validated script**, `reset_sandbox.py`; findings #28–#29, plus the two-company keep-list audit). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*
+*Last updated: 2026-09-21 by `/wrapup` (first run of the revised command: ADRs 0015/0016, P0-08 scoped and deferred, feature doc v0.6, PRs #77-#80, the CI trigger removal, and the `/wrapup` change itself). Previous update 2026-09-18 by `/wrapup` (drift audit against actual merged PR state: issue #50 corrected in Current focus, spike-count framing, the 2026-09-17/18 session history appended, stale reference counts). Previous substantive update 2026-09-16 (`PENDING:009` — sandbox reset resolved as a **validated script**, `reset_sandbox.py`; findings #28–#29, plus the two-company keep-list audit). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*

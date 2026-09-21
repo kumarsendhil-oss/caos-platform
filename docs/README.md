@@ -15,7 +15,7 @@ New to the repo? Read `../README.md` for what is built vs. stubbed, then
 
 | File | What it is |
 |---|---|
-| `context.md` | Living status doc — current state, blockers, recent merges. Updated by `/wrapup`. **Read this first in any new session** before re-deriving status. |
+| `context.md` | Living status doc — current state, blockers, recent merges. Updated by `/wrapup` at the end of every session (mandatory, not optional). **Read this first in any new session** before re-deriving status. |
 | `STUB_ISSUES.md` | Stub / incomplete-code tracker. Every `STUB(...)` marker in the codebase resolves to a GitHub issue or a `PENDING:NNN` row here. |
 | `CAOS-prompt-conventions.md` | How requests to Claude Code get phrased and how output gets prepared for merge. |
 
