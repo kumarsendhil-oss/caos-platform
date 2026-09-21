@@ -770,6 +770,66 @@ two PRs, not a new practice.** PR #85 (ADR 0015 Amendment 1) merged as a proper
 merge commit, `1732d90`, so `--merge` is back on track after #83 and #84 were
 squashed. The note recorded above stands as written.
 
+## Session — 2026-09-21 (proposal v0.3 commercial terms)
+
+Landing in the PR from branch `docs/proposal-commercial-terms`.
+
+**`CAOS_Software_Development_Proposal_v0_3.docx` carries the commercial terms.**
+First customer-facing artifact in this repo that is contractual rather than
+descriptive. What it now says:
+- **A fixed price of ₹15,00,000, exclusive of GST**, replacing the previous
+  ₹24L–₹35.5L phase-wise range. Covers Phases 0–4, UAT, go-live, training and
+  the warranty.
+- **Milestones M1–M4** — ₹2L on signed acceptance, ₹4L at UAT deployment, ₹4L
+  at go-live, ₹5L thirty days after go-live — replacing "20% on signing, the
+  rest at each phase gate". Invoiced on achievement, payable in 7 days.
+- **A new §10** (Support, Training, Warranty & Licensing): S1–S4 defect
+  severities with response and resolution times, filing-deadline cover to
+  21:00 IST on statutory due dates, a **120-day post-go-live warranty**,
+  training, hosting support, the minor-enhancement versus change-request
+  boundary (₹12,000 per person-day), and the **licence and ownership model** —
+  a perpetual non-exclusive licence to the practice on M4 payment, source code
+  under that licence, and client data remaining the client's.
+- Sections 10–13 renumbered to 11–14. No existing cross-reference broke: all
+  seven `Section N` references in v0.2 pointed at Sections 3–9.
+
+**It must not be sent to the practice yet — `PENDING:038`.** §9's recurring
+operating costs are still priced on **Supabase Pro and Railway Pro**, against
+ADR 0007 (revised away from Railway to AWS ap-south-1), ADR 0009 (single-tenant
+per-customer AWS) and ADR 0014. So the infrastructure the customer would be
+quoted for is not the infrastructure this platform will run on. **This is the
+second occurrence of that error class** — `ADR-INDEX.md` already records ADR
+0013's "Supabase/Postgres/Railway" references, which ADR 0016 had to correct —
+and the first in a document meant for the customer. §9 was deliberately left
+untouched in this change, so **v0.3 is internally inconsistent: the new §10 is
+on AWS and §9 is not.** Re-pricing needs the AWS numbers including the
+per-customer fixed infrastructure floor, which ADR 0009's single-tenant model
+makes a real cost rather than a shared one. The block is recorded in three
+places — the row, `docs/README.md`, and the PRD §3 row.
+
+**Inventory and versioning.** The source was renamed from the browser's
+`-2.docx` suffix to `_v0_2.docx` and committed as the pre-terms source of
+record, matching the rename-on-commit pattern PR #83 used. Both files are now
+in `docs/README.md`'s binary-deliverables table, and the proposal has a **PRD
+§3 row at v0.3** — §3 being the version home for customer-facing artifacts with
+no changelog of their own (conventions §9). **PRD bumped v0.2.6 → v0.2.7 with a
+changelog row**, per §8: the row tells a reader two things the table did not
+previously say — that the proposal exists, and that it is not sendable — which
+is content, not rendering.
+
+**On how it was edited**, since this is the first `.docx` this repo has
+modified programmatically: built by cloning existing OOXML elements rather than
+with `python-docx`. **Every table in the document uses direct formatting with
+no named style**, so a constructed table would have lost the teal header,
+borders and 9.5pt sizing. Verification used **Word via COM** — no LibreOffice
+or pandoc is installed on this machine, which the brief had assumed. Two
+defects were caught only by rendering and inspecting the pages: Word first
+rejected the file outright (namespaces read from the XML declaration rather
+than the root element, leaving `mc:Ignorable` pointing at undeclared prefixes),
+and §14's item 3 rendered entirely bold teal because that paragraph is two runs
+and the text setter collapsed them. **Neither would have shown up in a text
+extraction.** Worth remembering before the next binary edit.
+
 ## Reference
 
 - Findings, one file per spike — **counts go stale silently, check the file, not this line:**
@@ -784,4 +844,4 @@ squashed. The note recorded above stands as written.
 - Build/wrap-up workflow: `.claude/commands/build.md`, `.claude/commands/wrapup.md`, `docs/CAOS-prompt-conventions.md`
 
 ---
-*Last updated: 2026-09-21 by `/wrapup` (**Sprint 1–2 timeline reconfirmed** — Foundation to three iterations, Weeks 1–6, total ~27 → ~29 weeks, sprint numbers unchanged; one-developer capacity assumption recorded; Week 4 checkpoint; sandbox-first exit criteria; `PENDING:036`/`PENDING:037` added, with 037 the one pre-Week-1 action; the stale "remaining pre-sprint item" note struck and its wrong `PENDING:027` attribution corrected; sprint plan v0.2.5, PRD v0.2.6). Earlier the same day, also by `/wrapup`: (**ADR 0015 Amendment 1 proposed** — blocked state and `blocked_reason`, Status Proposed pending two questions to the practice; `PENDING:032` updated and still Open; new `PENDING:035` for the blocked × escalated implementation gate; the earlier "no ADR is Proposed" claim struck in place; the #83/#84 squash-merge deviation recorded as a one-off). Earlier the same day, also by `/wrapup`: (`scripts/check_readme_refs.py` — README references must resolve to git-tracked files, wired into the existing docs-lint job with the required context string unchanged; `PENDING:034` for the hand-maintained paths filter; catch-up for PR #83, which was merged without `/wrapup`; PR #82 confirmed merged). Earlier the same day, also by `/wrapup`: (ADRs 0015 and 0016 Accepted; feature doc v0.6 shared with the practice, with two items raised in the document awaiting their response; `PENDING:032` re-prioritised; `ONBOARDING.md` discarded; Sprint 1-2 capacity re-confirmation noted as the remaining pre-sprint item). Earlier the same day, also by `/wrapup`: first run of the revised command — ADRs 0015/0016 written, P0-08 scoped and deferred, feature doc v0.6, PRs #77-#80, the CI trigger removal, and the `/wrapup` change itself. Previous update 2026-09-18 by `/wrapup` (drift audit against actual merged PR state). Previous substantive update 2026-09-16 (`PENDING:009` — sandbox reset resolved as a **validated script**, `reset_sandbox.py`; findings #28–#29, plus the two-company keep-list audit). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*
+*Last updated: 2026-09-21 by `/wrapup` (**Proposal v0.3 commercial terms** — fixed price ₹15,00,000 ex-GST against milestones M1–M4, 120-day warranty, training, defect severities and the licence model in a new §10; sections renumbered 10–13 → 11–14; source renamed to `_v0_2` and committed; added to `docs/README.md` and to PRD §3 at v0.3 (PRD v0.2.7); **new `PENDING:038` blocks sending it** until §9 is re-priced off Supabase/Railway onto the ADR 0007/0009 AWS stack). Earlier the same day, also by `/wrapup`: (**Sprint 1–2 timeline reconfirmed** — Foundation to three iterations, Weeks 1–6, total ~27 → ~29 weeks, sprint numbers unchanged; one-developer capacity assumption recorded; Week 4 checkpoint; sandbox-first exit criteria; `PENDING:036`/`PENDING:037` added, with 037 the one pre-Week-1 action; the stale "remaining pre-sprint item" note struck and its wrong `PENDING:027` attribution corrected; sprint plan v0.2.5, PRD v0.2.6). Earlier the same day, also by `/wrapup`: (**ADR 0015 Amendment 1 proposed** — blocked state and `blocked_reason`, Status Proposed pending two questions to the practice; `PENDING:032` updated and still Open; new `PENDING:035` for the blocked × escalated implementation gate; the earlier "no ADR is Proposed" claim struck in place; the #83/#84 squash-merge deviation recorded as a one-off). Earlier the same day, also by `/wrapup`: (`scripts/check_readme_refs.py` — README references must resolve to git-tracked files, wired into the existing docs-lint job with the required context string unchanged; `PENDING:034` for the hand-maintained paths filter; catch-up for PR #83, which was merged without `/wrapup`; PR #82 confirmed merged). Earlier the same day, also by `/wrapup`: (ADRs 0015 and 0016 Accepted; feature doc v0.6 shared with the practice, with two items raised in the document awaiting their response; `PENDING:032` re-prioritised; `ONBOARDING.md` discarded; Sprint 1-2 capacity re-confirmation noted as the remaining pre-sprint item). Earlier the same day, also by `/wrapup`: first run of the revised command — ADRs 0015/0016 written, P0-08 scoped and deferred, feature doc v0.6, PRs #77-#80, the CI trigger removal, and the `/wrapup` change itself. Previous update 2026-09-18 by `/wrapup` (drift audit against actual merged PR state). Previous substantive update 2026-09-16 (`PENDING:009` — sandbox reset resolved as a **validated script**, `reset_sandbox.py`; findings #28–#29, plus the two-company keep-list audit). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*
