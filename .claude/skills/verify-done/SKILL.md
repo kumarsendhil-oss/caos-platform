@@ -108,8 +108,8 @@ reads the same as a skipped check.
 
 ## What this skill does not do
 
-It does not run `ruff` or `pytest` — those are `/wrapup`'s job (its step 1 is
-the full CI-gate list) and belong to a build session, not a docs or config
+It does not run `ruff` or `pytest` — those are `/wrapup`'s job (its
+"Verify the branch and CI gates" step carries the full CI-gate list) and belong to a build session, not a docs or config
 change. Don't duplicate them here.
 
 It does not commit, push, or open a PR.
