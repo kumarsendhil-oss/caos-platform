@@ -31,24 +31,36 @@ previously a `PENDING` row, find-and-replace `STUB(PENDING:NNN)` →
 
 ## 2. Pick the id
 
-- **Next free id is `PENDING:033`.**
-- **`PENDING:018` is a gap in the sequence and must never be reused.** Ids
-  currently in the file run 001–017 and 019–032.
-- Confirm before using one:
+**Derive the next id; never read it from a stored number.** This skill
+deliberately does not record what the next free id is — a file that allocates
+ids must not also keep a copy of the current one, which goes stale the moment
+it is used. Per §9, the grep is the single source:
 
-  ```bash
-  grep -o 'PENDING:[0-9]\+' docs/STUB_ISSUES.md | sort -u
-  ```
+```bash
+grep -o 'PENDING:[0-9]\+' docs/STUB_ISSUES.md | sort -u
+```
 
-## 3. Append to the active table — and only that one
+Take the highest and add one.
+
+**`PENDING:018` is a permanent gap in the sequence and must never be reused.**
+That is a standing fact, not a current-state number, which is why it is
+recorded here and the next-free id is not.
+
+## 3. Insert into the active table — and only that one
 
 `docs/STUB_ISSUES.md` has **two** tables. Getting this wrong files the row
 where nobody looks.
 
 - **Active table** (header `| ID | Location | Title | Blocked on | Status |`)
-  — this is the one. Append here.
+  — this is the one.
 - **Historical table** (header `| ID | Location | Title | Issue | Outcome |`)
-  — closed/resolved entries. Never append here.
+  — closed/resolved entries. Never write here.
+
+**Insert after the last row of the active table — do not append to the file.**
+The historical table comes *after* the active one, so a literal append lands
+in the wrong table: exactly the failure this step warns about. Find the last
+`| PENDING:` row that precedes the historical table's header and insert below
+it.
 
 Five columns, in that order:
 
