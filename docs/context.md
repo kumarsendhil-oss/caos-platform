@@ -416,8 +416,13 @@ on a customer decision. Status lines only — neither ADR's decision text was
 edited, per conventions §2. `ADR-INDEX.md` rows updated to match; 0013 stays
 **Superseded by 0016**.
 
-**With that, no ADR in the index is Proposed.** Every one of 0001–0016 is
-Accepted, Accepted-with-a-qualifier, or Superseded. **ADR 0007 (Technology
+~~**With that, no ADR in the index is Proposed.** Every one of 0001–0016 is
+Accepted, Accepted-with-a-qualifier, or Superseded.~~ — **no longer true as of
+2026-09-21**, later the same day: **ADR 0015 Amendment 1 (`0015-A1`) is
+Proposed**, landing in the PR from branch
+`docs/adr-0015-amendment-1-blocked-state`. The claim about the base ADRs
+0001–0016 still holds; what changed is that the index now carries an amendment
+that is not yet Accepted. **ADR 0007 (Technology
 Stack) is `Accepted (revised)`** — the revision being the move away from
 Railway to AWS ap-south-1 — so Sprint 1 has a settled stack to build on and no
 ADR is blocking it.
@@ -592,6 +597,109 @@ out of scope; if it is ever wanted, it is its own decision.
 section above was written before it landed and reads as pending, which was
 true when written and is not now. ADRs 0015 and 0016 are Accepted on `main`.
 
+## Session — 2026-09-21 (ADR 0015 Amendment 1 proposed)
+
+Landing in the PR from branch `docs/adr-0015-amendment-1-blocked-state`.
+
+**ADR 0015 Amendment 1 — blocked state and `blocked_reason`. Status: PROPOSED,
+not Accepted.** `docs/audit-platform-ADR-0015-amendment-1-blocked-state.md`,
+indexed as `0015-A1`. It resolves a deferral ADR 0015 made against itself: its
+Follow-up said a blocked state and `blocked_reason` were "not proposed here"
+while its Decision 4 already measured "Blocked duration, by `blocked_reason`"
+— a metric defined over a state that does not exist. `CAOS_Feature_
+Documentation_v0_6.docx` describes that state to the customer, so the document
+was ahead of the decision record (`PENDING:032`).
+
+**What it decides:**
+- **`blocked` becomes a fifth `STATUSES` member** — `open | in_progress |
+  blocked | completed | escalated` — rather than a flag orthogonal to status.
+  The decisive argument is Decision 4's one-in-progress-per-user invariant:
+  under a flag, a task could be `in_progress` *and* blocked, accruing effort
+  time while nobody can act, which is the >100% utilisation arithmetic
+  Decision 4 exists to prevent. As a status member, entering blocked
+  necessarily leaves `in_progress` and stops the effort clock.
+- **The authoritative reason sits on the into-blocked transition row**, with
+  `blocked_reason` on `TASK` as the current reason, non-null iff
+  `status = 'blocked'`. A task can block twice for different reasons, so
+  segmentation read off the denormalised column would charge every interval to
+  the last reason — the column is for the queue view, never for a metric.
+- **Vocabulary is exactly `waiting_on_client` and `waiting_on_system`.** No
+  third value invented.
+- **Reasons are set manually, and manual setting stays supported permanently**
+  — v0.6's "the manual version is the starting state, not a fallback", and CG8.
+- **Unchanged:** `due_at` does not pause while blocked (Decision 4, and v0.6
+  says so to the customer). The transition table stays unspecified. No ER
+  diagram or PRD edit.
+
+**What it leaves open — two questions for the practice.** Acceptance awaits the
+user *after* the proprietor answers both; they are recorded in the amendment's
+"Questions for the practice" section so they can go across as one set:
+1. **Are the two reasons the complete list, or the first two of a longer one?**
+   v0.6 says the reason is recorded "**principally**" as one of the two, so the
+   document already sent is compatible with either answer — extending the list
+   walks nothing back.
+2. **Is the absence of an internal waiting reason deliberate?** The two values
+   partition by who can fix the problem; waiting on a colleague or on the
+   proprietor's sign-off is neither the client nor a system. Either it should
+   be measurable and needs a value, or it counts as active work and must not
+   have one. **No value is proposed for it.**
+
+**`PENDING:032` updated, stays Open.** It closes when the amendment is Accepted
+**and** the vocabulary question is answered — acceptance alone is not enough.
+
+**New `PENDING:035` — blocked × escalated, an implementation gate.**
+`escalate_overdue()` (`services/api/app/task_engine/service.py:131`) sets
+`status = "escalated"` unconditionally, and `due_at` does not pause while
+blocked, so an overdue blocked task would leave blocked — clearing
+`blocked_reason` under the amendment's invariant and ending the blocked
+interval under Decision 4's definition. The wait that matters most, a task
+overdue *because* it is still waiting, is the one truncated. Three options are
+recorded and **none chosen**: (a) accept the truncation, (b) make escalation a
+flag orthogonal to status, (c) have `escalate_overdue()` raise the escalation
+without a status change for blocked tasks. **This is a gate, not a live
+defect** — no blocked status exists in code, so `service.py` is correct today
+and becomes wrong the moment `blocked` is added. **Must be settled before the
+blocked status is implemented. No owner assigned yet, and it most likely takes
+an ADR 0005 amendment**, since (b) and (c) both change what TE-04 does.
+
+**Correction to the 2026-09-21 ADR-acceptance section above.** Its claim "no
+ADR in the index is Proposed" is now false and has been **struck in place**
+rather than corrected from here. That is a deliberate departure from how the
+PR #82 correction below was handled, and the reason is what kind of sentence
+it is: it asserts a standing fact about the index's current state, not what
+happened in that session. The file already strikes exactly this shape of
+sentence in place — "~~ADR-0007 is still Proposed~~ — **ACCEPTED 2026-09-17**"
+is the direct precedent — and strikethrough leaves the original visible rather
+than rewriting history. A session's own narration, like PR #82's merge state,
+stays append-only because its tense cannot be restated. *Separately and not
+corrected: the line in the earlier session-history block reading "Both
+**Proposed**, neither Accepted" about 0015/0016 is historical — the block
+header says everything in it is merged unless stated — but it reads as a
+current claim to anyone skimming.*
+
+**Merge-method exception, recorded so it is not mistaken for a new
+convention.** `/wrapup` step 10b requires `--merge`, and the repo has 63 merge
+commits behind that rule. **PRs #83 and #84 were squash-merged against it** —
+`127166b` and `1dd0fcf`, both single-parent with the `(#NN)` subject suffix.
+This was a one-off deviation on two same-day PRs, **not a change of practice**.
+`--merge` remains the rule and `.claude/commands/wrapup.md` is unchanged. **Do
+not "fix" the two squashed commits** — rewriting merged history on a protected
+branch is far worse than the inconsistency, and `main` has
+`allow_force_pushes: false` with `enforce_admins: true` in any case.
+
+**Open notes, no action taken:**
+- **`ADR-INDEX.md` annotates amended parents inconsistently.** ADR 0001's row
+  reads `Accepted, amended by 0011`, but ADR 0011's row is plain `Accepted`
+  despite carrying two amendments, and ADR 0015's is now plain `Accepted`
+  despite `0015-A1`. This amendment followed the 0011 precedent (no annotation,
+  no edit to the parent ADR's header) rather than the 0001 one. Making the
+  three consistent is a small separate change and a decision about which
+  pattern wins, not a defect to fix in passing.
+- **`PENDING:031` — the counsel question is drafted and pending with the
+  practice.** The employee-PII surface ADR 0016 opens needs the practice's
+  legal contact. **Nothing on record says it has been sent**, and it should not
+  be recorded as sent until something does.
+
 ## Reference
 
 - Findings, one file per spike — **counts go stale silently, check the file, not this line:**
@@ -606,4 +714,4 @@ true when written and is not now. ADRs 0015 and 0016 are Accepted on `main`.
 - Build/wrap-up workflow: `.claude/commands/build.md`, `.claude/commands/wrapup.md`, `docs/CAOS-prompt-conventions.md`
 
 ---
-*Last updated: 2026-09-21 by `/wrapup` (`scripts/check_readme_refs.py` — README references must resolve to git-tracked files, wired into the existing docs-lint job with the required context string unchanged; `PENDING:034` for the hand-maintained paths filter; catch-up for PR #83, which was merged without `/wrapup`; PR #82 confirmed merged). Earlier the same day, also by `/wrapup`: (ADRs 0015 and 0016 Accepted; feature doc v0.6 shared with the practice, with two items raised in the document awaiting their response; `PENDING:032` re-prioritised; `ONBOARDING.md` discarded; Sprint 1-2 capacity re-confirmation noted as the remaining pre-sprint item). Earlier the same day, also by `/wrapup`: first run of the revised command — ADRs 0015/0016 written, P0-08 scoped and deferred, feature doc v0.6, PRs #77-#80, the CI trigger removal, and the `/wrapup` change itself. Previous update 2026-09-18 by `/wrapup` (drift audit against actual merged PR state). Previous substantive update 2026-09-16 (`PENDING:009` — sandbox reset resolved as a **validated script**, `reset_sandbox.py`; findings #28–#29, plus the two-company keep-list audit). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*
+*Last updated: 2026-09-21 by `/wrapup` (**ADR 0015 Amendment 1 proposed** — blocked state and `blocked_reason`, Status Proposed pending two questions to the practice; `PENDING:032` updated and still Open; new `PENDING:035` for the blocked × escalated implementation gate; the earlier "no ADR is Proposed" claim struck in place; the #83/#84 squash-merge deviation recorded as a one-off). Earlier the same day, also by `/wrapup`: (`scripts/check_readme_refs.py` — README references must resolve to git-tracked files, wired into the existing docs-lint job with the required context string unchanged; `PENDING:034` for the hand-maintained paths filter; catch-up for PR #83, which was merged without `/wrapup`; PR #82 confirmed merged). Earlier the same day, also by `/wrapup`: (ADRs 0015 and 0016 Accepted; feature doc v0.6 shared with the practice, with two items raised in the document awaiting their response; `PENDING:032` re-prioritised; `ONBOARDING.md` discarded; Sprint 1-2 capacity re-confirmation noted as the remaining pre-sprint item). Earlier the same day, also by `/wrapup`: first run of the revised command — ADRs 0015/0016 written, P0-08 scoped and deferred, feature doc v0.6, PRs #77-#80, the CI trigger removal, and the `/wrapup` change itself. Previous update 2026-09-18 by `/wrapup` (drift audit against actual merged PR state). Previous substantive update 2026-09-16 (`PENDING:009` — sandbox reset resolved as a **validated script**, `reset_sandbox.py`; findings #28–#29, plus the two-company keep-list audit). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*
