@@ -75,6 +75,8 @@ confuse: `docs/spikes/P0-06-zoho-api-runbook.md` is the plan,
 | `CAOS_Presentation_v0_2.pptx` | Customer-facing presentation deck. |
 | `CAOS_Integration_Testing_v0_1.docx` | Customer-facing deliverable prepared for Venture Assist / Srivatsan & Associates, September 2026 — the integration testing approach, reporting what was tested against real systems. |
 | `CAOS_Tally_Integration_Capabilities_v0_1.docx` | Customer-facing deliverable prepared for Venture Assist / Srivatsan & Associates, September 2026 — Tally integration capabilities: what works today against a live Tally system, and what does not yet. |
+| `CAOS_Software_Development_Proposal_v0_3.docx` | Customer-facing commercial proposal — scope, timeline, fixed price against milestones, warranty, training, and the licence model. **Not yet sent to the practice:** §9's recurring-cost estimate is still priced on Supabase/Railway, against ADR 0007/0009 — see `PENDING:038`. |
+| `CAOS_Software_Development_Proposal_v0_2.docx` | The pre-commercial-terms version, kept as the source of record for what changed in v0.3. Superseded — read v0.3. |
 | `audit-platform-wireframes-v0_2.html` | 9 screens + 4 admin sub-screens, Design B (Capacity). |
 
 ## Delivered separately, genuinely not in this repo
