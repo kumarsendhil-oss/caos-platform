@@ -1,6 +1,6 @@
 # ADR 0015 — Engagement and Task Model Redesign
 
-**Status:** Proposed
+**Status:** Accepted 2026-09-21
 **Date:** 2026-09-20
 **Relates to:** ADR 0004 (Platform as a Thin Layer), ADR 0005 (Task Engine as the Shared Backbone), ADR 0013 (HRMS Integration — Frappe HR, *Proposed*)
 **Triggers supersession of:** ADR 0013 (HRMS Integration — Frappe HR) — see Decision 7; its integration target no longer exists. Superseded by ADR 0016

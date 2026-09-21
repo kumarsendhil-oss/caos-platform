@@ -23,8 +23,8 @@ from the original consolidated *Internal Development Readiness Package* PDF
 | 0012 | Cost-Optimized Agent LLM Usage | Accepted (pending re-metering) | `audit-platform-ADR-0012-cost-optimization.md` |
 | 0013 | HRMS Integration for Internal Staff Management (Frappe HR) | Superseded by 0016 | `audit-platform-ADR-0013-hrms-integration.md` |
 | 0014 | Infrastructure-as-Code Scope: Terraform Without Fargate | Accepted | `audit-platform-ADR-0014-iac-scope-terraform-without-fargate.md` |
-| 0015 | Engagement and Task Model Redesign | Proposed | `audit-platform-ADR-0015-engagement-and-task-model.md` |
-| 0016 | Attendance, Payroll and Performance: Native Capture with RazorpayX Payroll | Proposed | `audit-platform-ADR-0016-attendance-and-payroll-integration.md` |
+| 0015 | Engagement and Task Model Redesign | Accepted | `audit-platform-ADR-0015-engagement-and-task-model.md` |
+| 0016 | Attendance, Payroll and Performance: Native Capture with RazorpayX Payroll | Accepted | `audit-platform-ADR-0016-attendance-and-payroll-integration.md` |
 | — | Open items carried from ADRs 0001–0010 | — | `audit-platform-ADR-0001-0010-open-items.md` |
 
 ## Notes

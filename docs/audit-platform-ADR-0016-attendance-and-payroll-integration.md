@@ -1,6 +1,6 @@
 # ADR 0016 — Attendance, Payroll and Performance: Native Capture with RazorpayX Payroll
 
-**Status:** Proposed
+**Status:** Accepted 2026-09-21
 **Date:** 2026-09-20
 **Supersedes:** ADR 0013 (HRMS Integration for Internal Staff Management — Frappe HR, *Proposed*)
 **Relates to:** ADR 0004 (Platform as a Thin Layer), ADR 0007 (Technology Stack), ADR 0009 (Deployment Model — Single-Tenant), ADR 0014 (IaC Scope — Terraform Without Fargate), ADR 0015 (Engagement and Task Model Redesign, *Proposed*)
