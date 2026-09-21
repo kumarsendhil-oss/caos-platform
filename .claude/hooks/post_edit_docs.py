@@ -32,8 +32,9 @@ enforces that a document's title header matches the newest row of its own
 changelog, which is only true once a multi-step edit is finished — running
 it per-edit would fire on every legitimate "add the changelog row, then
 update the header" sequence and block the second half of a correct change.
-It runs in `/verify-done` instead (its Report step 3), and in CI via
-.github/workflows/md-tables.yml.
+It belongs in the conventions §2 evidence block instead (Claude runs and
+reports it; `/verify-done` is the user's independent re-run, step 3 of
+its Report), and in CI via .github/workflows/md-tables.yml.
 
 Reads the standard PostToolUse hook payload from stdin (JSON with
 tool_name / tool_input). Exit 0 = fine, nothing blocking. Exit 2 = the

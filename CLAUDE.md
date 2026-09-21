@@ -44,7 +44,7 @@ to a specific person, escalating if it's not resolved in time.
 - **pytest, ≥85% coverage, all external services mocked.** Tally, Zoho, GSP, and OCR are mocked at the client boundary in every unit test.
 - **`app/practices/{slug}/` is the only place practice-specific customization goes** — core modules (`app/agents/`, `app/task_engine/`, `app/books_connector/`) never branch on which practice is running. Check whether something is actually *configuration* (a client's `books_system`, service catalog pricing) before reaching for a practice-specific file.
 - **Every stub, hardcoded placeholder, or intentionally incomplete implementation must be tracked.** No `TODO`, `FIXME`, `HACK`, `XXX`, or `raise NotImplementedError` may exist without a `STUB(...)` marker on the same line — see "Stub tracking" below. A hook enforces this; it will block the edit if it's missing.
-- **Before reporting anything done, run the verification block in `docs/CAOS-prompt-conventions.md` §2 ("Before saying done").** That section states the rule; `/verify-done` is its mechanical form. Don't restate the block here or in a prompt — point at §2, per §9.
+- **Before reporting anything done, produce the verification block in `docs/CAOS-prompt-conventions.md` §2 ("Before saying done").** That is Claude's job, every time, unprompted. **`/verify-done` is the user's independent re-run of the same block** — it carries `disable-model-invocation: true` precisely so the model cannot invoke it, and so cannot certify its own work. Two steps, not one: Claude reports the evidence; the user checks it. Don't restate the block here or in a prompt — point at §2, per §9.
 
 ## MCP servers — Railway and Supabase are not this project's stack
 
@@ -97,7 +97,8 @@ inside a cell, which backticks do not protect. It deliberately does **not**
 run `scripts/check_doc_versions.py`: header-and-changelog consistency only
 holds once a multi-step edit is finished, so enforcing it per-edit would
 block every legitimate add-the-row-then-update-the-header sequence. That
-check runs in `/verify-done` and in CI instead. Detail lives in the hook's
+check belongs in the conventions §2 evidence block (and the user's
+`/verify-done` re-run of it), and in CI. Detail lives in the hook's
 own docstring — read it there rather than restating it here.
 
 See `docs/STUB_ISSUES.md` for the current list — as of this writing, all

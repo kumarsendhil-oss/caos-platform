@@ -6,10 +6,27 @@ allowed-tools: Read, Bash(git status*), Bash(git diff*), Bash(git log*), Bash(wc
 
 # Verify before reporting done
 
-This is the mechanical form of `docs/CAOS-prompt-conventions.md` §2, "Before
-saying done". **§2 states the rule; this skill runs it.** If the two ever
-disagree, §2 wins and this file is the thing to fix — per §9, one place states
-a rule and everything else points at it.
+**This skill is user-invoked only, by design.** Its frontmatter carries
+`disable-model-invocation: true`, so Claude cannot run it — an attempt is
+refused by the harness. That is the point, not a limitation to work around:
+this is a gate against the model certifying its own work. A check the model
+can run on itself and then report as passed adds a step without adding
+independence.
+
+The division of labour is therefore:
+
+- **Claude** produces the `docs/CAOS-prompt-conventions.md` §2 evidence block
+  itself, unprompted, as part of reporting done. That obligation is Claude's
+  and does not depend on this skill existing.
+- **The user** runs `/verify-done` to re-run the same five items
+  independently, and compares.
+
+A prompt that tells Claude to "run `/verify-done`" is asking for something
+that will be refused; it should ask for the §2 block instead.
+
+This is the mechanical form of §2. **§2 states the rule; this skill runs it.**
+If the two ever disagree, §2 wins and this file is the thing to fix — per §9,
+one place states a rule and everything else points at it.
 
 ## This skill is invoked twice, not once
 

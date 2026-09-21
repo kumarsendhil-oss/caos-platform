@@ -44,7 +44,9 @@ Anything touching Tally, GSP, or other external integrations should be called ou
 
 **Before saying "done."** Run the closest relevant tests and lint; report what ran and what didn't, rather than asserting completion. Don't claim a fix is verified against Tally unless it was actually run against a live instance.
 
-Report these five, every time. `/verify-done` is the mechanical form of this block — it is the same rule, not a second one.
+Report these five, every time. **Claude produces this block itself, unprompted, as part of reporting done** — it is not something the user has to ask for.
+
+`/verify-done` is the **user's** independent re-run of the same five items, and it is the same rule, not a second one. The skill carries `disable-model-invocation: true` by design: the model cannot invoke it, and therefore cannot sign off on its own work. So there are two steps — Claude reports the evidence, the user checks it — and an instruction telling Claude to "run `/verify-done`" is asking for something the harness will refuse. Ask for the §2 block instead.
 
 1. **`git status`, pasted verbatim.** Not summarised. The untracked-files section is the part that catches a stray scratch file.
 2. **Per-file line counts, before and after.** Requires capturing the baseline *before* editing, so decide at the start of a change that you will be reporting it. A count that only exists after the fact is a guess.
