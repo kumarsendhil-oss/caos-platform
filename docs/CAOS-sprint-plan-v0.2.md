@@ -1,5 +1,5 @@
 # Sprint Plan — Practice Automation Platform
-### 12 Sprints × 2 Weeks = 24 Weeks (+ Phase 0 Baseline) | v0.2.4
+### 12 Numbered Sprints, 13 Iterations = 26 Weeks (+ Phase 0 Baseline) | v0.2.5
 
 ## Changelog
 
@@ -11,12 +11,15 @@
 | v0.2.2 | 2026-09-17 | **P0-01 marked not executable and deferred to PM-05 (Sprint 11).** The item assumes existing task-sheet data to measure; the practice is not tracking timesheets at all, so the premise is false rather than the data merely being unavailable — a different situation from P0-05, which is genuinely blocked pending real invoices that do exist. The first real measured time-per-task baseline will come from PM-05 once it has been built and run for a while. **No interim tracking process or rough time study is being introduced before Sprint 1**, deliberately: a hurried baseline measured by a different method than the eventual one is not comparable to it, so it would not serve the before/after purpose the baseline exists for. **Sprint 1 is not affected** — P0-01 gated no build work, unlike the IaC item resolved by ADR 0014 which did block provisioning. One consequence flagged, not resolved: PM-05's own description in this plan and in the PRD says it *extends the practice's existing task-sheet habit*, which the same finding undercuts. |
 | v0.2.3 | 2026-09-19 | **Title header synced to the changelog.** Line 2 read `v0.2` while this changelog was at v0.2.2 — the same defect PR #70 corrected in the PRD, and the same one the 2026-09-19 documentation-currency audit was opened to resolve: reading the header and reading the changelog gave different answers about the same file. The filename stays `CAOS-sprint-plan-v0.2.md` per the established convention — major version in the filename, point version in the header, as `CAOS-security-standard-v0.2.md` already does at v0.2.1. No content changed; this entry records a metadata correction only. |
 | v0.2.4 | 2026-09-20 | **Added P0-08 (RazorpayX Payroll scoping spike) to Phase 0**, declared by **ADR 0016**, which supersedes ADR 0013. The customer dropped Frappe HR; attendance is captured natively in CAOS and exported to **RazorpayX Payroll**, and performance measurement is **quantitative only** (0013's Goal/KRA push is removed with no replacement). **Nothing about the new vendor is verified** — all ten capabilities 0013 delegated to Frappe HR / India Payroll are open questions against a vendor nobody has tested, and P0-08's test list is phrased as questions rather than findings for exactly that reason. Same risk category as the two corrections this project has already absorbed: **P0-06 finding #6** (Zoho's published example contradicting its live API) and **P0-04** (WhiteBooks' marketing contradicting its own onboarding doc). **No sprint is resequenced by this entry** — P0-08 gates no Sprint 1 build work, but it does gate the TDS agent's eventual scope (whichever sprint owns it) and the attendance/leave work, neither of which is currently scheduled. The attendance schema itself is **not** gated on the spike: ADR 0016 Decision 4 establishes that CAOS needs it under every possible outcome (`PENDING:028`). |
+| v0.2.5 | 2026-09-21 | **Sprint 1–2 timeline reconfirmed after P0-06 reported — Foundation becomes a three-iteration phase, Weeks 1–6, and the plan total goes from ~27 to ~29 weeks.** This closes the reconfirmation v0.2 flagged and the Summary has carried as pending ever since; the trigger fired when P0-06 reported on 2026-09-16 and nothing acted on it, because the flag's only pointer was to out-of-repo checklist item `GO-03`. The OAuth happy path validated (#2), but the estimate did not hold regardless: **scope only grew and nothing was removed** — ADR 0011 Amendment 2's `determine_tax_jurisdiction()` / `TaxJurisdiction` / CBIC table (deferred *to* Sprint 1–2 by that amendment), Amendment 1's `DraftEntry` reshape, likely issue #10, the `terraform/` module (ADR 0014) and ADR 0015 Decision 3's `TASK` migration — while a code audit found **5 of 11 deliverables not started**, including all frontend, all infrastructure and both adapters. P0-06 findings **#6** (published example invalid; working shape found only live) and **#11** (`Retry-After: 3600`) add verification and throttling work the estimate never contained. **Sprint numbers are deliberately unchanged and only dates shift (+2 weeks from Sprint 3 onward)**, because ADRs 0002, 0011-A2, 0015 and 0015-A1 cite sprints by number and are not edited in place, and `CAOS_Feature_Documentation_v0_6.docx` — already shared with the practice — cites Sprint 6, 10 and 11; none of them states a week number, so re-dating falsifies nothing. **Records the capacity assumption for the first time: one developer working with Claude Code**, whose absence is why this needed an investigation rather than a reading. Adds a **Week 4 checkpoint** (first measured velocity) and **sandbox-first exit criteria**: Foundation exits on sandbox/test verification, and real-system verification becomes a named gate before Sprint 4–5's end-to-end test, against a test company or separate organization and never live client books — `PENDING:036`, with the durability of the build-time Zoho org as `PENDING:037`. No deliverable moved out of Foundation; the Zoho adapter stays, per ADR 0011's both-adapters-before-Sprint-4–5 sequencing. |
 
 ## Sequencing logic
 
 Sprints follow the same dependency order the ADRs and Feature Backlog already established: foundation before agents (a task can't route anywhere without the Task Engine; an entry can't post without the Books Connector), Bookkeeping before Reconciliation (the majority-path data has to exist in the books system before it can be reconciled), and Billing after enough agents exist to generate real billable events. The customer's own two highest-priority pain points — bookkeeping volume and client follow-up — land in Sprints 4–6, not at the end.
 
 Per ADR 0011, both the Tally and Zoho adapters must exist before the Bookkeeping Agent build begins in Sprint 4-5, since ~20-40% of clients need Zoho from day one — this is why both adapters are now scoped into Sprint 1-2 rather than Tally-first with Zoho following later.
+
+**Every week number in this plan assumes one developer working with Claude Code** (recorded 2026-09-21; see Sprint 1–2). Change the team size and every date here has to be re-derived, not scaled.
 
 ## Phase 0 — Baseline (Weeks -3 to 0, pre-sprint)
 
@@ -32,7 +35,11 @@ Not a build sprint — a measurement and validation phase before any application
 - **RazorpayX Payroll scoping spike — establish what the payroll vendor actually covers, before anything is built against the assumption that it does (P0-08, per ADR 0016)**. Declared by ADR 0016, which supersedes ADR 0013 (Frappe HR) after the customer dropped that vendor: attendance is now captured natively in CAOS and exported to RazorpayX Payroll. **Every statutory capability ADR 0013 delegated to Frappe — PF, ESI, PT, LWF, salary TDS, Form 24Q, Form 16, shift rules, auto-attendance, payroll linkage — is currently unverified against the new vendor.** Three things are explicitly gated on it: **where leave lives** (T2, the decision-critical check — ADR 0016 places the holiday calendar in CAOS and deliberately leaves leave open, pending whether RazorpayX exposes balances readably), **whether the TDS agent's 26Q/27EQ narrowing reverses** (T4 — 0013 narrowed it on the assumption the HRMS files Form 24Q; if RazorpayX does not, the agent's scope grows), and **whether a shared vendor account breaks the per-deployment model** (T7, against ADR 0009). Runbook: `docs/spikes/p0-08-razorpayx/RUNBOOK.md`. **Carries an explicit stop rule** — if an account cannot be obtained in the Phase 0 window, P0-08 records that as its finding and closes with the engineering-side deliverables done, rather than sitting open the way P0-04 has
 - ~~IaC tooling decision made (Terraform, per the still-open ADR item)~~ — **RESOLVED 2026-09-17 by ADR 0014** (`audit-platform-ADR-0014-iac-scope-terraform-without-fargate.md`): adopt lightweight **Terraform** scoped to what ADR 0007 already specified (one EC2 or small non-Fargate ECS, Postgres, security groups, DNS), and **not** Fargate — 0007's rejection of Fargate stands, reaffirmed rather than revisited. What had blocked this was 0007's "Fargate/Terraform-level complexity" phrase bundling two separable things, against 0009's "adopt IaC from the first deployment". **Sprint 1 provisioning is unblocked**; the remaining work is writing the `terraform/` module, ideally before the first practice's deployment rather than retrofitting it later
 
-## Sprint 1–2 (Weeks 1–4) — Foundation
+## Sprint 1–2 (Weeks 1–6, three iterations) — Foundation
+
+> **Why this is still labelled `Sprint 1–2` while running six weeks.** Foundation became a three-iteration phase on 2026-09-21 (see the resolved timeline flag below). The **label is kept deliberately** rather than renumbered to `Sprint 1–3`, because sprint numbers are cited by number in documents that cannot be changed: `audit-platform-ADR-0002` (Reconciliation Agent, Sprint 7), `audit-platform-ADR-0011-amendment-2` (Sprint 1–2), `audit-platform-ADR-0015` (Sprint 10, Sprint 11) and `audit-platform-ADR-0015-amendment-1` (Sprint 6) — ADRs are not edited in place — and `CAOS_Feature_Documentation_v0_6.docx`, already shared with the practice, cites Sprint 6, 10 and 11. Renumbering would falsify all of them silently; re-dating falsifies none, because none of them states a week number. **Only dates shifted: every sprint from Sprint 3 onward moved +2 weeks.** The cost is that `Sprint 1–2` spans six weeks while every other numbered sprint spans two — stated here rather than left to be discovered.
+
+**Capacity assumption: one developer, working with Claude Code.** Every estimate in this plan assumes that and nothing else. It is recorded because it was not, and the 2026-09-21 reconfirmation could not be computed without it — a duration with no resourcing behind it is not an estimate, and the absence of this line is why the question took an investigation rather than a reading. **Any change to team size invalidates every week number in this document.**
 
 **Sprint goal:** Repo scaffolded, infrastructure provisioned, auth working, Task Engine operational, Books Connector reading real data from both a Tally and a Zoho Books client.
 
@@ -46,14 +53,24 @@ Not a build sprint — a measurement and validation phase before any application
 - Auth: JWT login/logout, role-based access control enforced server-side (ID-01 to ID-05, Security Standard §1–2)
 - Secrets management wired to AWS Secrets Manager, including Zoho OAuth client credentials and per-client refresh tokens (Security Standard §3, amended)
 - Task Engine: creation, routing rules, status lifecycle, auto-escalation (TE-01 to TE-09)
-- **`BooksConnector` interface defined; `TallyAdapter` implemented and tested against the TallyPrime API Explorer sandbox, then the practice's real Tally Cloud (TC-01 to TC-05)**
-- **`ZohoAdapter` implemented and tested against the Zoho Books developer sandbox — OAuth2 authorization flow, token refresh, and read extraction (ZB-01, ZB-02, ZB-04)**
+- **`BooksConnector` interface defined; `TallyAdapter` implemented and verified against the TallyPrime API Explorer sandbox and a test company (TC-01 to TC-05)**
+- **`ZohoAdapter` implemented and verified against a Zoho developer or test organization that will not expire during the build — OAuth2 authorization flow, token refresh, and read extraction (ZB-01, ZB-02, ZB-04)**
 - Dashboard API + Dashboard screen wired to real Task Engine data (PM-01)
 - Admin — Connections screen includes Zoho OAuth status alongside Tally/GSP health (ZB-05, TC-05, TC-08)
 
-> **Timeline flag:** This sprint's scope grew with the addition of the Zoho adapter. The original 2-sprint (4-week) estimate was set before ADR 0011. **Re-confirm this estimate once the Phase 0 Zoho spike (P0-06) reports back** — if the OAuth/posting work proves heavier than expected, Foundation may need to become a 3-sprint phase rather than 2, which would shift the whole ~27-week plan by roughly two weeks. This is called out explicitly rather than silently absorbed into the existing estimate; see Dev Readiness Checklist item GO-03.
+**Exit criteria — sandbox-first. Verification against the practice's real systems is NOT a Foundation exit criterion.** Foundation exits on sandbox and test-configuration verification. Real-system verification is a **named gate before the Sprint 4–5 end-to-end test**, run against a **test company or a separate organization — never live client books**. Switching from a sandbox to a client account is **configuration, not code**: a per-client `BooksConnection` row and its OAuth refresh token. Nothing about either adapter changes at that boundary, which is why the gate is about confidence rather than implementation. It needs things only the practice can supply — a Tally Cloud test company and a Zoho organization, with real `ENV-05` / `ENV-07` credentials, none of which exist as repo secrets today. Tracked as `PENDING:036`. The durability of the Zoho organization used *during* the build is a separate and earlier question — `PENDING:037`, to be checked before Week 1.
 
-## Sprint 3 (Weeks 5–6) — Intake Pipeline
+**Checkpoint — end of Week 4.** Re-check the Foundation estimate against what was actually delivered in the first four weeks. This is the project's **first measured velocity**; every figure before it is judgement. If Foundation is ahead of plan at Week 4, the remaining weeks absorb it and Sprint 3 may start early. If it is behind, decide then — on the Week 4 evidence — whether Sprint 3 slips or Foundation scope is cut. Neither is decided now.
+
+> ~~**Timeline flag:** This sprint's scope grew with the addition of the Zoho adapter. The original 2-sprint (4-week) estimate was set before ADR 0011. **Re-confirm this estimate once the Phase 0 Zoho spike (P0-06) reports back** — if the OAuth/posting work proves heavier than expected, Foundation may need to become a 3-sprint phase rather than 2, which would shift the whole ~27-week plan by roughly two weeks. This is called out explicitly rather than silently absorbed into the existing estimate; see Dev Readiness Checklist item GO-03.~~
+>
+> — **RESOLVED 2026-09-21. Foundation becomes a three-iteration phase, Weeks 1–6, and the plan total goes from ~27 to ~29 weeks.** P0-06 reported (findings #1–#13) and the OAuth happy path validated — refresh and read round-trip confirmed (#2). The estimate did not hold anyway, because **scope only grew after it was set** and nothing was removed: `determine_tax_jurisdiction()`, the `TaxJurisdiction` type and the CBIC lookup table (ADR 0011 Amendment 2, explicitly deferred *to* Sprint 1–2), `DraftEntry`'s reshape (Amendment 1), likely issue #10, the `terraform/` module (ADR 0014), and ADR 0015 Decision 3's `TASK` migration. Two P0-06 findings add work the estimate never contained: **#6**, where Zoho's published example was an invalid combination and the working shape was found only live — so vendor documentation is not trustworthy for this backend and every posting shape needs live verification — and **#11**, where the rate limit's penalty is `Retry-After: 3600`, an hour of the client's connection offline, requiring conservative throttling and back-off-into-a-Task rather than a constant. A code audit at the same time found **5 of 11 deliverables not started**, including every frontend screen, all infrastructure and both adapters.
+>
+> **Sprint numbers are unchanged; only dates shifted.** See the note at the top of this section for why.
+>
+> **On `GO-03`:** this decision is now recorded here, and in `PENDING:036` / `PENDING:037`, rather than only in the Dev Readiness Checklist. `GO-03` remains the practice-side record and should be marked closed there — but **this document, not `GO-03`, is the in-repo source for the timeline.** The reason matters: the flag's only pointer was to a spreadsheet no one can open from this repo, which is exactly how the item went untracked between P0-06 reporting and this reconfirmation.
+
+## Sprint 3 (Weeks 7–8) — Intake Pipeline
 
 **Sprint goal:** Documents flow automatically from email and Dropbox into the platform, with OCR extraction running.
 
@@ -66,7 +83,9 @@ Not a build sprint — a measurement and validation phase before any application
 - Document checklist tracking, missing-item flagging (DI-04, DI-05)
 - My Tasks screen wired to real data (TE-07)
 
-## Sprint 4–5 (Weeks 7–10) — Bookkeeping Agent
+## Sprint 4–5 (Weeks 9–12) — Bookkeeping Agent
+
+> **Gate before this sprint's end-to-end test: real-system verification (`PENDING:036`).** Foundation exits on sandbox and test-configuration verification only. Before the critical end-to-end flow runs here, both adapters must be verified against real systems — a **Tally Cloud test company and a Zoho organization, never live client books** — which needs real `ENV-05` / `ENV-07` credentials from the practice.
 
 **Sprint goal:** The highest-leverage agent, per the customer's own stated priority — documents become staged, reviewable, postable entries, for both Tally and Zoho Books clients.
 
@@ -84,7 +103,7 @@ Not a build sprint — a measurement and validation phase before any application
 
 > **Testing note:** Per the Testing Strategy addendum, critical end-to-end flow #1 ("Document intake → bookkeeping → entry posted") must be run twice before this sprint closes — once against the Tally adapter, once against the Zoho adapter. Passing on one gives no assurance about the other, since the two adapters differ meaningfully in auth model and write shape.
 
-## Sprint 6 (Weeks 11–12) — Client Communication
+## Sprint 6 (Weeks 13–14) — Client Communication
 
 **Sprint goal:** Follow-up automation live — the practice's stated #1 pain point.
 
@@ -95,7 +114,7 @@ Not a build sprint — a measurement and validation phase before any application
 - Priority flagging for time-sensitive, client-dependent actions like OTP submission (CC-05)
 - Client Communication screen wired to real data (approval queue + log)
 
-## Sprint 7 (Weeks 13–14) — Reconciliation Agent
+## Sprint 7 (Weeks 15–16) — Reconciliation Agent
 
 **Sprint goal:** GSTR-2A/2B reconciliation running through a direct GSP integration, with Winman removed from the critical path. Pulls purchase register data via the Books Connector, so it works identically for Tally and Zoho clients.
 
@@ -108,7 +127,7 @@ Not a build sprint — a measurement and validation phase before any application
 - Mismatch queue with reason codes, routed as tasks (RC-04)
 - Reconciliation Review screen wired to real data
 
-## Sprint 8 (Weeks 15–16) — Validation/Compliance + TDS/TCS
+## Sprint 8 (Weeks 17–18) — Validation/Compliance + TDS/TCS
 
 **Sprint goal:** Pre-filing checks and TDS reconciliation, reusing the matching patterns built in Sprint 7.
 
@@ -118,7 +137,7 @@ Not a build sprint — a measurement and validation phase before any application
 - TDS deduction-vs-deposit matching (TDS-01 to TDS-03)
 - Draft quarterly TDS return generation (TDS-04)
 
-## Sprint 9 (Weeks 17–18) — Bank Reconciliation + Working Paper
+## Sprint 9 (Weeks 19–20) — Bank Reconciliation + Working Paper
 
 **Sprint goal:** Round out the compliance layer; auto-assemble the factual backbone of every engagement's working paper.
 
@@ -128,7 +147,7 @@ Not a build sprint — a measurement and validation phase before any application
 - Judgment-notes field + finalization workflow, filed to Dropbox (WP-03, WP-04)
 - Reports & Working Papers screen wired to real data
 
-## Sprint 10 (Weeks 19–20) — Client Profiling & Billing
+## Sprint 10 (Weeks 21–22) — Client Profiling & Billing
 
 **Sprint goal:** Billing automation, built from scratch since no rate card exists today.
 
@@ -142,7 +161,7 @@ Not a build sprint — a measurement and validation phase before any application
 - Invoice history (CB-07)
 - Admin — Clients (with the Books system selector) and Service Catalog screens wired to real data; Billing screen wired
 
-## Sprint 11 (Weeks 21–22) — Practice Management + Admin Completion
+## Sprint 11 (Weeks 23–24) — Practice Management + Admin Completion
 
 **Sprint goal:** Give the proprietor full practice-wide visibility; close out the remaining Admin screens.
 
@@ -154,7 +173,7 @@ Not a build sprint — a measurement and validation phase before any application
 - Admin — Connections screen wired to real Tally, Zoho, and GSP connection health (TC-05, TC-08, ZB-05)
 - Tier reassignment workflow (CB-08)
 
-## Sprint 12 (Weeks 23–24) — Hardening & Launch Preparation
+## Sprint 12 (Weeks 25–26) — Hardening & Launch Preparation
 
 **Sprint goal:** Production-ready. Every critical flow verified end-to-end, security and performance validated against their respective standards, not just assumed.
 
@@ -173,15 +192,15 @@ Not a build sprint — a measurement and validation phase before any application
 | Sprint | Weeks | Focus | Key modules |
 |---|---|---|---|
 | Phase 0 | -3–0 | Baseline measurement (incl. Zoho spike) | — |
-| 1–2 | 1–4 | Foundation | Identity, Task Engine, Books Connector (Tally + Zoho adapters) |
-| 3 | 5–6 | Intake pipeline | Email Intake, Document Intake |
-| 4–5 | 7–10 | Bookkeeping | Bookkeeping Agent (both adapters) |
-| 6 | 11–12 | Follow-up automation | Client Communication |
-| 7 | 13–14 | GST reconciliation | Reconciliation Agent |
-| 8 | 15–16 | Compliance checks | Validation, TDS/TCS |
-| 9 | 17–18 | Remaining compliance | Bank Reconciliation, Working Paper |
-| 10 | 19–20 | Billing | Client Profiling & Billing |
-| 11 | 21–22 | Practice visibility | Practice Management, Admin |
-| 12 | 23–24 | Hardening | Security, performance, launch prep |
+| 1–2 | 1–6 | Foundation | Identity, Task Engine, Books Connector (Tally + Zoho adapters) |
+| 3 | 7–8 | Intake pipeline | Email Intake, Document Intake |
+| 4–5 | 9–12 | Bookkeeping | Bookkeeping Agent (both adapters) |
+| 6 | 13–14 | Follow-up automation | Client Communication |
+| 7 | 15–16 | GST reconciliation | Reconciliation Agent |
+| 8 | 17–18 | Compliance checks | Validation, TDS/TCS |
+| 9 | 19–20 | Remaining compliance | Bank Reconciliation, Working Paper |
+| 10 | 21–22 | Billing | Client Profiling & Billing |
+| 11 | 23–24 | Practice visibility | Practice Management, Admin |
+| 12 | 25–26 | Hardening | Security, performance, launch prep |
 
-**Total: ~27 weeks including Phase 0**, pending reconfirmation of the Sprint 1-2 estimate once the Zoho spike (P0-06) reports back — see the timeline flag under Sprint 1-2 above.
+**Total: ~29 weeks including Phase 0** — 26 sprint weeks plus Phase 0's three. Reconfirmed 2026-09-21 after P0-06 reported: Foundation went from two iterations to three, and every sprint from Sprint 3 onward moved +2 weeks. **Sprint numbers were deliberately not changed.** Assumes one developer working with Claude Code. See the resolved timeline flag under Sprint 1–2 above; the first measured velocity comes at the Week 4 checkpoint.
