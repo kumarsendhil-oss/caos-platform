@@ -4,10 +4,15 @@ PostToolUse hook — after Claude edits or writes a Python file under
 services/api, run ruff against it. Enforces CG1 ("zero warnings before
 commit") continuously instead of hoping it gets checked before a commit.
 
-Invoked as `python "$env:CLAUDE_PROJECT_DIR/.claude/hooks/post_edit_python.py"`
-via PowerShell (see .claude/settings.json) — the shebang above is a
-no-op on Windows and harmless elsewhere; this script is always launched
-explicitly with `python`, never executed directly.
+Invoked as `python "$CLAUDE_PROJECT_DIR/.claude/hooks/post_edit_python.py"`
+via bash (`"shell": "bash"` in .claude/settings.json) — the shebang above
+is a no-op on Windows and harmless elsewhere; this script is always
+launched explicitly with `python`, never executed directly.
+
+Note the shell is bash, not PowerShell, and the variable is
+`$CLAUDE_PROJECT_DIR`, not `$env:CLAUDE_PROJECT_DIR`. Both changed on
+2026-09-15 when PowerShell hooks were found to fail open; see the
+`KNOWN ISSUE` docstring in guard_dangerous_bash.py before reverting.
 
 Also enforces the stub-tracking convention (see CLAUDE.md): any TODO,
 FIXME, HACK, XXX, or NotImplementedError must carry a STUB(#123) or

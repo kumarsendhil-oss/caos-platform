@@ -44,6 +44,18 @@ Anything touching Tally, GSP, or other external integrations should be called ou
 
 **Before saying "done."** Run the closest relevant tests and lint; report what ran and what didn't, rather than asserting completion. Don't claim a fix is verified against Tally unless it was actually run against a live instance.
 
+Report these five, every time. **Claude produces this block itself, unprompted, as part of reporting done** — it is not something the user has to ask for.
+
+`/verify-done` is the **user's** independent re-run of the same five items, and it is the same rule, not a second one. The skill carries `disable-model-invocation: true` by design: the model cannot invoke it, and therefore cannot sign off on its own work. So there are two steps — Claude reports the evidence, the user checks it — and an instruction telling Claude to "run `/verify-done`" is asking for something the harness will refuse. Ask for the §2 block instead.
+
+1. **`git status`, pasted verbatim.** Not summarised. The untracked-files section is the part that catches a stray scratch file.
+2. **Per-file line counts, before and after.** Requires capturing the baseline *before* editing, so decide at the start of a change that you will be reporting it. A count that only exists after the fact is a guess.
+3. **`python scripts/check_md_tables.py docs/` and `python scripts/check_doc_versions.py docs/`, with their exit codes.** Both, whenever anything under `docs/` changed. `check_md_tables.py` also runs automatically on each docs edit via a PostToolUse hook; `check_doc_versions.py` deliberately does not, because header-and-changelog consistency only holds once a multi-step edit is finished — this block is where it gets checked.
+4. **An explicit list of files NOT touched**, naming any the brief put off-limits. "I didn't change anything else" is not that list. Naming them is what lets a reviewer confirm scope without reading the whole diff.
+5. **Confirmation that any required status-check context string is unchanged**, quoted exactly, when the change goes anywhere near CI config. Branch protection matches these by literal string: a rename reports a context nobody requires, the required one never arrives, and every open PR blocks — with `enforce_admins: true`, nobody can click through it.
+
+Where a step genuinely doesn't apply — no docs changed, so no check scripts — say so rather than omitting it silently. An absent line reads the same as a skipped one.
+
 **Uncertainty.** Where Claude Code is inferring intent rather than following an explicit instruction or ADR, say so in the output rather than presenting an assumption as settled.
 
 **Precision over analogy.** When a PR or report describes something as "reusing" a pattern from a prior fix or ADR, verify that against the actual code/diff rather than assuming it matches because the situation looks similar. Say precisely what's shared (the underlying concept or decision) versus what differs (the actual implementation) — don't let a plausible-sounding analogy stand in for reading the diff.

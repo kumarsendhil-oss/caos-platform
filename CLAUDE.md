@@ -1,14 +1,20 @@
 # CAOS — Practice Automation Platform
 
 **Development platform: Windows, PowerShell.** All commands in this file
-and in `README.md` are PowerShell, not bash — this repo's `.claude/hooks/`
-are also configured to run via PowerShell (`"shell": "powershell"` in
-`.claude/settings.json`), matching either the Bash or PowerShell tool
-depending on which one actually executed a given command. If this ever
-becomes a cross-platform team, revisit `.claude/settings.json` and the
-hook scripts' venv-path resolution (`venv_exe()` in `post_edit_python.py`
-already handles both Windows and Unix venv layouts, but the shell
-commands themselves currently assume PowerShell).
+and in `README.md` are PowerShell, not bash.
+
+**The hooks are the exception: `.claude/hooks/` run under `"shell": "bash"`,
+not PowerShell.** That is deliberate and must not be reverted casually —
+under `"shell": "powershell"` the PreToolUse guard **failed open**, with 15
+of 15 matched runs recorded as exit 1 instead of the exit 2 that blocks, so
+nothing was ever actually blocked. Fixed 2026-09-15. Read the `KNOWN ISSUE`
+docstring in `.claude/hooks/guard_dangerous_bash.py` before changing the
+`shell` value or the `$CLAUDE_PROJECT_DIR` expansion that came with it.
+
+If this ever becomes a cross-platform team, revisit `.claude/settings.json`
+and the hook scripts' venv-path resolution (`venv_exe()` in
+`post_edit_python.py` already handles both Windows and Unix venv layouts,
+but the shell commands in this file and `README.md` assume PowerShell).
 
 Internal task-engine + automation-agent platform for Venture Assist /
 Srivatsan & Associates. Read `README.md` first for what's built vs. stubbed.
@@ -38,6 +44,19 @@ to a specific person, escalating if it's not resolved in time.
 - **pytest, ≥85% coverage, all external services mocked.** Tally, Zoho, GSP, and OCR are mocked at the client boundary in every unit test.
 - **`app/practices/{slug}/` is the only place practice-specific customization goes** — core modules (`app/agents/`, `app/task_engine/`, `app/books_connector/`) never branch on which practice is running. Check whether something is actually *configuration* (a client's `books_system`, service catalog pricing) before reaching for a practice-specific file.
 - **Every stub, hardcoded placeholder, or intentionally incomplete implementation must be tracked.** No `TODO`, `FIXME`, `HACK`, `XXX`, or `raise NotImplementedError` may exist without a `STUB(...)` marker on the same line — see "Stub tracking" below. A hook enforces this; it will block the edit if it's missing.
+- **Before reporting anything done, produce the verification block in `docs/CAOS-prompt-conventions.md` §2 ("Before saying done").** That is Claude's job, every time, unprompted. **`/verify-done` is the user's independent re-run of the same block** — it carries `disable-model-invocation: true` precisely so the model cannot invoke it, and so cannot certify its own work. Two steps, not one: Claude reports the evidence; the user checks it. Don't restate the block here or in a prompt — point at §2, per §9.
+
+## MCP servers — Railway and Supabase are not this project's stack
+
+The desktop-app session may expose **Railway** and **Supabase** MCP servers.
+They are not configured by this repo (there is no `.mcp.json`) and cannot be
+removed by anything committed here. **Do not use them.** This project deploys
+to **AWS ap-south-1 (Mumbai)** per ADR 0007 (Technology Stack, revised away
+from Railway), ADR 0009 (single-tenant per-customer deployments) and ADR 0014
+(Terraform). This is not hypothetical drift: ADR 0013 referred twice to a
+"Supabase/Postgres/Railway" stack and ADR 0016 had to correct it — see
+`docs/ADR-INDEX.md`. A live deploy or migration tool for a rejected stack is
+how that error gets made a second time.
 
 ## Stub tracking
 
@@ -70,6 +89,17 @@ a real description, not just `STUB(PENDING:1): x`.
 **The hook only guards `.py` files.** An untracked stub in a `.yml`,
 `.toml`, `.md`, or any other non-Python file under `services/api` passes
 silently — the convention still applies there, but nothing enforces it.
+
+**The other PostToolUse hook: `.claude/hooks/post_edit_docs.py`.** After any
+edit to a `.md` file under `docs/`, it runs `scripts/check_md_tables.py` and
+blocks (exit 2) on a malformed table row — almost always an unescaped pipe
+inside a cell, which backticks do not protect. It deliberately does **not**
+run `scripts/check_doc_versions.py`: header-and-changelog consistency only
+holds once a multi-step edit is finished, so enforcing it per-edit would
+block every legitimate add-the-row-then-update-the-header sequence. That
+check belongs in the conventions §2 evidence block (and the user's
+`/verify-done` re-run of it), and in CI. Detail lives in the hook's
+own docstring — read it there rather than restating it here.
 
 See `docs/STUB_ISSUES.md` for the current list — as of this writing, all
 of the `BooksConnector` adapters' unimplemented methods and the Task

@@ -18,6 +18,11 @@
             "type": "command",
             "shell": "bash",
             "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/post_edit_python.py\""
+          },
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/post_edit_docs.py\""
           }
         ]
       }
