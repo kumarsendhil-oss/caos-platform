@@ -71,8 +71,10 @@ confuse: `docs/spikes/P0-06-zoho-api-runbook.md` is the plan,
 | File | What it is |
 |---|---|
 | `CAOS_Internal_Development_Readiness_v0_1_1.pdf` | The original consolidated readiness package. ADRs 0001–0010 were extracted from it into individual files; it is kept for provenance, not as the current source. |
-| `CAOS_Feature_Documentation_v0_5.docx` | Customer-facing process flows per module. |
+| `CAOS_Feature_Documentation_v0_6.docx` | Customer-facing process flows per module. |
 | `CAOS_Presentation_v0_2.pptx` | Customer-facing presentation deck. |
+| `CAOS_Integration_Testing_v0_1.docx` | Customer-facing deliverable prepared for Venture Assist / Srivatsan & Associates, September 2026 — the integration testing approach, reporting what was tested against real systems. |
+| `CAOS_Tally_Integration_Capabilities_v0_1.docx` | Customer-facing deliverable prepared for Venture Assist / Srivatsan & Associates, September 2026 — Tally integration capabilities: what works today against a live Tally system, and what does not yet. |
 | `audit-platform-wireframes-v0_2.html` | 9 screens + 4 admin sub-screens, Design B (Capacity). |
 
 ## Delivered separately, genuinely not in this repo
