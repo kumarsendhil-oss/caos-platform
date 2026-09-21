@@ -39,8 +39,19 @@ on:
     paths:
       - "docs/**"
       - "scripts/check_*.py"
+      - "scripts/tests/**"
       - ".github/workflows/md-tables.yml"
       - ".ruff.toml"
+      # check_readme_refs.py resolves docs/README.md's references against
+      # the git index, and some of them point outside docs/. Deleting or
+      # renaming one of these turns the check red, so the PR that does it
+      # has to run the check. Derived from the references docs/README.md
+      # actually contains -- deliberately not "services/**", which would
+      # run this docs job on every backend PR.
+      - "CLAUDE.md"
+      - "README.md"
+      - "spikes/**"
+      - "services/api/app/models/**"
 
 jobs:
   tables:
@@ -65,6 +76,21 @@ jobs:
       # stale the day PR #71 rebuilt it.
       - name: Check document versions
         run: python scripts/check_doc_versions.py docs/
+
+      # A README index names files, and a row goes stale when the file it
+      # names is replaced -- as the CAOS_Feature_Documentation_v0_5.docx row
+      # did after PR #78, found by eye and fixed in PR #83.
+      # check_doc_versions.py cannot catch that: a binary deliverable has no
+      # changelog to compare a header against. Resolves against the git
+      # index, not the filesystem, so an uncommitted file does not count.
+      - name: Check README references
+        run: python scripts/check_readme_refs.py docs/
+
+      # Stdlib unittest, so this needs no install step either. The check
+      # above only proves today's docs/README.md passes; these prove the
+      # rule still fails what it is supposed to fail.
+      - name: Test the check scripts
+        run: python -m unittest discover -s scripts/tests
 
       # CG1 -- zero warnings, same rule set and same pinned ruff version
       # as services/api/pyproject.toml's dev extra. Pinned, not floating:

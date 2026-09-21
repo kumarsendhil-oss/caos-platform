@@ -493,6 +493,105 @@ assuming it is what caught this.
 `PENDING:027`'s transition-capture work depends on it. This is the open item
 standing between here and Sprint 1 starting.
 
+## Session — 2026-09-21 (README reference check; PR #83 catch-up)
+
+Landing in the PR from branch `chore/readme-refs-check`. Two things: this
+session's own work, and a catch-up for **PR #83, which was merged without
+`/wrapup`** — so nothing recorded it here at the time. That is the drift the
+2026-09-21 `/wrapup` change was meant to remove, and it recurred the same day,
+which is worth noting rather than quietly backfilling.
+
+**PR #83 (MERGED 2026-09-21, squashed to `127166b`).** Three things, none
+previously recorded here:
+- Added two customer-facing deliverables — `CAOS_Integration_Testing_v0_1.docx`
+  (the integration testing approach, reporting what was tested against real
+  systems) and `CAOS_Tally_Integration_Capabilities_v0_1.docx` (what works
+  today against a live Tally system and what does not yet). Both prepared for
+  Venture Assist / Srivatsan & Associates, September 2026.
+- **Fixed a stale `docs/README.md` row: `CAOS_Feature_Documentation_v0_5.docx`
+  → `v0_6.docx`.** The drift dated from PR #78, which took the document to
+  v0.6 without updating the index row pointing at it. Found by eye during the
+  untracked-docs triage, not by any check — which is what this session's work
+  is a response to.
+- **Deleted 8 untracked files that had never been committed**: 5 byte-identical
+  duplicates of P0-04 reference material, 2 unreferenced Tally vendor PDFs
+  (deleted at the user's decision rather than gitignored), and 1 misnamed
+  re-export of the v0.2 deck. Nothing tracked was removed.
+
+**`scripts/check_readme_refs.py` — a README may only name files that are
+committed.** It fails when `docs/README.md` references a filename that does
+not resolve to a git-tracked file. The gap it closes is structural:
+`check_doc_versions.py` compares a document's header against that document's
+own changelog, and **a binary deliverable has no changelog**, so the v0_5 row
+above was invisible to every check in the repo. Same argument as
+`PENDING:033` — a convention nobody runs is worth less than a check that runs
+itself.
+- **Resolves against the git index** (`git ls-files -z`, from the root via
+  `git rev-parse --show-toplevel`), **not the filesystem.** The untracked-docs
+  triage showed filesystem globbing silently counts uncommitted files: such a
+  reference passes on the author's machine and 404s for everyone else. The
+  index gives CI (a fresh checkout) and a local run the same answer.
+- Resolution order is README-relative, then repo-root-relative, then a
+  **basename fallback** for tokens with no slash. The fallback has a known
+  limitation, recorded in the module docstring: a stale bare basename that
+  collides with a different tracked file of the same name will pass
+  (`FINDINGS.md` exists under several spike directories). The anchor case is
+  unaffected — a versioned deliverable filename is unique.
+- `KNOWN_ABSENT` is **keyed per README and checked in both directions**: it
+  exempts `CAOS-dev-readiness-checklist-v0.1.xlsx`, which `docs/README.md`
+  declares is not in this repo, and **fails if that file ever becomes
+  git-tracked** — because then the README's claim is the thing that is wrong.
+- The fallback and `KNOWN_ABSENT` both exist because the rule without them
+  reported **six false positives against a correct `docs/README.md`**. The
+  docstring records which six, so a future reader does not delete the rules as
+  unexplained.
+- **Runs in CI and in the conventions §2 block, deliberately not as a
+  PostToolUse hook.** Same reasoning that excludes `check_doc_versions.py`
+  from `post_edit_docs.py`, plus one specific to this check: it reads the git
+  **index**, so per-edit it would fire on every new document until the file
+  was staged — a guard that trains people to work around it. CI, where
+  everything is committed, is the right boundary.
+- Tests are **stdlib `unittest`** in `scripts/tests/`, so the CI job keeps its
+  no-install-step property (it installs nothing but the pinned ruff). 9 tests;
+  they cover the untracked-but-present case and the `KNOWN_ABSENT`-became-
+  tracked case specifically. **The check scripts had no tests at all before
+  this** — `check_md_tables.py` and `check_doc_versions.py` still have none.
+- **Current result: clean.** 42 references checked in `docs/README.md`, all
+  resolve. Nothing stale was found and nothing was fixed — expected, since
+  PR #83 fixed the one known row.
+
+**`md-tables.yml`: two steps added inside the existing job, `paths:` widened.**
+No new job and no new workflow. **The required status-check context string
+`Docs table lint/Markdown tables + script lint` is unchanged** — branch
+protection matches it by literal string, and with `enforce_admins: true` a
+rename blocks every open PR with nobody able to click through. The filter
+gained `scripts/tests/**` plus the non-`docs/` paths `docs/README.md` actually
+references: `CLAUDE.md`, `README.md`, `spikes/**`, `services/api/app/models/**`
+— deliberately **not** `services/**`, which would run this docs job on every
+backend PR.
+
+**That filter is hand-maintained and will not track new references — new
+`PENDING:034`.** Add a row to `docs/README.md` pointing at a new top-level
+path and the filter does not know about it, so a later PR could delete that
+path without running the check. It is a false negative only, never a false
+positive. Filed rather than left in prose here, per conventions §2; the
+options and the argument are in the row.
+
+**`CAOS-prompt-conventions.md` has no changelog, by design — do not re-attempt
+a version bump on it.** §2 item 3 now names three check scripts instead of
+two, and `CLAUDE.md`'s `post_edit_docs.py` paragraph gained a matching clause.
+Neither change carries a version bump or a changelog row, and that is not an
+oversight: the document has **no `## Changelog` section and no version in its
+header** (its title ends `(draft)`), so `check_doc_versions.py` skips it
+entirely. A session plan earlier in this session asserted it had one and was
+wrong. Adding that structure would be inventing document structure and was
+out of scope; if it is ever wanted, it is its own decision.
+
+**Correction to the previous section's open items: PR #82 is MERGED**
+(2026-09-21T03:35:40Z, merge commit `492ebc5`), not awaiting merge. The
+section above was written before it landed and reads as pending, which was
+true when written and is not now. ADRs 0015 and 0016 are Accepted on `main`.
+
 ## Reference
 
 - Findings, one file per spike — **counts go stale silently, check the file, not this line:**
@@ -507,4 +606,4 @@ standing between here and Sprint 1 starting.
 - Build/wrap-up workflow: `.claude/commands/build.md`, `.claude/commands/wrapup.md`, `docs/CAOS-prompt-conventions.md`
 
 ---
-*Last updated: 2026-09-21 by `/wrapup` (ADRs 0015 and 0016 Accepted; feature doc v0.6 shared with the practice, with two items raised in the document awaiting their response; `PENDING:032` re-prioritised; `ONBOARDING.md` discarded; Sprint 1-2 capacity re-confirmation noted as the remaining pre-sprint item). Earlier the same day, also by `/wrapup`: first run of the revised command — ADRs 0015/0016 written, P0-08 scoped and deferred, feature doc v0.6, PRs #77-#80, the CI trigger removal, and the `/wrapup` change itself. Previous update 2026-09-18 by `/wrapup` (drift audit against actual merged PR state). Previous substantive update 2026-09-16 (`PENDING:009` — sandbox reset resolved as a **validated script**, `reset_sandbox.py`; findings #28–#29, plus the two-company keep-list audit). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*
+*Last updated: 2026-09-21 by `/wrapup` (`scripts/check_readme_refs.py` — README references must resolve to git-tracked files, wired into the existing docs-lint job with the required context string unchanged; `PENDING:034` for the hand-maintained paths filter; catch-up for PR #83, which was merged without `/wrapup`; PR #82 confirmed merged). Earlier the same day, also by `/wrapup`: (ADRs 0015 and 0016 Accepted; feature doc v0.6 shared with the practice, with two items raised in the document awaiting their response; `PENDING:032` re-prioritised; `ONBOARDING.md` discarded; Sprint 1-2 capacity re-confirmation noted as the remaining pre-sprint item). Earlier the same day, also by `/wrapup`: first run of the revised command — ADRs 0015/0016 written, P0-08 scoped and deferred, feature doc v0.6, PRs #77-#80, the CI trigger removal, and the `/wrapup` change itself. Previous update 2026-09-18 by `/wrapup` (drift audit against actual merged PR state). Previous substantive update 2026-09-16 (`PENDING:009` — sandbox reset resolved as a **validated script**, `reset_sandbox.py`; findings #28–#29, plus the two-company keep-list audit). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*

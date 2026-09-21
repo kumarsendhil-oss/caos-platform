@@ -94,11 +94,14 @@ silently — the convention still applies there, but nothing enforces it.
 edit to a `.md` file under `docs/`, it runs `scripts/check_md_tables.py` and
 blocks (exit 2) on a malformed table row — almost always an unescaped pipe
 inside a cell, which backticks do not protect. It deliberately does **not**
-run `scripts/check_doc_versions.py`: header-and-changelog consistency only
-holds once a multi-step edit is finished, so enforcing it per-edit would
-block every legitimate add-the-row-then-update-the-header sequence. That
-check belongs in the conventions §2 evidence block (and the user's
-`/verify-done` re-run of it), and in CI. Detail lives in the hook's
+run `scripts/check_doc_versions.py` or `scripts/check_readme_refs.py`:
+header-and-changelog consistency only holds once a multi-step edit is
+finished, so enforcing it per-edit would block every legitimate
+add-the-row-then-update-the-header sequence — and `check_readme_refs.py`
+resolves against the git index, so per-edit it would fire on every
+new document until the file was staged. Both checks belong in the
+conventions §2 evidence block (and the user's `/verify-done` re-run of
+it), and in CI. Detail lives in the hook's
 own docstring — read it there rather than restating it here.
 
 See `docs/STUB_ISSUES.md` for the current list — as of this writing, all
