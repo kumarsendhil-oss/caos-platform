@@ -830,6 +830,79 @@ and §14's item 3 rendered entirely bold teal because that paragraph is two runs
 and the text setter collapsed them. **Neither would have shown up in a text
 extraction.** Worth remembering before the next binary edit.
 
+## Session — 2026-09-21 (proposal v0.4 — §9 re-priced on AWS)
+
+Landing in the PR from branch `docs/proposal-s9-aws-repricing`.
+
+**`PENDING:038` is closed. The block on sending the proposal is lifted.**
+`CAOS_Software_Development_Proposal_v0_4.docx` re-prices §9 on the AWS
+ap-south-1 single-tenant stack. **Only §9 changed** — Sections 1–8 and 10–14
+are byte-identical to v0.3, confirmed by text diff.
+
+**What the re-pricing found, beyond the Supabase/Railway line.** The
+investigation turned up two things the original row did not name:
+
+- **§9's OCR line priced AWS Textract**, which contradicts **ADR 0008** —
+  self-hosted PaddleOCR, and "no client financial document is ever sent to a
+  third-party OCR/LLM API". A cost error, but also a **data-residency claim to
+  the customer** that the architecture forbids. Textract was the single
+  largest line in v0.3 (₹33,250–₹57,000).
+- **The cost model and the capacity model disagreed on volume by ~10×.** §9
+  assumed 37,500 documents/month; `CAOS-performance-scaling-v0.1.md` §1 says
+  "a few thousand documents/month at 500-client scale". Both describe the same
+  deployment. Now `PENDING:039`.
+
+**The configuration quoted** (decided this session, all recorded in §9):
+RDS PostgreSQL db.t4g.medium **Single-AZ**; TLS terminated on the instance, so
+**no ALB**; public subnet with security groups, so **no NAT gateway**;
+**Multi-AZ is a separately priced optional line** (+₹5,756/month), not in the
+totals. OCR is self-hosted PaddleOCR on CPU, sized from ~15 docs/hour/worker
+at 70% utilisation: 4 vCPU at 25,000 documents/month, 8 vCPU at the 37,500
+planning figure and at 50,000.
+
+**Figures.** Per-practice **fixed floor ₹12,970/month** — stated explicitly
+because ADR 0009 makes it recur for every firm rather than amortise.
+Steady state moves from **₹51,500–₹92,500** to **₹32,667–₹61,915/month**
+(₹3.9L–₹7.4L/year); ramp-up ₹57,167–₹92,415. The pilot claim of "20–25% of
+this total" is replaced with **~44%**, which is what a fixed-floor-dominated
+cost actually does at 100 clients. LLM treatment is unchanged per ADR 0012 and
+that table was not touched.
+
+**11 of 12 AWS rates were read from AWS's published ap-south-1 price list on
+2026-09-21** (Price List bulk API, plus AWS's own pricing-page endpoint for
+EC2 instance types). **EBS gp3 is the one estimate** and is labelled as such
+in the document's callout.
+
+**The §9 intro deliberately makes no data-residency claim.** It says only that
+"Document OCR runs within the practice's own AWS environment rather than
+through a third-party extraction service". The stronger claim — that no client
+document leaves the deployment — was drafted and then cut, because **ADR 0008
+and ADR 0012 disagree about whether documents reach the LLM provider**
+(`PENDING:040`). Until that is settled, the stronger sentence would be
+unsupportable in a customer-facing document.
+
+**`v0_2` and `v0_3` are removed from the working tree**, following the Feature
+Documentation precedent — `v0_4`→`v0_5`→`v0_6` each deleted or renamed its
+predecessor, and only one copy per deliverable is ever tracked. This reverses
+the earlier decision in this same day's proposal PR to keep `v0_2` as a
+"source of record", which was the anomaly. Git history keeps both.
+`docs/README.md` collapses to a single proposal row; PRD §3 moves to **v0.4**
+with the not-sendable note removed (**PRD v0.2.8**).
+
+**Three new open items, none of which re-blocks sending:**
+- **`PENDING:039`** — the scaling doc's "a few thousand documents/month"
+  against the validated 25,000–50,000. Also needs §4's "2–4 workers"
+  conclusion re-derived: at 37,500 the doc's own measured throughput implies
+  ~4.9 continuous workers, so 4 is the floor, not headroom.
+- **`PENDING:040`** — ADR 0008 versus ADR 0012 on what reaches the model
+  provider (document image or locally-extracted text), and the DPDP position
+  given the provider processes outside India. **Blocks any customer-facing
+  data-residency claim.**
+- **`PENDING:041`** — §10.4 commits to "a dedicated AWS account held in the
+  client's name"; ADR 0009 decides one stack per practice and is silent on
+  account boundaries. Needs an ADR 0009 amendment, and it bears on cost, since
+  several AWS allowances are per-account.
+
 ## Reference
 
 - Findings, one file per spike — **counts go stale silently, check the file, not this line:**
@@ -844,4 +917,4 @@ extraction.** Worth remembering before the next binary edit.
 - Build/wrap-up workflow: `.claude/commands/build.md`, `.claude/commands/wrapup.md`, `docs/CAOS-prompt-conventions.md`
 
 ---
-*Last updated: 2026-09-21 by `/wrapup` (**Proposal v0.3 commercial terms** — fixed price ₹15,00,000 ex-GST against milestones M1–M4, 120-day warranty, training, defect severities and the licence model in a new §10; sections renumbered 10–13 → 11–14; source renamed to `_v0_2` and committed; added to `docs/README.md` and to PRD §3 at v0.3 (PRD v0.2.7); **new `PENDING:038` blocks sending it** until §9 is re-priced off Supabase/Railway onto the ADR 0007/0009 AWS stack). Earlier the same day, also by `/wrapup`: (**Sprint 1–2 timeline reconfirmed** — Foundation to three iterations, Weeks 1–6, total ~27 → ~29 weeks, sprint numbers unchanged; one-developer capacity assumption recorded; Week 4 checkpoint; sandbox-first exit criteria; `PENDING:036`/`PENDING:037` added, with 037 the one pre-Week-1 action; the stale "remaining pre-sprint item" note struck and its wrong `PENDING:027` attribution corrected; sprint plan v0.2.5, PRD v0.2.6). Earlier the same day, also by `/wrapup`: (**ADR 0015 Amendment 1 proposed** — blocked state and `blocked_reason`, Status Proposed pending two questions to the practice; `PENDING:032` updated and still Open; new `PENDING:035` for the blocked × escalated implementation gate; the earlier "no ADR is Proposed" claim struck in place; the #83/#84 squash-merge deviation recorded as a one-off). Earlier the same day, also by `/wrapup`: (`scripts/check_readme_refs.py` — README references must resolve to git-tracked files, wired into the existing docs-lint job with the required context string unchanged; `PENDING:034` for the hand-maintained paths filter; catch-up for PR #83, which was merged without `/wrapup`; PR #82 confirmed merged). Earlier the same day, also by `/wrapup`: (ADRs 0015 and 0016 Accepted; feature doc v0.6 shared with the practice, with two items raised in the document awaiting their response; `PENDING:032` re-prioritised; `ONBOARDING.md` discarded; Sprint 1-2 capacity re-confirmation noted as the remaining pre-sprint item). Earlier the same day, also by `/wrapup`: first run of the revised command — ADRs 0015/0016 written, P0-08 scoped and deferred, feature doc v0.6, PRs #77-#80, the CI trigger removal, and the `/wrapup` change itself. Previous update 2026-09-18 by `/wrapup` (drift audit against actual merged PR state). Previous substantive update 2026-09-16 (`PENDING:009` — sandbox reset resolved as a **validated script**, `reset_sandbox.py`; findings #28–#29, plus the two-company keep-list audit). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*
+*Last updated: 2026-09-21 by `/wrapup` (**Proposal v0.4 — §9 re-priced on AWS ap-south-1**, closing `PENDING:038` and lifting the block on sending; Textract removed per ADR 0008 and replaced with self-hosted OCR compute; per-practice fixed floor ₹12,970/month stated explicitly; steady state ₹32,667–₹61,915/month; `v0_2`/`v0_3` removed from the tree, one copy per deliverable; PRD v0.2.8; new `PENDING:039`/`040`/`041`). Earlier the same day, also by `/wrapup`: (**Proposal v0.3 commercial terms** — fixed price ₹15,00,000 ex-GST against milestones M1–M4, 120-day warranty, training, defect severities and the licence model in a new §10; sections renumbered 10–13 → 11–14; source renamed to `_v0_2` and committed; added to `docs/README.md` and to PRD §3 at v0.3 (PRD v0.2.7); **new `PENDING:038` blocks sending it** until §9 is re-priced off Supabase/Railway onto the ADR 0007/0009 AWS stack). Earlier the same day, also by `/wrapup`: (**Sprint 1–2 timeline reconfirmed** — Foundation to three iterations, Weeks 1–6, total ~27 → ~29 weeks, sprint numbers unchanged; one-developer capacity assumption recorded; Week 4 checkpoint; sandbox-first exit criteria; `PENDING:036`/`PENDING:037` added, with 037 the one pre-Week-1 action; the stale "remaining pre-sprint item" note struck and its wrong `PENDING:027` attribution corrected; sprint plan v0.2.5, PRD v0.2.6). Earlier the same day, also by `/wrapup`: (**ADR 0015 Amendment 1 proposed** — blocked state and `blocked_reason`, Status Proposed pending two questions to the practice; `PENDING:032` updated and still Open; new `PENDING:035` for the blocked × escalated implementation gate; the earlier "no ADR is Proposed" claim struck in place; the #83/#84 squash-merge deviation recorded as a one-off). Earlier the same day, also by `/wrapup`: (`scripts/check_readme_refs.py` — README references must resolve to git-tracked files, wired into the existing docs-lint job with the required context string unchanged; `PENDING:034` for the hand-maintained paths filter; catch-up for PR #83, which was merged without `/wrapup`; PR #82 confirmed merged). Earlier the same day, also by `/wrapup`: (ADRs 0015 and 0016 Accepted; feature doc v0.6 shared with the practice, with two items raised in the document awaiting their response; `PENDING:032` re-prioritised; `ONBOARDING.md` discarded; Sprint 1-2 capacity re-confirmation noted as the remaining pre-sprint item). Earlier the same day, also by `/wrapup`: first run of the revised command — ADRs 0015/0016 written, P0-08 scoped and deferred, feature doc v0.6, PRs #77-#80, the CI trigger removal, and the `/wrapup` change itself. Previous update 2026-09-18 by `/wrapup` (drift audit against actual merged PR state). Previous substantive update 2026-09-16 (`PENDING:009` — sandbox reset resolved as a **validated script**, `reset_sandbox.py`; findings #28–#29, plus the two-company keep-list audit). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*
