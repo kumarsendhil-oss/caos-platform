@@ -23,8 +23,8 @@ from the original consolidated *Internal Development Readiness Package* PDF
 | 0012 | Cost-Optimized Agent LLM Usage | Accepted (pending re-metering) | `audit-platform-ADR-0012-cost-optimization.md` |
 | 0013 | HRMS Integration for Internal Staff Management (Frappe HR) | Superseded by 0016 | `audit-platform-ADR-0013-hrms-integration.md` |
 | 0014 | Infrastructure-as-Code Scope: Terraform Without Fargate | Accepted | `audit-platform-ADR-0014-iac-scope-terraform-without-fargate.md` |
-| 0015 | Engagement and Task Model Redesign | Proposed | `audit-platform-ADR-0015-engagement-and-task-model.md` |
-| 0016 | Attendance, Payroll and Performance: Native Capture with RazorpayX Payroll | Proposed | `audit-platform-ADR-0016-attendance-and-payroll-integration.md` |
+| 0015 | Engagement and Task Model Redesign | Accepted | `audit-platform-ADR-0015-engagement-and-task-model.md` |
+| 0016 | Attendance, Payroll and Performance: Native Capture with RazorpayX Payroll | Accepted | `audit-platform-ADR-0016-attendance-and-payroll-integration.md` |
 | — | Open items carried from ADRs 0001–0010 | — | `audit-platform-ADR-0001-0010-open-items.md` |
 
 ## Notes
@@ -46,4 +46,4 @@ from the original consolidated *Internal Development Readiness Package* PDF
 
 ## Gaps worth knowing about
 
-~~There is a reference elsewhere to an **ADR 0013** that is not in this folder.~~ **Resolved 2026-09-17: it was in the folder all along.** `audit-platform-ADR-0013-hrms-integration.md` exists and is complete — it was simply never added to the table above, and this note went stale rather than the ADR going missing. It is now indexed, at the status its own file states (*Proposed*), which nothing here changes. The highest-numbered ADR on record is **0016**.
+~~There is a reference elsewhere to an **ADR 0013** that is not in this folder.~~ **Resolved 2026-09-17: it was in the folder all along.** `audit-platform-ADR-0013-hrms-integration.md` exists and is complete — it was simply never added to the table above, and this note went stale rather than the ADR going missing. It is now indexed. Its status has since moved on: 0013 is **Superseded by 0016** (2026-09-21), which is what the table above records. The highest-numbered ADR on record is **0016**.

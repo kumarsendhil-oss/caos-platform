@@ -55,6 +55,8 @@ Before ending the session:
     gh pr checks <n> --watch
     ```
 
+    **Run this as a standalone command — never chained with `&&` after another command.** In PR #82 a case-sensitive `grep` was chained ahead of it, failed to match, and short-circuited the chain; its exit code was then read as the checks' result. The checks never ran, and the failure looked exactly like a check result. An exit code that looks like a result but isn't one is worse than no check at all.
+
     **A non-zero exit here is a hard stop.** Never merge a PR whose checks are pending or red — fix the failure in this session, where the context still exists, and re-run. Do not retry the merge hoping the check settles.
 
     ```bash
@@ -70,6 +72,8 @@ Before ending the session:
     # c. Return to main
     git checkout main && git pull
     ```
+
+    **The `git pull` is required, not a courtesy.** `gh pr merge --delete-branch` switches to the default branch and deletes the local one, but does **not** pull — so the working tree holds the pre-merge state while the merge exists only on the remote. Observed on PR #81: the skill listing showed this file's old description until the pull ran. A second `/wrapup` in the same session would otherwise run the superseded version of this file.
 
     **On `--auto`:** auto-merge is **disabled** on this repo (`allow_auto_merge: false`), so `gh pr merge --auto` fails outright. If that setting is ever turned on, `gh pr merge <n> --auto --merge --delete-branch` replaces (a) and (b). Note what `--auto` does and does not buy: **branch protection is what holds a merge until checks pass, not `--auto`.** `--auto` only queues the merge so you don't have to wait. The `--watch` form above is arguably better regardless, because it surfaces a red check in the session where it can still be fixed rather than handing the outcome to GitHub after everyone has moved on.
 
