@@ -46,4 +46,4 @@ from the original consolidated *Internal Development Readiness Package* PDF
 
 ## Gaps worth knowing about
 
-~~There is a reference elsewhere to an **ADR 0013** that is not in this folder.~~ **Resolved 2026-09-17: it was in the folder all along.** `audit-platform-ADR-0013-hrms-integration.md` exists and is complete — it was simply never added to the table above, and this note went stale rather than the ADR going missing. It is now indexed, at the status its own file states (*Proposed*), which nothing here changes. The highest-numbered ADR on record is **0016**.
+~~There is a reference elsewhere to an **ADR 0013** that is not in this folder.~~ **Resolved 2026-09-17: it was in the folder all along.** `audit-platform-ADR-0013-hrms-integration.md` exists and is complete — it was simply never added to the table above, and this note went stale rather than the ADR going missing. It is now indexed. Its status has since moved on: 0013 is **Superseded by 0016** (2026-09-21), which is what the table above records. The highest-numbered ADR on record is **0016**.

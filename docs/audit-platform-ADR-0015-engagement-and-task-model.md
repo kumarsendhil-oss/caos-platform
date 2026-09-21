@@ -2,7 +2,7 @@
 
 **Status:** Accepted 2026-09-21
 **Date:** 2026-09-20
-**Relates to:** ADR 0004 (Platform as a Thin Layer), ADR 0005 (Task Engine as the Shared Backbone), ADR 0013 (HRMS Integration — Frappe HR, *Proposed*)
+**Relates to:** ADR 0004 (Platform as a Thin Layer), ADR 0005 (Task Engine as the Shared Backbone), ADR 0013 (HRMS Integration — Frappe HR, *Superseded by 0016*)
 **Triggers supersession of:** ADR 0013 (HRMS Integration — Frappe HR) — see Decision 7; its integration target no longer exists. Superseded by ADR 0016
 **Reverses, in part:** the PRD §6 deferral of "Knowledge Base/Query Assistant", narrowly — see Decision 6
 **Out of scope:** specifying native attendance capture, geofencing and payroll export (the superseding ADR's job — Decision 7); sprint resequencing (see "Not decided here")

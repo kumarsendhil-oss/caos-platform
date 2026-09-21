@@ -2,8 +2,8 @@
 
 **Status:** Accepted 2026-09-21
 **Date:** 2026-09-20
-**Supersedes:** ADR 0013 (HRMS Integration for Internal Staff Management — Frappe HR, *Proposed*)
-**Relates to:** ADR 0004 (Platform as a Thin Layer), ADR 0007 (Technology Stack), ADR 0009 (Deployment Model — Single-Tenant), ADR 0014 (IaC Scope — Terraform Without Fargate), ADR 0015 (Engagement and Task Model Redesign, *Proposed*)
+**Supersedes:** ADR 0013 (HRMS Integration for Internal Staff Management — Frappe HR)
+**Relates to:** ADR 0004 (Platform as a Thin Layer), ADR 0007 (Technology Stack), ADR 0009 (Deployment Model — Single-Tenant), ADR 0014 (IaC Scope — Terraform Without Fargate), ADR 0015 (Engagement and Task Model Redesign, *Accepted*)
 **Depends on:** `P0-08` — the RazorpayX Payroll scoping spike, **declared by this ADR** and not yet run
 **Corrects:** ADR 0013's two references to a "Supabase/Postgres/Railway" stack — see "Correction carried through the supersession"
 **Out of scope:** the attendance schema itself (Decision 4 states the obligation, not the shape); where leave lives (Decision 5, gated on `P0-08` T2); qualitative appraisal (Decision 2, out of scope by customer decision)
