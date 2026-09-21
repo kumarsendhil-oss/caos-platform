@@ -433,29 +433,58 @@ external commitment with no backing decision. **Queued as the first ADR work of
 Sprint 1**, as an *amendment* to 0015 (it is Accepted now, so it is not edited
 in place).
 
-**Feature Documentation v0.6 shared with the practice, with two open questions
-put to them:**
-1. Which billing cycles are actually used in practice.
-2. That measurement depends on staff marking tasks **started** and **paused** —
-   i.e. the data only exists if people do that consistently. This is a
-   dependency on behaviour, not on software, and it is the assumption the whole
-   measurement story rests on.
+**Feature Documentation v0.6 has been shared with the practice.** The document
+itself raises two items awaiting their response. **Nothing on record says these
+were put to the practice in conversation** — they are raised in the document,
+and no answer has come back:
 
-Both answers are inputs to the Sprint 1 work; neither is blocking today.
+1. **Which billing cycles they actually bill on.** The platform models
+   **monthly and quarterly only**; v0.6 asks about **annual**, which is not
+   supported anywhere — tracked as `PENDING:025`, which records that no
+   `annual` or `on_completion` value exists in CB-01, `CLIENT.billing_cycle`,
+   `services/api/app/models/client.py`, or ADR 0015's
+   `ENGAGEMENT.billing_frequency`. The document therefore asks about a cycle
+   the platform cannot currently represent.
+2. **That time measurement depends on staff marking tasks started and paused.**
+   Raised as a callout in v0.6's time-measurement section. The data only exists
+   if people do that consistently, so this is a dependency on behaviour rather
+   than on software — and it is the assumption the whole measurement story
+   rests on.
 
-**Four stale cross-references, reported and deliberately not edited.** The
-brief scoped this session to Status lines only, and three of these predate it:
+Both are inputs to the Sprint 1 work; neither is blocking today. Neither has an
+answer yet.
 
-- `ADR-0015:5` and `ADR-0016:5` describe **ADR 0013 as *Proposed***; it is
-  Superseded by 0016. Pre-existing.
-- `ADR-0016:6` describes **ADR 0015 as *Proposed***. This one **was made stale
-  by this session's change** and is the first to fix.
-- `ADR-INDEX.md:49` says 0013 sits "at the status its own file states
-  (*Proposed*)", contradicting its own table row two screens above. Pre-existing.
+**Four stale header cross-references — found, then fixed in the same PR.**
+They were first reported as out of scope (the brief was Status lines only) and
+queued as follow-up. That follow-up was then folded back into this branch
+before it merged, so **the stale state was never published to `main`**:
 
-Body prose in `ADR-0015:528` and `ADR-0016:27` also argues "0013 is still
-Proposed". That is a record of the reasoning at the time and is arguably
-correct as history; the header cross-references are not.
+- `ADR-0015:5` and `ADR-0016:5` described **ADR 0013 as *Proposed***; it is
+  Superseded by 0016. Pre-existing. 0015's now reads *Superseded by 0016*;
+  0016's `**Supersedes:**` line drops the qualifier entirely, since a line that
+  already states the relationship does not also need to restate 0013's status.
+- `ADR-0016:6` described **ADR 0015 as *Proposed***. This one was made stale by
+  the acceptance in this same PR, and never reached `main` in that state. Now
+  *Accepted*.
+- `ADR-INDEX.md:49` said 0013 sits "at the status its own file states
+  (*Proposed*)", contradicting its own table row two screens above. Now states
+  that 0013 is **Superseded by 0016**, matching the table.
+
+These are **metadata, not decisions**, so conventions §2's no-edit-in-place
+rule does not apply — no decision text was touched.
+
+Body prose in `ADR-0015:528` and `ADR-0016:27` still argues "0013 is still
+Proposed" and is **deliberately left**. That is a record of the reasoning at
+the time it was written, which is what an ADR body is for; the header
+cross-references are read as current fact, which is why those had to change.
+
+**Why this correction nearly shipped late.** The follow-up was drafted after
+this PR was opened and was almost applied on a branch cut from `main` — on the
+assumption this PR had merged. It had not: it was sitting at the merge gate,
+unmerged, with the acceptance still only on the branch. A corrections branch
+cut from `main` would have edited `ADR-0016:6` to say 0015 is *Accepted* while
+`main` still said *Proposed*. Checking the actual merge state rather than
+assuming it is what caught this.
 
 **`ONBOARDING.md` discarded by the user.** It had been sitting untracked since
 2026-09-21; it is gone and was never committed.
@@ -478,4 +507,4 @@ standing between here and Sprint 1 starting.
 - Build/wrap-up workflow: `.claude/commands/build.md`, `.claude/commands/wrapup.md`, `docs/CAOS-prompt-conventions.md`
 
 ---
-*Last updated: 2026-09-21 by `/wrapup` (ADRs 0015 and 0016 Accepted; feature doc v0.6 shared with the practice with two open questions; `PENDING:032` re-prioritised; `ONBOARDING.md` discarded; Sprint 1-2 capacity re-confirmation noted as the remaining pre-sprint item). Earlier the same day, also by `/wrapup`: first run of the revised command — ADRs 0015/0016 written, P0-08 scoped and deferred, feature doc v0.6, PRs #77-#80, the CI trigger removal, and the `/wrapup` change itself. Previous update 2026-09-18 by `/wrapup` (drift audit against actual merged PR state). Previous substantive update 2026-09-16 (`PENDING:009` — sandbox reset resolved as a **validated script**, `reset_sandbox.py`; findings #28–#29, plus the two-company keep-list audit). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*
+*Last updated: 2026-09-21 by `/wrapup` (ADRs 0015 and 0016 Accepted; feature doc v0.6 shared with the practice, with two items raised in the document awaiting their response; `PENDING:032` re-prioritised; `ONBOARDING.md` discarded; Sprint 1-2 capacity re-confirmation noted as the remaining pre-sprint item). Earlier the same day, also by `/wrapup`: first run of the revised command — ADRs 0015/0016 written, P0-08 scoped and deferred, feature doc v0.6, PRs #77-#80, the CI trigger removal, and the `/wrapup` change itself. Previous update 2026-09-18 by `/wrapup` (drift audit against actual merged PR state). Previous substantive update 2026-09-16 (`PENDING:009` — sandbox reset resolved as a **validated script**, `reset_sandbox.py`; findings #28–#29, plus the two-company keep-list audit). Originally seeded manually via claude.ai chat. From this point, `/wrapup` should keep this current — if it isn't, that's a sign `/wrapup` isn't being run, not that the file is wrong.*
